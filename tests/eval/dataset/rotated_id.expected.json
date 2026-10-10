@@ -1,0 +1,9 @@
+{
+  "doc_type": "id_card",
+  "fields": {
+    "full_name": "Jane Doe",
+    "id_number": "ID-98472918",
+    "date_of_birth": "1990-05-14",
+    "nationality": "USA"
+  }
+}

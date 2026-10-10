@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openocr.io/schemas/_shared.schema.json",
+  "title": "OpenOCR Shared Canonical Shapes",
+  "definitions": {
+    "Address": {
+      "type": "object",
+      "properties": {
+        "raw": { "type": ["string", "null"] },
+        "line1": { "type": ["string", "null"] },
+        "line2": { "type": ["string", "null"] },
+        "locality": { "type": ["string", "null"] },
+        "district": { "type": ["string", "null"] },
+        "city": { "type": ["string", "null"] },
+        "state_region": { "type": ["string", "null"] },
+        "postal_code": { "type": ["string", "null"] },
+        "country": { "type": ["string", "null"], "description": "ISO 3166-1 alpha-2 country code" }
+      },
+      "additionalProperties": false
+    },
+    "Money": {
+      "type": "object",
+      "properties": {
+        "amount": { "type": ["number", "null"] },
+        "currency": { "type": ["string", "null"], "description": "ISO 4217 currency code" },
+        "raw": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "BankDetails": {
+      "type": "object",
+      "properties": {
+        "bank_name": { "type": ["string", "null"] },
+        "account_name": { "type": ["string", "null"] },
+        "account_no": { "type": ["string", "null"] },
+        "iban": { "type": ["string", "null"] },
+        "swift_bic": { "type": ["string", "null"] },
+        "routing_no": { "type": ["string", "null"] },
+        "branch": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Party": {
+      "type": "object",
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "legal_name": { "type": ["string", "null"] },
+        "tax_id": { "type": ["string", "null"] },
+        "registration_no": { "type": ["string", "null"] },
+        "address": { "$ref": "#/definitions/Address" },
+        "phone": { "type": ["string", "null"] },
+        "email": { "type": ["string", "null"] },
+        "website": { "type": ["string", "null"] },
+        "contact_person": { "type": ["string", "null"] },
+        "bank_details": { "$ref": "#/definitions/BankDetails" }
+      },
+      "additionalProperties": false
+    },
+    "Person": {
+      "type": "object",
+      "properties": {
+        "full_name": { "type": ["string", "null"] },
+        "first_name": { "type": ["string", "null"] },
+        "middle_name": { "type": ["string", "null"] },
+        "last_name": { "type": ["string", "null"] },
+        "name_local_script": { "type": ["string", "null"] },
+        "gender": { "type": ["string", "null"] },
+        "date_of_birth": { "type": ["string", "null"] },
+        "place_of_birth": { "type": ["string", "null"] },
+        "nationality": { "type": ["string", "null"] },
+        "father_name": { "type": ["string", "null"] },
+        "mother_name": { "type": ["string", "null"] },
+        "spouse_name": { "type": ["string", "null"] },
+        "guardian_name": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "LineItem": {
+      "type": "object",
+      "properties": {
+        "line_no": { "type": ["integer", "null"] },
+        "description": { "type": ["string", "null"] },
+        "sku": { "type": ["string", "null"] },
+        "hsn_sac_code": { "type": ["string", "null"] },
+        "quantity": { "type": ["number", "null"] },
+        "unit": { "type": ["string", "null"] },
+        "unit_price": { "type": ["number", "null"] },
+        "discount": { "type": ["number", "null"] },
+        "tax_rate": { "type": ["number", "null"] },
+        "tax_amount": { "type": ["number", "null"] },
+        "line_total": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "TaxLine": {
+      "type": "object",
+      "properties": {
+        "tax_type": { "type": ["string", "null"] },
+        "rate": { "type": ["number", "null"] },
+        "taxable_amount": { "type": ["number", "null"] },
+        "amount": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Signature": {
+      "type": "object",
+      "properties": {
+        "present": { "type": ["boolean", "null"] },
+        "signatory_name": { "type": ["string", "null"] },
+        "signatory_title": { "type": ["string", "null"] },
+        "date": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Stamp": {
+      "type": "object",
+      "properties": {
+        "present": { "type": ["boolean", "null"] },
+        "text": { "type": ["string", "null"] },
+        "issuer": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Photo": {
+      "type": "object",
+      "properties": {
+        "present": { "type": ["boolean", "null"] },
+        "face_count": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Barcode": {
+      "type": "object",
+      "properties": {
+        "present": { "type": ["boolean", "null"] },
+        "type": { "type": ["string", "null"] },
+        "data": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "MRZ": {
+      "type": "object",
+      "properties": {
+        "present": { "type": ["boolean", "null"] },
+        "format": { "type": ["string", "null"] },
+        "line1": { "type": ["string", "null"] },
+        "line2": { "type": ["string", "null"] },
+        "line3": { "type": ["string", "null"] },
+        "checksums_valid": { "type": ["boolean", "null"] },
+        "parsed": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "Period": {
+      "type": "object",
+      "properties": {
+        "from": { "type": ["string", "null"] },
+        "to": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Contact": {
+      "type": "object",
+      "properties": {
+        "phone": { "type": ["string", "null"] },
+        "email": { "type": ["string", "null"] },
+        "website": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

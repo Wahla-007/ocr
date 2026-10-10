@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReceiptSchema",
+  "type": "object",
+  "properties": {
+    "merchant_name": {
+      "type": "string",
+      "description": "Name of store or merchant"
+    },
+    "receipt_date": {
+      "type": "string",
+      "description": "Transaction date and time"
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Subtotal before tax"
+    },
+    "tax_amount": {
+      "type": "number",
+      "description": "Sales tax"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Final total paid"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method (Cash, Credit, Debit, etc.)"
+    }
+  },
+  "required": ["merchant_name", "total_amount"]
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResumeSchema",
+  "type": "object",
+  "properties": {
+    "candidate_name": {
+      "type": "string",
+      "description": "Full name of candidate"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "headline": {
+      "type": "string",
+      "description": "Professional headline or job title"
+    },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of technical and soft skills"
+    },
+    "total_years_experience": {
+      "type": "number",
+      "description": "Estimated total years of professional experience"
+    }
+  },
+  "required": ["candidate_name"]
+}

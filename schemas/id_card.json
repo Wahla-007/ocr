@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IdCardSchema",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Full legal name on identity card"
+    },
+    "id_number": {
+      "type": "string",
+      "description": "Unique identity or document number"
+    },
+    "date_of_birth": {
+      "type": "string",
+      "description": "Date of birth in YYYY-MM-DD format"
+    },
+    "expiry_date": {
+      "type": "string",
+      "description": "Expiration date in YYYY-MM-DD format"
+    },
+    "nationality": {
+      "type": "string",
+      "description": "Country of citizenship or issue"
+    }
+  },
+  "required": ["full_name", "id_number"]
+}

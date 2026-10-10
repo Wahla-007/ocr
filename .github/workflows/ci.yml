@@ -1,0 +1,103 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  python-lint-test:
+    name: Python Lint & Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: openocr
+          POSTGRES_PASSWORD: openocr_secure_pass
+          POSTGRES_DB: openocr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system -e providers/
+          uv pip install --system -e apps/api/
+          uv pip install --system -e apps/worker/
+          uv pip install --system ruff pytest pytest-asyncio aiosqlite
+
+      - name: Run Ruff Lint
+        run: ruff check .
+
+      - name: Run Database Migrations
+        env:
+          DATABASE_URL_SYNC: postgresql://openocr:openocr_secure_pass@localhost:5432/openocr
+        run: |
+          cd apps/api
+          alembic upgrade head
+
+      - name: Run API Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://openocr:openocr_secure_pass@localhost:5432/openocr
+          DATABASE_URL_SYNC: postgresql://openocr:openocr_secure_pass@localhost:5432/openocr
+          REDIS_URL: redis://localhost:6379/0
+        run: pytest apps/api/tests
+
+      - name: Run Worker Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://openocr:openocr_secure_pass@localhost:5432/openocr
+          REDIS_URL: redis://localhost:6379/0
+        run: pytest apps/worker/tests
+
+  web-lint-build:
+    name: Web App Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Type check
+        working-directory: apps/web
+        run: npm run type-check
+
+      - name: Build
+        working-directory: apps/web
+        run: npm run build

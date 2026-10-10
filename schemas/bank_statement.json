@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BankStatementSchema",
+  "type": "object",
+  "properties": {
+    "bank_name": {
+      "type": "string",
+      "description": "Name of financial institution"
+    },
+    "account_holder": {
+      "type": "string",
+      "description": "Name of account owner"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Account number"
+    },
+    "statement_period": {
+      "type": "string",
+      "description": "Statement date range"
+    },
+    "opening_balance": {
+      "type": "number",
+      "description": "Starting balance for the period"
+    },
+    "closing_balance": {
+      "type": "number",
+      "description": "Ending balance for the period"
+    }
+  },
+  "required": ["bank_name", "closing_balance"]
+}

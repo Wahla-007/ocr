@@ -1,0 +1,10 @@
+{
+  "doc_type": "invoice",
+  "fields": {
+    "invoice_number": "INV-2026-0042",
+    "issue_date": "2026-10-06",
+    "due_date": "2026-11-06",
+    "total_amount": 11275.0,
+    "currency": "USD"
+  }
+}

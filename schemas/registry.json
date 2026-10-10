@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "OpenOCR Document Type Registry",
+  "version": "1.0.0",
+  "categories": [
+    "identity_and_travel",
+    "financial_and_commercial",
+    "legal_and_property",
+    "medical",
+    "education_and_hr",
+    "travel_and_transport",
+    "other_common_documents"
+  ],
+  "document_types": [
+    {
+      "id": "aadhaar_card",
+      "title": "Aadhaar Card",
+      "category": "identity_and_travel",
+      "parent_type": "national_id_card",
+      "country_hints": ["IN"],
+      "schema_version": "aadhaar_card@1.0.0",
+      "classification_keywords": [
+        "aadhaar", "unique identification authority of india", "uidai", "aam aadmi ka adhikar",
+        "vid", "mera aadhaar", "मेरा आधार", "enrolment no", "help@uidai.gov.in"
+      ]
+    },
+    {
+      "id": "national_id_card",
+      "title": "National ID Card",
+      "category": "identity_and_travel",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "national_id_card@1.0.0",
+      "classification_keywords": [
+        "national identity card", "identity card", "republic of", "government of",
+        "cnic", "nicop", "emirates id", "ktp", "mykad", "nric", "cedula", "carte nationale d'identite"
+      ]
+    },
+    {
+      "id": "driving_licence",
+      "title": "Driving Licence",
+      "category": "identity_and_travel",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "driving_licence@1.0.0",
+      "classification_keywords": [
+        "driver license", "driving licence", "driver's license", "motor vehicle",
+        "department of motor vehicles", "dmv", "dl no", "permis de conduire", "driving permit",
+        "licence to drive", "class c", "licence no", "operator license"
+      ]
+    },
+    {
+      "id": "passport",
+      "title": "Passport",
+      "category": "identity_and_travel",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "passport@1.0.0",
+      "classification_keywords": [
+        "passport", "passeport", "pasaporte", "republic", "type p", "p<", "mrz", "nationality"
+      ]
+    },
+    {
+      "id": "tax_id_card",
+      "title": "Tax ID / PAN Card",
+      "category": "identity_and_travel",
+      "parent_type": null,
+      "country_hints": ["IN", "US", "PK"],
+      "schema_version": "tax_id_card@1.0.0",
+      "classification_keywords": [
+        "income tax department", "permanent account number", "pan card", "tin", "ntn", "social security administration", "ssn"
+      ]
+    },
+    {
+      "id": "invoice",
+      "title": "Invoice",
+      "category": "financial_and_commercial",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "invoice@1.0.0",
+      "classification_keywords": [
+        "invoice", "tax invoice", "bill to", "invoice number", "inv no", "factura",
+        "rechnung", "faktura", "gstin", "subtotal", "due date", "amount due"
+      ]
+    },
+    {
+      "id": "receipt",
+      "title": "Store Receipt",
+      "category": "financial_and_commercial",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "receipt@1.0.0",
+      "classification_keywords": [
+        "receipt", "cashier", "store #", "total paid", "change due", "subtotal",
+        "pos", "terminal", "items sold", "thank you for shopping"
+      ]
+    },
+    {
+      "id": "bank_statement",
+      "title": "Bank Statement",
+      "category": "financial_and_commercial",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "bank_statement@1.0.0",
+      "classification_keywords": [
+        "bank statement", "account statement", "opening balance", "closing balance",
+        "debit", "credit", "iban", "transaction history", "account number"
+      ]
+    },
+    {
+      "id": "utility_bill",
+      "title": "Utility Bill",
+      "category": "financial_and_commercial",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "utility_bill@1.0.0",
+      "classification_keywords": [
+        "electricity bill", "water bill", "gas bill", "utility bill", "meter number",
+        "kwh", "units consumed", "tariff", "service address", "power distribution"
+      ]
+    },
+    {
+      "id": "payslip",
+      "title": "Payslip / Salary Slip",
+      "category": "financial_and_commercial",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "payslip@1.0.0",
+      "classification_keywords": [
+        "payslip", "salary slip", "pay advice", "gross earnings", "net pay",
+        "basic salary", "provident fund", "pf deduction", "employee id"
+      ]
+    },
+    {
+      "id": "purchase_order",
+      "title": "Purchase Order",
+      "category": "financial_and_commercial",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "purchase_order@1.0.0",
+      "classification_keywords": [
+        "purchase order", "po number", "vendor", "deliver to", "order date"
+      ]
+    },
+    {
+      "id": "contract",
+      "title": "Contract / Agreement",
+      "category": "legal_and_property",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "contract@1.0.0",
+      "classification_keywords": [
+        "agreement", "contract", "non-disclosure", "nda", "by and between",
+        "in witness whereof", "effective date", "governing law", "parties"
+      ]
+    },
+    {
+      "id": "lease_agreement",
+      "title": "Lease Agreement",
+      "category": "legal_and_property",
+      "parent_type": "contract",
+      "country_hints": [],
+      "schema_version": "lease_agreement@1.0.0",
+      "classification_keywords": [
+        "lease agreement", "tenancy agreement", "landlord", "tenant", "premises", "monthly rent", "security deposit"
+      ]
+    },
+    {
+      "id": "prescription",
+      "title": "Medical Prescription",
+      "category": "medical",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "prescription@1.0.0",
+      "classification_keywords": [
+        "rx", "prescription", "dr.", "doctor", "patient", "clinic", "dosage", "tablet", "capsule"
+      ]
+    },
+    {
+      "id": "lab_report",
+      "title": "Laboratory Diagnostic Report",
+      "category": "medical",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "lab_report@1.0.0",
+      "classification_keywords": [
+        "diagnostic report", "pathology", "lab report", "specimen", "hemoglobin", "reference range", "collected at"
+      ]
+    },
+    {
+      "id": "resume",
+      "title": "Resume / Curriculum Vitae",
+      "category": "education_and_hr",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "resume@1.0.0",
+      "classification_keywords": [
+        "resume", "curriculum vitae", "work experience", "education", "skills", "employment history"
+      ]
+    },
+    {
+      "id": "transcript",
+      "title": "Academic Transcript / Marksheet",
+      "category": "education_and_hr",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "transcript@1.0.0",
+      "classification_keywords": [
+        "marksheet", "transcript", "statement of marks", "grade card", "cgpa", "credits earned", "semester"
+      ]
+    },
+    {
+      "id": "generic_document",
+      "title": "Generic Document",
+      "category": "other_common_documents",
+      "parent_type": null,
+      "country_hints": [],
+      "schema_version": "generic_document@1.0.0",
+      "classification_keywords": []
+    }
+  ]
+}

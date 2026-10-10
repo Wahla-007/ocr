@@ -1,0 +1,207 @@
+{
+  "benchmark_metadata": {
+    "timestamp": "2026-10-10T12:23:06.984009+00:00",
+    "engine_version": "docling-1.0",
+    "prompt_version": "v1",
+    "llm_provider": "gemini",
+    "dataset_size": 5
+  },
+  "summary_metrics": {
+    "classification_accuracy": 1.0,
+    "field_extraction_accuracy": 1.0,
+    "average_latency_ms": 57.11,
+    "total_credits_consumed": 14
+  },
+  "document_results": [
+    {
+      "file_name": "clean_invoice.pdf",
+      "doc_type_expected": "invoice",
+      "doc_type_predicted": "invoice",
+      "doc_type_correct": true,
+      "classification_confidence": 0.98,
+      "total_expected_fields": 5,
+      "matched_fields_count": 5,
+      "field_accuracy": 1.0,
+      "fields": {
+        "invoice_number": {
+          "expected": "INV-2026-0042",
+          "predicted": "INV-2026-0042",
+          "matched": true
+        },
+        "issue_date": {
+          "expected": "2026-10-06",
+          "predicted": "2026-10-06",
+          "matched": true
+        },
+        "due_date": {
+          "expected": "2026-11-06",
+          "predicted": "2026-11-06",
+          "matched": true
+        },
+        "total_amount": {
+          "expected": 11275.0,
+          "predicted": 11275.0,
+          "matched": true
+        },
+        "currency": {
+          "expected": "USD",
+          "predicted": "USD",
+          "matched": true
+        }
+      },
+      "latencies_ms": {
+        "normalize": 50.88,
+        "parse": 29.72,
+        "understand": 2.44,
+        "total": 83.04
+      },
+      "engine_used": "docling",
+      "pages_processed": 1,
+      "estimated_credits": 2
+    },
+    {
+      "file_name": "multipage_report.pdf",
+      "doc_type_expected": "unknown",
+      "doc_type_predicted": "unknown",
+      "doc_type_correct": true,
+      "classification_confidence": 0.85,
+      "total_expected_fields": 2,
+      "matched_fields_count": 2,
+      "field_accuracy": 1.0,
+      "fields": {
+        "document_title": {
+          "expected": "Document",
+          "predicted": "Document",
+          "matched": true
+        },
+        "summary_detail": {
+          "expected": "General content extracted",
+          "predicted": "General content extracted",
+          "matched": true
+        }
+      },
+      "latencies_ms": {
+        "normalize": 91.63,
+        "parse": 20.92,
+        "understand": 3.21,
+        "total": 115.76
+      },
+      "engine_used": "docling",
+      "pages_processed": 3,
+      "estimated_credits": 6
+    },
+    {
+      "file_name": "phone_receipt.jpg",
+      "doc_type_expected": "receipt",
+      "doc_type_predicted": "receipt",
+      "doc_type_correct": true,
+      "classification_confidence": 0.97,
+      "total_expected_fields": 4,
+      "matched_fields_count": 4,
+      "field_accuracy": 1.0,
+      "fields": {
+        "merchant_name": {
+          "expected": "Supermarket Metro",
+          "predicted": "Supermarket Metro",
+          "matched": true
+        },
+        "receipt_date": {
+          "expected": "2026-10-06 14:32:01",
+          "predicted": "2026-10-06 14:32:01",
+          "matched": true
+        },
+        "total_amount": {
+          "expected": 36.09,
+          "predicted": 36.09,
+          "matched": true
+        },
+        "tax_amount": {
+          "expected": 2.83,
+          "predicted": 2.83,
+          "matched": true
+        }
+      },
+      "latencies_ms": {
+        "normalize": 11.47,
+        "parse": 3.62,
+        "understand": 1.54,
+        "total": 16.63
+      },
+      "engine_used": "docling",
+      "pages_processed": 1,
+      "estimated_credits": 2
+    },
+    {
+      "file_name": "rotated_id.png",
+      "doc_type_expected": "id_card",
+      "doc_type_predicted": "id_card",
+      "doc_type_correct": true,
+      "classification_confidence": 0.99,
+      "total_expected_fields": 4,
+      "matched_fields_count": 4,
+      "field_accuracy": 1.0,
+      "fields": {
+        "full_name": {
+          "expected": "Jane Doe",
+          "predicted": "Jane Doe",
+          "matched": true
+        },
+        "id_number": {
+          "expected": "ID-98472918",
+          "predicted": "ID-98472918",
+          "matched": true
+        },
+        "date_of_birth": {
+          "expected": "1990-05-14",
+          "predicted": "1990-05-14",
+          "matched": true
+        },
+        "nationality": {
+          "expected": "USA",
+          "predicted": "USA",
+          "matched": true
+        }
+      },
+      "latencies_ms": {
+        "normalize": 10.32,
+        "parse": 3.31,
+        "understand": 1.57,
+        "total": 15.19
+      },
+      "engine_used": "docling",
+      "pages_processed": 1,
+      "estimated_credits": 2
+    },
+    {
+      "file_name": "scanned_contract.pdf",
+      "doc_type_expected": "contract",
+      "doc_type_predicted": "contract",
+      "doc_type_correct": true,
+      "classification_confidence": 0.96,
+      "total_expected_fields": 2,
+      "matched_fields_count": 2,
+      "field_accuracy": 1.0,
+      "fields": {
+        "document_title": {
+          "expected": "Document",
+          "predicted": "Document",
+          "matched": true
+        },
+        "summary_detail": {
+          "expected": "General content extracted",
+          "predicted": "General content extracted",
+          "matched": true
+        }
+      },
+      "latencies_ms": {
+        "normalize": 51.52,
+        "parse": 2.0,
+        "understand": 1.43,
+        "total": 54.94
+      },
+      "engine_used": "docling",
+      "pages_processed": 1,
+      "estimated_credits": 2
+    }
+  ]
+}
