@@ -41,6 +41,37 @@ interface ResultsPanelProps {
 
 type TabType = "json" | "fields" | "text" | "markdown";
 
+// Recursively prune keys with null, undefined, or empty values across all document types
+function pruneMissingFields(value: any): any {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed === "" ? undefined : trimmed;
+  }
+  if (Array.isArray(value)) {
+    const cleaned = value
+      .map(pruneMissingFields)
+      .filter((item) => item !== undefined);
+    return cleaned;
+  }
+  if (typeof value === "object") {
+    const res: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      const cleaned = pruneMissingFields(v);
+      if (cleaned !== undefined) {
+        if (typeof cleaned === "object" && !Array.isArray(cleaned) && Object.keys(cleaned).length === 0) {
+          continue;
+        }
+        res[k] = cleaned;
+      }
+    }
+    return Object.keys(res).length > 0 ? res : undefined;
+  }
+  return value;
+}
+
 export function ResultsPanel({
   result,
   selectedFieldKey,
@@ -79,13 +110,6 @@ export function ResultsPanel({
   const contractData: StructuredContract | undefined = fieldsObj?.contract;
   const docData: StructuredGenericDocument | undefined = fieldsObj?.document;
 
-  const docNumber =
-    fieldsObj?.document_number ||
-    invData?.invoice_number ||
-    identityData?.id_number ||
-    result.invoice_number ||
-    null;
-
   const plainTextContent = useMemo(() => {
     if (result.text) return result.text;
     if (result.markdown) {
@@ -102,38 +126,94 @@ export function ResultsPanel({
 
   const markdownContent = result.markdown || plainTextContent;
 
-  // True canonical JSON output conforming to Document Template Catalog
+  // Build clean dynamic fields dictionary: strictly only include fields whose content is present in the document
+  const extractedFieldsMap = useMemo(() => {
+    const map: Record<string, any> = {};
+
+    // 1. Array of ExtractedField from backend API
+    if (Array.isArray(result.fields)) {
+      for (const f of result.fields) {
+        if (f.value !== null && f.value !== undefined && String(f.value).trim() !== "") {
+          map[f.key] = f.value;
+        }
+      }
+    } else if (fieldsObj && typeof fieldsObj === "object") {
+      const cleaned = pruneMissingFields(fieldsObj);
+      if (cleaned) {
+        Object.assign(map, cleaned);
+      }
+    }
+
+    // 2. Extra discovered fields
+    if (result.extra_fields && Array.isArray(result.extra_fields)) {
+      for (const ef of result.extra_fields) {
+        if (ef.value !== null && ef.value !== undefined && String(ef.value).trim() !== "") {
+          if (map[ef.key] === undefined) {
+            map[ef.key] = ef.value;
+          }
+        }
+      }
+    }
+
+    // 3. Direct top-level fields on result if present and non-empty
+    const topCandidates: Record<string, any> = {
+      invoice_number: result.invoice_number,
+      vendor_name: result.vendor_name || result.brand_name,
+      customer_name: result.customer_name,
+      issue_date: result.issue_date,
+      due_date: result.due_date,
+      subtotal: result.subtotal,
+      tax_amount: result.tax_amount,
+      total_amount: result.total_amount,
+      currency: result.currency,
+    };
+    for (const [k, v] of Object.entries(topCandidates)) {
+      if (v !== null && v !== undefined && String(v).trim() !== "" && map[k] === undefined) {
+        map[k] = v;
+      }
+    }
+
+    return map;
+  }, [result, fieldsObj]);
+
+  const docNumber =
+    extractedFieldsMap.document_number ||
+    extractedFieldsMap.invoice_number ||
+    extractedFieldsMap.id_number ||
+    extractedFieldsMap.receipt_number ||
+    null;
+
+  // Canonical JSON output: only include fields with actual content present
   const fullJsonPayload = useMemo(() => {
-    return {
+    const rawPayload: Record<string, any> = {
       id: result.id || `ocr_${Math.random().toString(36).substring(2, 14)}`,
       pages: result.pages || result.page_count || 1,
       document_type: docType,
       detected_type: docType,
-      type_match: true,
+      fields: extractedFieldsMap,
       text: result.text || plainTextContent,
       markdown: result.markdown || markdownContent,
-      blocks: result.blocks || [],
-      fields: fieldsObj || {
-        document_number: docNumber,
-        name: { full: result.brand_name || result.vendor_name || null, first: null, last: null },
-        address: null,
-        issued_on: result.issue_date || null,
-        photo_present: Boolean(identityData?.photo_present),
-      },
-      custom_extraction: null,
-      validation: result.validation || {
-        is_valid: true,
-        status: "valid",
-        strength: "verified",
-        checks: [],
-      },
-      warnings: result.warnings || [],
-      usage: result.usage || {
-        credits: result.credits_charged || 25,
-        remaining_today: 500 - (result.credits_charged || 25),
-      },
     };
-  }, [result, docType, fieldsObj, docNumber, identityData, plainTextContent, markdownContent]);
+
+    if (result.blocks && result.blocks.length > 0) {
+      rawPayload.blocks = result.blocks;
+    }
+    if (result.tables && result.tables.length > 0) {
+      rawPayload.tables = result.tables;
+    }
+    if (result.usage) {
+      rawPayload.usage = result.usage;
+    }
+    if (result.validation) {
+      const cleanedVal = pruneMissingFields(result.validation);
+      if (cleanedVal) rawPayload.validation = cleanedVal;
+    }
+    if (result.warnings && result.warnings.length > 0) {
+      rawPayload.warnings = result.warnings;
+    }
+
+    return pruneMissingFields(rawPayload) || rawPayload;
+  }, [result, docType, extractedFieldsMap, plainTextContent, markdownContent]);
 
   const jsonString = useMemo(() => {
     return JSON.stringify(fullJsonPayload, null, 2);
@@ -285,7 +365,7 @@ export function ResultsPanel({
         {/* ========================================================================= */}
         {activeTab === "fields" && (
           <div className="space-y-4 text-xs font-sans">
-            {/* SECTION: DOCUMENT SUMMARY */}
+            {/* SECTION 1: DOCUMENT IDENTITY */}
             <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider">
@@ -298,280 +378,186 @@ export function ResultsPanel({
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-500 block uppercase">Identifier</span>
-                  <span className="font-mono text-slate-200 font-semibold">{docNumber || "—"}</span>
-                </div>
-                <div>
                   <span className="text-[10px] font-mono text-slate-500 block uppercase">Detected Type</span>
                   <span className="font-mono text-emerald-400 font-semibold uppercase">{docType}</span>
                 </div>
-                <div>
-                  <span className="text-[10px] font-mono text-slate-500 block uppercase">Issue Date</span>
-                  <span className="font-mono text-slate-300">{result.issue_date || fieldsObj?.issued_on || invData?.invoice_date || "—"}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
-                  <span className="font-mono text-slate-300">{result.due_date || invData?.due_date || "—"}</span>
-                </div>
+                {docNumber && (
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Identifier</span>
+                    <span className="font-mono text-slate-200 font-semibold">{docNumber}</span>
+                  </div>
+                )}
+                {(extractedFieldsMap.issue_date || result.issue_date) && (
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Issue Date</span>
+                    <span className="font-mono text-slate-300">{extractedFieldsMap.issue_date || result.issue_date}</span>
+                  </div>
+                )}
+                {(extractedFieldsMap.due_date || result.due_date) && (
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
+                    <span className="font-mono text-slate-300">{extractedFieldsMap.due_date || result.due_date}</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* SECTION: PARTIES & ENTITIES (INVOICE / RECEIPT) */}
-            {(docType === "invoice" || docType === "receipt") && (
+            {/* SECTION 2: UNIVERSAL EXTRACTED DOCUMENT FIELDS (CONTENT-DRIVEN) */}
+            {Object.keys(extractedFieldsMap).length > 0 && (
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
+                    Extracted Fields ({Object.keys(extractedFieldsMap).length})
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">
+                    Active Content
+                  </span>
+                </div>
+
+                <div className="rounded-lg border border-slate-800 overflow-hidden">
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="py-1.5 px-2.5 font-normal">Field</th>
+                        <th className="py-1.5 px-2.5 font-normal">Extracted Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                      {Object.entries(extractedFieldsMap).map(([key, val], idx) => {
+                        const isSelected = selectedFieldKey === key;
+                        const isHovered = hoveredFieldKey === key;
+                        const labelText = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                        const displayVal = typeof val === "object" ? JSON.stringify(val) : String(val);
+
+                        return (
+                          <tr
+                            key={idx}
+                            onClick={() => onSelectField(isSelected ? null : key)}
+                            onMouseEnter={() => onHoverField(key)}
+                            onMouseLeave={() => onHoverField(null)}
+                            className={`cursor-pointer transition-colors ${
+                              isSelected
+                                ? "bg-emerald-500/15 text-emerald-300 font-semibold"
+                                : isHovered
+                                ? "bg-slate-900/80 text-white"
+                                : "hover:bg-slate-900/40"
+                            }`}
+                          >
+                            <td className="py-1.5 px-2.5 text-slate-400 max-w-[140px]">
+                              {labelText}
+                            </td>
+                            <td className="py-1.5 px-2.5 text-slate-200 break-words font-medium">
+                              {displayVal}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SECTION 3: PARTIES & ENTITIES (ONLY IF PRESENT) */}
+            {(extractedFieldsMap.vendor_name || extractedFieldsMap.customer_name || invData?.supplier?.name || invData?.buyer?.name) && (
               <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
                 <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
                   Parties & Location
                 </span>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Vendor / Issuer</span>
-                    <p className="font-semibold text-slate-200">
-                      {invData?.supplier?.name || fieldsObj?.name?.full || result.brand_name || result.vendor_name || receiptData?.merchant_name || "—"}
-                    </p>
-                    {invData?.supplier?.address && (
-                      <p className="text-[11px] text-slate-400">{invData.supplier.address}</p>
-                    )}
-                    {invData?.supplier?.email && (
-                      <p className="text-[10px] text-slate-500 font-mono">{invData.supplier.email}</p>
-                    )}
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Billed To / Recipient</span>
-                    <p className="font-semibold text-slate-200">
-                      {invData?.buyer?.name || result.customer_name || "—"}
-                    </p>
-                    {invData?.buyer?.address && (
-                      <p className="text-[11px] text-slate-400">{invData.buyer.address}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SECTION: IDENTITY CREDENTIAL DETAILS (ID / DRIVER LICENSE) */}
-            {(docType === "id_card" || docType === "driving_license") && identityData && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Credential Information
-                </span>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Full Name</span>
-                    <span className="font-semibold text-slate-200">{identityData.full_name || fieldsObj?.name?.full || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Credential ID</span>
-                    <span className="font-mono text-slate-200 font-semibold">{identityData.id_number || docNumber || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Date of Birth</span>
-                    <span className="font-mono text-slate-300">{identityData.date_of_birth || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Expiration Date</span>
-                    <span className="font-mono text-slate-300">{identityData.expiry_date || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Nationality</span>
-                    <span className="font-mono text-slate-300">{identityData.nationality || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Gender</span>
-                    <span className="font-mono text-slate-300">{identityData.gender || "—"}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SECTION: GENERIC DOCUMENT & DISCOVERED ATTRIBUTES */}
-            {(docType === "document" || (result.extra_fields && result.extra_fields.length > 0) || (docData?.attributes && Object.keys(docData.attributes).length > 0)) && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Document Metadata & Attributes
-                </span>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-2">
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Document Title</span>
-                    <p className="font-semibold text-slate-200">
-                      {docData?.title || "Document"}
-                    </p>
-                    {docData?.category && (
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40 inline-block mt-1">
-                        {docData.category}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Author / Creator</span>
-                    <p className="font-semibold text-slate-200">
-                      {docData?.author || fieldsObj?.name?.full || "—"}
-                    </p>
-                    {(docData?.date || result.issue_date) && (
-                      <p className="text-[10px] font-mono text-slate-400">
-                        {docData?.date || result.issue_date}
+                  {(extractedFieldsMap.vendor_name || invData?.supplier?.name) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Vendor / Issuer</span>
+                      <p className="font-semibold text-slate-200">
+                        {extractedFieldsMap.vendor_name || invData?.supplier?.name}
                       </p>
-                    )}
-                  </div>
+                      {invData?.supplier?.address && (
+                        <p className="text-[11px] text-slate-400">{invData.supplier.address}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {(extractedFieldsMap.customer_name || invData?.buyer?.name) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Billed To / Recipient</span>
+                      <p className="font-semibold text-slate-200">
+                        {extractedFieldsMap.customer_name || invData?.buyer?.name}
+                      </p>
+                      {invData?.buyer?.address && (
+                        <p className="text-[11px] text-slate-400">{invData.buyer.address}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {/* Section Headings if detected */}
-                {docData?.sections && docData.sections.length > 0 && (
-                  <div className="pt-1">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase block mb-1.5">
-                      Detected Sections ({docData.sections.length})
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {docData.sections.map((sec, sIdx) => (
-                        <span
-                          key={sIdx}
-                          className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800 font-mono text-[10px]"
-                        >
-                          {sec}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Discovered Key-Value Pairs */}
-                {((result.extra_fields && result.extra_fields.length > 0) ||
-                  (docData?.attributes && Object.keys(docData.attributes).length > 0)) && (
-                  <div className="pt-2">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase block mb-1.5">
-                      Discovered Key-Value Attributes
-                    </span>
-                    <div className="rounded-lg border border-slate-800 overflow-hidden">
-                      <table className="w-full text-left text-[11px] font-mono">
-                        <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
-                          <tr>
-                            <th className="py-1.5 px-2.5 font-normal">Attribute</th>
-                            <th className="py-1.5 px-2.5 font-normal">Extracted Value</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                          {(result.extra_fields ||
-                            Object.entries(docData?.attributes || {}).map(([k, v]) => ({
-                              key: k,
-                              label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-                              value: v,
-                            }))
-                          ).map((item: any, idx: number) => (
-                            <tr key={idx} className="hover:bg-slate-900/40">
-                              <td className="py-1.5 px-2.5 text-slate-400 max-w-[140px] font-medium">
-                                {item.label || item.key}
-                              </td>
-                              <td className="py-1.5 px-2.5 text-slate-200">
-                                {String(item.value)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Full Extracted Document Text */}
-                {(docData?.content || plainTextContent) && (
-                  <div className="pt-2">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase block mb-1.5">
-                      Extracted Document Body Text
-                    </span>
-                    <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 max-h-56 overflow-y-auto">
-                      <pre className="text-slate-300 font-mono text-[11px] whitespace-pre-wrap leading-relaxed">
-                        {docData?.content || plainTextContent}
-                      </pre>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* SECTION: FINANCIALS (INVOICE / RECEIPT) */}
-            {(docType === "invoice" || docType === "receipt") && (
+            {/* SECTION 4: FINANCIAL AMOUNTS (ONLY IF PRESENT) */}
+            {(extractedFieldsMap.total_amount !== undefined || extractedFieldsMap.subtotal !== undefined || extractedFieldsMap.tax_amount !== undefined) && (
               <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
                 <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
                   Financial Amounts
                 </span>
 
                 <div className="grid grid-cols-3 gap-2.5">
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase block">Subtotal</span>
-                    <span className="font-mono text-sm font-semibold text-slate-200">
-                      {invData?.subtotal !== null && invData?.subtotal !== undefined
-                        ? `$${invData.subtotal.toFixed(2)}`
-                        : receiptData?.subtotal !== null && receiptData?.subtotal !== undefined
-                        ? `$${receiptData.subtotal.toFixed(2)}`
-                        : "—"}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase block">Tax</span>
-                    <span className="font-mono text-sm font-semibold text-slate-200">
-                      {invData?.tax?.amount !== null && invData?.tax?.amount !== undefined
-                        ? `$${invData.tax.amount.toFixed(2)}`
-                        : receiptData?.tax?.amount !== null && receiptData?.tax?.amount !== undefined
-                        ? `$${receiptData.tax.amount.toFixed(2)}`
-                        : "—"}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-900/90 border border-emerald-900/50">
-                    <span className="text-[10px] font-mono text-emerald-500 uppercase block">Total</span>
-                    <span className="font-mono text-sm font-bold text-white">
-                      {invData?.total !== null && invData?.total !== undefined
-                        ? `$${invData.total.toFixed(2)}`
-                        : receiptData?.total !== null && receiptData?.total !== undefined
-                        ? `$${receiptData.total.toFixed(2)}`
-                        : result.total_amount !== null && result.total_amount !== undefined
-                        ? `$${result.total_amount.toFixed(2)}`
-                        : "—"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Line Items Table */}
-                <div className="pt-2">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase block mb-1.5">
-                    Extracted Line Items ({invData?.line_items?.length || receiptData?.line_items?.length || 0})
-                  </span>
-
-                  {(invData?.line_items?.length || receiptData?.line_items?.length) ? (
-                    <div className="rounded-lg border border-slate-800 overflow-hidden">
-                      <table className="w-full text-left text-[11px] font-mono">
-                        <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
-                          <tr>
-                            <th className="py-1.5 px-2.5 font-normal">Item</th>
-                            <th className="py-1.5 px-2.5 text-center font-normal">Qty</th>
-                            <th className="py-1.5 px-2.5 text-right font-normal">Rate</th>
-                            <th className="py-1.5 px-2.5 text-right font-normal">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                          {(invData?.line_items || receiptData?.line_items || []).map((it, idx) => (
-                            <tr key={idx} className="hover:bg-slate-900/40">
-                              <td className="py-1.5 px-2.5 truncate max-w-[180px]">{it.description}</td>
-                              <td className="py-1.5 px-2.5 text-center text-slate-400">{it.quantity}</td>
-                              <td className="py-1.5 px-2.5 text-right text-slate-400">
-                                {it.rate !== null && it.rate !== undefined ? `$${it.rate.toFixed(2)}` : "—"}
-                              </td>
-                              <td className="py-1.5 px-2.5 text-right font-semibold text-slate-200">
-                                ${it.amount.toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {extractedFieldsMap.subtotal !== undefined && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Subtotal</span>
+                      <span className="font-mono text-sm font-semibold text-slate-200">
+                        ${Number(extractedFieldsMap.subtotal).toFixed(2)}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-slate-600 text-xs italic py-2">No line items detected in document</p>
                   )}
+
+                  {extractedFieldsMap.tax_amount !== undefined && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Tax</span>
+                      <span className="font-mono text-sm font-semibold text-slate-200">
+                        ${Number(extractedFieldsMap.tax_amount).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {extractedFieldsMap.total_amount !== undefined && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/90 border border-emerald-900/50">
+                      <span className="text-[10px] font-mono text-emerald-500 uppercase block">Total</span>
+                      <span className="font-mono text-sm font-bold text-white">
+                        ${Number(extractedFieldsMap.total_amount).toFixed(2)} {extractedFieldsMap.currency ? `(${extractedFieldsMap.currency})` : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SECTION 5: LINE ITEMS (ONLY IF PRESENT) */}
+            {(invData?.line_items && invData.line_items.length > 0) && (
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
+                  Line Items ({invData.line_items.length})
+                </span>
+                <div className="rounded-lg border border-slate-800 overflow-hidden">
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="py-1.5 px-2.5 font-normal">Item</th>
+                        <th className="py-1.5 px-2.5 text-center font-normal">Qty</th>
+                        <th className="py-1.5 px-2.5 text-right font-normal">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                      {invData.line_items.map((it, idx) => (
+                        <tr key={idx} className="hover:bg-slate-900/40">
+                          <td className="py-1.5 px-2.5 truncate max-w-[180px]">{it.description}</td>
+                          <td className="py-1.5 px-2.5 text-center text-slate-400">{it.quantity}</td>
+                          <td className="py-1.5 px-2.5 text-right font-semibold text-slate-200">
+                            ${Number(it.amount).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

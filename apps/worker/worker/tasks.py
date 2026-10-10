@@ -104,6 +104,7 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                     "bbox": f.bbox.model_dump() if f.bbox else None,
                 }
                 for f in extraction.fields
+                if f.value is not None and str(f.value).strip() != ""
             ]
 
             latency_ms = int((time.time() - start_time) * 1000)

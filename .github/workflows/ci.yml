@@ -46,14 +46,17 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: |
+          uv python install 3.11
+          uv venv --python 3.11 .venv
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: |
-          uv pip install --system -e providers/
-          uv pip install --system -e apps/api/
-          uv pip install --system -e apps/worker/
-          uv pip install --system ruff pytest pytest-asyncio aiosqlite
+          uv pip install --python .venv -e providers/
+          uv pip install --python .venv -e apps/api/
+          uv pip install --python .venv -e apps/worker/
+          uv pip install --python .venv ruff pytest pytest-asyncio aiosqlite
 
       - name: Run Ruff Lint
         run: ruff check .
