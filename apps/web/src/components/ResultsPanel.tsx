@@ -130,51 +130,88 @@ export function ResultsPanel({
   const extractedFieldsMap = useMemo(() => {
     const map: Record<string, any> = {};
 
+    // Helper to flatten nested objects and preserve only clean primitive scalar values
+    const addClean = (key: string, val: any) => {
+      if (val === null || val === undefined) return;
+      if (typeof val === "string" && val.trim() === "") return;
+      // Skip redundant or noisy container keys
+      if (["id_card", "driving_license", "raw_fields", "custom_extraction"].includes(key)) {
+        if (typeof val === "object" && val !== null) {
+          for (const [subKey, subVal] of Object.entries(val)) {
+            addClean(subKey, subVal);
+          }
+        }
+        return;
+      }
+      if (key === "name" && typeof val === "object" && val !== null) {
+        if (val.full) addClean("full_name", val.full);
+        return;
+      }
+      if (key === "address" && typeof val === "object" && val !== null) {
+        if (val.line1) addClean("address", val.line1);
+        return;
+      }
+      if (typeof val === "object" && !Array.isArray(val) && val !== null) {
+        for (const [subKey, subVal] of Object.entries(val)) {
+          addClean(subKey, subVal);
+        }
+        return;
+      }
+      if (map[key] === undefined) {
+        map[key] = val;
+      }
+    };
+
     // 1. Array of ExtractedField from backend API
     if (Array.isArray(result.fields)) {
       for (const f of result.fields) {
-        if (f.value !== null && f.value !== undefined && String(f.value).trim() !== "") {
-          map[f.key] = f.value;
-        }
+        addClean(f.key, f.value);
       }
     } else if (fieldsObj && typeof fieldsObj === "object") {
       const cleaned = pruneMissingFields(fieldsObj);
-      if (cleaned) {
-        Object.assign(map, cleaned);
+      if (cleaned && typeof cleaned === "object") {
+        for (const [k, v] of Object.entries(cleaned)) {
+          addClean(k, v);
+        }
       }
     }
 
     // 2. Extra discovered fields
     if (result.extra_fields && Array.isArray(result.extra_fields)) {
       for (const ef of result.extra_fields) {
-        if (ef.value !== null && ef.value !== undefined && String(ef.value).trim() !== "") {
-          if (map[ef.key] === undefined) {
-            map[ef.key] = ef.value;
-          }
-        }
+        addClean(ef.key, ef.value);
       }
     }
 
-    // 3. Direct top-level fields on result if present and non-empty
-    const topCandidates: Record<string, any> = {
-      invoice_number: result.invoice_number,
-      vendor_name: result.vendor_name || result.brand_name,
-      customer_name: result.customer_name,
-      issue_date: result.issue_date,
-      due_date: result.due_date,
-      subtotal: result.subtotal,
-      tax_amount: result.tax_amount,
-      total_amount: result.total_amount,
-      currency: result.currency,
-    };
-    for (const [k, v] of Object.entries(topCandidates)) {
-      if (v !== null && v !== undefined && String(v).trim() !== "" && map[k] === undefined) {
-        map[k] = v;
+    // 3. Direct top-level fields on result (only for relevant document types)
+    const isFinancial = docType === "invoice" || docType === "receipt" || docType === "bank_statement";
+    if (isFinancial) {
+      const topCandidates: Record<string, any> = {
+        invoice_number: result.invoice_number,
+        vendor_name: result.vendor_name || result.brand_name,
+        customer_name: result.customer_name,
+        issue_date: result.issue_date,
+        due_date: result.due_date,
+        subtotal: result.subtotal,
+        tax_amount: result.tax_amount,
+        total_amount: result.total_amount,
+        currency: (result.total_amount !== undefined && result.total_amount !== null) ? result.currency : undefined,
+      };
+      for (const [k, v] of Object.entries(topCandidates)) {
+        addClean(k, v);
       }
+    } else {
+      if (result.issue_date) addClean("issue_date", result.issue_date);
     }
+
+    // Ensure no raw JSON container keys remain in the table
+    delete map["name"];
+    delete map["id_card"];
+    delete map["driving_license"];
+    delete map["raw_fields"];
 
     return map;
-  }, [result, fieldsObj]);
+  }, [result, fieldsObj, docType]);
 
   const docNumber =
     extractedFieldsMap.document_number ||
@@ -387,17 +424,36 @@ export function ResultsPanel({
                     <span className="font-mono text-slate-200 font-semibold">{docNumber}</span>
                   </div>
                 )}
-                {(extractedFieldsMap.issue_date || result.issue_date) && (
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Issue Date</span>
-                    <span className="font-mono text-slate-300">{extractedFieldsMap.issue_date || result.issue_date}</span>
-                  </div>
-                )}
-                {(extractedFieldsMap.due_date || result.due_date) && (
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
-                    <span className="font-mono text-slate-300">{extractedFieldsMap.due_date || result.due_date}</span>
-                  </div>
+                {docType === "id_card" || docType === "driving_license" ? (
+                  <>
+                    {(extractedFieldsMap.date_of_birth || result.date_of_birth) && (
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Date of Birth</span>
+                        <span className="font-mono text-slate-300">{extractedFieldsMap.date_of_birth || result.date_of_birth}</span>
+                      </div>
+                    )}
+                    {(extractedFieldsMap.expiry_date || result.expiry_date) && (
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Expiry Date</span>
+                        <span className="font-mono text-slate-300">{extractedFieldsMap.expiry_date || result.expiry_date}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {(extractedFieldsMap.issue_date || result.issue_date) && (
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Issue Date</span>
+                        <span className="font-mono text-slate-300">{extractedFieldsMap.issue_date || result.issue_date}</span>
+                      </div>
+                    )}
+                    {(extractedFieldsMap.due_date || result.due_date) && (
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
+                        <span className="font-mono text-slate-300">{extractedFieldsMap.due_date || result.due_date}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -427,7 +483,16 @@ export function ResultsPanel({
                         const isSelected = selectedFieldKey === key;
                         const isHovered = hoveredFieldKey === key;
                         const labelText = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-                        const displayVal = typeof val === "object" ? JSON.stringify(val) : String(val);
+                        const displayVal =
+                          val === null || val === undefined
+                            ? ""
+                            : typeof val === "boolean"
+                            ? val
+                              ? "Yes"
+                              : "No"
+                            : typeof val === "object"
+                            ? Object.values(val).filter((v) => v !== null && v !== undefined && String(v).trim() !== "").join(", ")
+                            : String(val);
 
                         return (
                           <tr

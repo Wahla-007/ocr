@@ -426,27 +426,61 @@ class MockLLMProvider(LLMProvider):
             summary = f"Store receipt from {merchant or 'merchant'} totaling ${total_amt:.2f}." if total_amt else f"Receipt extracted with {len(fields)} fields."
 
         elif doc_type in ["id_card", "driving_license"]:
-            name_match = re.search(r"(?i)(?:Name|FN|LN|Full\s*Name):\s*([A-Za-z\s]+)", parsed_text)
+            m_cnic = re.search(r"\b(\d{5}-\d{7}-\d)\b", parsed_text)
+            id_num = m_cnic.group(1).strip() if m_cnic else None
+
+            if not id_num:
+                id_match = re.search(r"(?i)\b(?:ID\s*(?:Number|No|#)?|Identity\s*Number|DL\s*(?:No|#)?|License\s*No|Card\s*No)\b[:\s#]*([A-Za-z0-9-_]{5,})", parsed_text)
+                if id_match and id_match.group(1).lower() not in ["entity", "identity", "number"]:
+                    id_num = id_match.group(1).strip()
+
+            name_match = re.search(r"(?i)(?:^|\n)\s*(?:Full\s*Name|Name|Holder\s*Name)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Father|Gender|Country|Identity|$)", parsed_text)
             name = name_match.group(1).strip() if name_match else None
+            if name:
+                name = re.sub(r"(?i)\b(?:national\s*identity\s*card|identity\s*card|pakistan)\b", "", name).strip()
 
-            id_match = re.search(r"(?i)(?:ID Number|DL No|License No|Lic No|Card Number|Number):\s*([A-Za-z0-9-_]+)", parsed_text)
-            id_num = id_match.group(1).strip() if id_match else None
+            father_match = re.search(r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)", parsed_text)
+            father_name = father_match.group(1).strip() if father_match else None
 
-            dob_match = re.search(r"(?i)(?:Date of Birth|DOB|Birth Date):\s*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+            dob_match = re.search(r"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
             dob = dob_match.group(1).strip() if dob_match else None
 
-            exp_match = re.search(r"(?i)(?:Expiry Date|Expires|Expiration Date|EXP):\s*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+            iss_match = re.search(r"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+            iss_date = iss_match.group(1).strip() if iss_match else None
+
+            exp_match = re.search(r"(?i)(?:Date of Expiry|Expiry Date|Expires|EXP)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
             exp_date = exp_match.group(1).strip() if exp_match else None
 
-            nat_match = re.search(r"(?i)(?:Nationality|Country|Citizenship):\s*([A-Za-z]+)", parsed_text)
-            nationality = nat_match.group(1).strip() if nat_match else None
+            all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", parsed_text)
+            if len(all_dates) >= 3:
+                if not dob:
+                    dob = all_dates[0]
+                if not iss_date:
+                    iss_date = all_dates[1]
+                if not exp_date:
+                    exp_date = all_dates[2]
+            elif len(all_dates) == 2:
+                if not iss_date:
+                    iss_date = all_dates[0]
+                if not exp_date:
+                    exp_date = all_dates[1]
+
+            nationality = None
+            if "PAKISTAN" in parsed_text.upper():
+                nationality = "Pakistan"
+            elif "USA" in parsed_text.upper() or "UNITED STATES" in parsed_text.upper():
+                nationality = "United States"
+            else:
+                nat_match = re.search(r"(?i)(?:Nationality|Citizenship)[:\s-]*([A-Za-z]+)", parsed_text)
+                if nat_match and nat_match.group(1).lower() not in ["of", "stay", "card", "republic"]:
+                    nationality = nat_match.group(1).strip()
 
             if "JANE DOE" in parsed_text.upper():
                 name = "Jane Doe"
                 id_num = "ID-98472918"
                 dob = "1990-05-14"
                 nationality = "USA"
-            elif not name and not id_num:
+            elif not name and not id_num and not dob and len(parsed_text.strip()) < 50:
                 name = "Jane Doe"
                 id_num = "DL-98472918" if doc_type == "driving_license" else "ID-98472918"
                 dob = "1990-05-14"
@@ -457,6 +491,10 @@ class MockLLMProvider(LLMProvider):
             if name:
                 fields.append(
                     ExtractedField(key="full_name", label="Full Name", value=name, confidence=0.99)
+                )
+            if father_name:
+                fields.append(
+                    ExtractedField(key="father_name", label="Father Name", value=father_name, confidence=0.98)
                 )
             if id_num:
                 fields.append(
@@ -470,6 +508,10 @@ class MockLLMProvider(LLMProvider):
             if dob:
                 fields.append(
                     ExtractedField(key="date_of_birth", label="Date of Birth", value=dob, confidence=0.98)
+                )
+            if iss_date:
+                fields.append(
+                    ExtractedField(key="issue_date", label="Date of Issue", value=iss_date, confidence=0.98)
                 )
             if exp_date:
                 fields.append(

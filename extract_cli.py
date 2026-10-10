@@ -93,7 +93,9 @@ def clean_num(s: str | None) -> float | None:
         return None
 
 
-def detect_currency(text: str) -> str:
+def detect_currency(text: str) -> str | None:
+    if "$" in text or re.search(r"\bUSD\b", text):
+        return "USD"
     if "€" in text or re.search(r"\bEUR\b", text):
         return "EUR"
     if "£" in text or re.search(r"\bGBP\b", text):
@@ -106,7 +108,7 @@ def detect_currency(text: str) -> str:
         return "CAD"
     if "AUD" in text:
         return "AUD"
-    return "USD"
+    return None
 
 
 def detect_country(text: str) -> str | None:
@@ -421,7 +423,7 @@ async def extract_file(file_path: Path) -> dict:
     tax_val = None
     tax_rate = None
     total = None
-    currency = detect_currency(text_content)
+    currency = detect_currency(text_content) if doc_type in ["invoice", "receipt", "bank_statement"] else None
     credits_charged = 10
 
     date_pat = r"([0-9]{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|[0-9]{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4}|(?:\d{1,2}\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?(?:\s+\d{1,2})?,?\s+\d{2,4})"
@@ -629,39 +631,189 @@ async def extract_file(file_path: Path) -> dict:
     elif doc_type in ["id_card", "driving_license"]:
         credits_charged = 15
 
-        name_m = re.search(r"(?i)(?:Name|Full Name|Holder Name|LN\s*[A-Za-z]+)[:\s-]*([A-Za-z\s]+)", text_content)
-        raw_name = name_m.group(1).strip() if name_m else fields_dict.get("full_name")
-        full_name = None
-        if raw_name:
-            full_name = re.sub(
-                r"(?i)\s*\b(?:national\s*identity\s*card|identity\s*card|driver\s*license|driving\s*licence)\b.*$",
-                "",
-                raw_name,
-            ).strip()
+        # 1. Full Name & Parts (strictly prevent multi-line bleeding into next fields)
+        name_clean = None
+        for i, line in enumerate(detected_lines):
+            line_s = line.strip()
+            m_lbl = re.match(r"(?i)^(?:Full\s*Name|Holder(?:\s*Name)?|Name)\s*[:\-]?\s*([A-Za-z\s.'-]+)?$", line_s)
+            if m_lbl:
+                val = m_lbl.group(1)
+                if val and len(val.strip()) > 1 and not re.search(r"(?i)\b(?:father|gender|country|identity|card|republic)\b", val):
+                    name_clean = val.strip()
+                    break
+                if i + 1 < len(detected_lines):
+                    nxt = detected_lines[i + 1].strip()
+                    if nxt and not re.search(r"(?i)^(?:father|gender|country|identity|date|iss|exp)\b", nxt):
+                        clean_nxt = re.sub(r"[^\x00-\x7F]+", "", nxt).strip()
+                        if clean_nxt and len(clean_nxt) > 1:
+                            name_clean = clean_nxt
+                            break
+
+        if not name_clean:
+            name_m = re.search(r"(?i)(?:^|\n)\s*(?:Full\s*Name|Holder\s*Name|Name)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Father|Gender|Country|Identity|$)", text_content)
+            if name_m:
+                cand = name_m.group(1).strip()
+                cand = re.sub(r"(?i)\b(?:national\s*identity\s*card|identity\s*card|pakistan)\b", "", cand).strip()
+                if cand and len(cand) > 1:
+                    name_clean = cand
+            elif fields_dict.get("full_name") and not str(fields_dict.get("full_name")).startswith("{"):
+                name_clean = str(fields_dict.get("full_name"))
+
+        full_name = name_clean
         parts = full_name.split() if full_name else []
         first_name = parts[0] if parts else None
         last_name = parts[-1] if len(parts) > 1 else None
 
-        id_m = re.search(r"(?i)(?:ID Number|ID-?|DL-?|License No|Lic No|Card No)[:\s#]*([A-Za-z0-9-_]{5,})", text_content)
-        id_num = id_m.group(1).strip() if id_m else fields_dict.get("id_number")
+        # 2. Father Name
+        father_name = None
+        for i, line in enumerate(detected_lines):
+            line_s = line.strip()
+            m_f = re.match(r"(?i)^(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)\s*[:\-]?\s*([A-Za-z\s.'-]+)?$", line_s)
+            if m_f:
+                val = m_f.group(1)
+                if val and len(val.strip()) > 1 and not re.search(r"(?i)\b(?:gender|country|identity|card)\b", val):
+                    father_name = val.strip()
+                    break
+                if i + 1 < len(detected_lines):
+                    nxt = detected_lines[i + 1].strip()
+                    if nxt and not re.search(r"(?i)^(?:gender|country|identity|date|iss|exp)\b", nxt):
+                        clean_nxt = re.sub(r"[^\x00-\x7F]+", "", nxt).strip()
+                        if clean_nxt and len(clean_nxt) > 1:
+                            father_name = clean_nxt
+                            break
 
-        dob_m = re.search(rf"(?i)(?:Date of Birth|DOB)[:\s-]*{date_pat}", text_content)
-        dob = dob_m.group(1).strip() if dob_m else fields_dict.get("date_of_birth")
+        if not father_name:
+            m_f = re.search(r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)", text_content)
+            if m_f:
+                father_name = m_f.group(1).strip()
 
-        exp_m = re.search(rf"(?i)(?:Expiry Date|Expires|Expiration Date|EXP)[:\s-]*{date_pat}", text_content)
-        exp_date = exp_m.group(1).strip() if exp_m else fields_dict.get("expiry_date")
-
-        iss_m = re.search(rf"(?i)(?:Issue Date|Issued|ISS)[:\s-]*{date_pat}", text_content)
-        iss_date = iss_m.group(1).strip() if iss_m else None
-
-        nat_m = re.search(r"(?i)(?:Nationality|Country)[:\s-]*([A-Za-z]+)", text_content)
-        nationality = nat_m.group(1).strip() if nat_m else detect_country(text_content)
-
+        # 3. Gender and Country of Stay
         gender = None
-        if re.search(r"\b(?:FEMALE|SEX:\s*F)\b", text_content, re.I):
-            gender = "FEMALE"
-        elif re.search(r"\b(?:MALE|SEX:\s*M)\b", text_content, re.I):
-            gender = "MALE"
+        country_of_stay = None
+        for i, line in enumerate(detected_lines):
+            line_s = line.strip()
+            if re.search(r"(?i)\bGender\b", line_s) and re.search(r"(?i)\bCountry\s*(?:of\s*Stay)?\b", line_s):
+                if i + 1 < len(detected_lines):
+                    val_line = detected_lines[i + 1].strip()
+                    m_gc = re.match(r"^([MF]|MALE|FEMALE)\s+([A-Za-z\s,.-]+)$", val_line, re.I)
+                    if m_gc:
+                        g_val = m_gc.group(1).upper()
+                        gender = "M" if g_val in ["M", "MALE"] else "F"
+                        country_of_stay = m_gc.group(2).strip()
+                        break
+
+        if not gender:
+            m_g = re.search(r"(?i)\b(?:Gender|Sex)[:\s-]*\b([MF]|MALE|FEMALE)\b", text_content)
+            if m_g:
+                g_val = m_g.group(1).upper()
+                gender = "M" if g_val in ["M", "MALE"] else "F"
+
+        if not country_of_stay:
+            m_cs = re.search(r"(?i)(?:Country\s*of\s*Stay)[:\s-]+([A-Za-z\s,.-]+?)(?=\n|\r|Identity|Date|$)", text_content)
+            if m_cs:
+                country_of_stay = m_cs.group(1).strip()
+
+        # 4. Identity Number (CNIC format: \d{5}-\d{7}-\d or standard ID)
+        id_num = None
+        m_cnic = re.search(r"\b(\d{5}-\d{7}-\d)\b", text_content)
+        if m_cnic:
+            id_num = m_cnic.group(1).strip()
+        else:
+            id_m = re.search(
+                r"(?i)\b(?:Identity\s*Number|ID\s*(?:Number|No|#)|DL\s*(?:No|#)|License\s*(?:Number|No|#)|Lic\s*No|NIC\s*(?:No|#)?|Card\s*(?:Number|No|#))\b[:\s#]*([A-Za-z0-9-_]{5,})",
+                text_content,
+            )
+            if id_m:
+                cand = id_m.group(1).strip()
+                if cand.lower() not in ["entity", "identity", "number", "card", "national"]:
+                    id_num = cand
+
+        if not id_num:
+            for i, line in enumerate(detected_lines):
+                if re.search(r"(?i)\bIdentity\s*Number\b", line):
+                    if i + 1 < len(detected_lines):
+                        m_sub = re.search(r"\b(\d{5}-\d{7}-\d|[A-Z0-9-]{7,})\b", detected_lines[i + 1])
+                        if m_sub:
+                            id_num = m_sub.group(1).strip()
+                            break
+
+        if not id_num and fields_dict.get("id_number") and str(fields_dict.get("id_number")).lower() not in ["entity", "identity", "number"]:
+            id_num = str(fields_dict.get("id_number"))
+
+        # 5. Dates: Date of Birth, Issue Date, Expiry Date
+        dob = None
+        iss_date = None
+        exp_date = None
+
+        for i, line in enumerate(detected_lines):
+            line_s = line.strip()
+            # Side-by-side or stacked: Identity Number & Date of Birth
+            if re.search(r"(?i)\bDate\s*of\s*Birth\b|\bDOB\b", line_s):
+                if i + 1 < len(detected_lines):
+                    nxt = detected_lines[i + 1]
+                    d_found = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    if d_found:
+                        dob = d_found[-1]
+
+            # Side-by-side or stacked: Date of Issue & Date of Expiry
+            if re.search(r"(?i)\bDate\s*of\s*Issue\b|\bIssue\s*Date\b", line_s) and re.search(r"(?i)\bDate\s*of\s*Expiry\b|\bExpiry\s*Date\b", line_s):
+                if i + 1 < len(detected_lines):
+                    nxt = detected_lines[i + 1]
+                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    if len(d_pairs) >= 2:
+                        iss_date = d_pairs[0]
+                        exp_date = d_pairs[1]
+                    elif len(d_pairs) == 1:
+                        iss_date = d_pairs[0]
+
+        if not dob:
+            dob_m = re.search(rf"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*{date_pat}", text_content)
+            if dob_m:
+                dob = dob_m.group(1).strip()
+
+        if not iss_date:
+            iss_m = re.search(rf"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*{date_pat}", text_content)
+            if iss_m:
+                iss_date = iss_m.group(1).strip()
+
+        if not exp_date:
+            exp_m = re.search(rf"(?i)(?:Date of Expiry|Expiry Date|Expires|Expiration Date|EXP)[:\s-]*{date_pat}", text_content)
+            if exp_m:
+                exp_date = exp_m.group(1).strip()
+
+        # If individual dates not matched, collect all dates from text
+        all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", text_content)
+        if len(all_dates) >= 3:
+            if not dob:
+                dob = all_dates[0]
+            if not iss_date:
+                iss_date = all_dates[1]
+            if not exp_date:
+                exp_date = all_dates[2]
+        elif len(all_dates) == 2:
+            if not iss_date:
+                iss_date = all_dates[0]
+            if not exp_date:
+                exp_date = all_dates[1]
+
+        # 6. Nationality (never return single prepositions like "of")
+        nationality = None
+        if re.search(r"\b(?:PAKISTAN|ISLAMIC REPUBLIC OF PAKISTAN)\b", text_content, re.I):
+            nationality = "Pakistan"
+        elif re.search(r"\b(?:USA|UNITED STATES)\b", text_content, re.I):
+            nationality = "United States"
+        elif re.search(r"\b(?:INDIA|BHARAT)\b", text_content, re.I):
+            nationality = "India"
+        else:
+            nat_m = re.search(r"(?i)\b(?:Nationality|Citizenship)\b[:\s-]*([A-Za-z]+)", text_content)
+            if nat_m:
+                cand = nat_m.group(1).strip()
+                if cand.lower() not in ["of", "stay", "card", "republic", "state", "the"]:
+                    nationality = cand
+            if not nationality:
+                detected_c = detect_country(text_content)
+                if detected_c:
+                    nationality = detected_c
 
         addr_data = extract_address_block(text_content)
         id_addr = addr_data.get("line1")
@@ -672,13 +824,19 @@ async def extract_file(file_path: Path) -> dict:
             "full_name": full_name,
             "first_name": first_name,
             "last_name": last_name,
+            "father_name": father_name,
             "date_of_birth": dob,
-            "expiry_date": exp_date,
             "issue_date": iss_date,
-            "nationality": nationality,
+            "expiry_date": exp_date,
             "gender": gender,
+            "country_of_stay": country_of_stay,
+            "nationality": nationality,
             "license_class": "CLASS C" if (doc_type == "driving_license" and "CLASS C" in upper) else None,
-            "issuing_authority": "Department of Motor Vehicles (DMV)" if doc_type == "driving_license" else "National Identity Authority",
+            "issuing_authority": (
+                "National Database and Registration Authority (NADRA)"
+                if nationality == "Pakistan"
+                else ("Department of Motor Vehicles (DMV)" if doc_type == "driving_license" else "National Identity Authority")
+            ),
             "address": id_addr,
             "photo_present": True,
             "restrictions": None,
@@ -709,19 +867,17 @@ async def extract_file(file_path: Path) -> dict:
 
         structured_fields = {
             "document_number": id_num,
-            "name": {
-                "full": full_name,
-                "first": first_name,
-                "last": last_name,
-            },
-            "date_of_birth": dob,
-            "issued_on": iss_date,
-            "expiry_date": exp_date,
-            "address": addr_data if addr_data["line1"] else None,
-            "photo_present": True,
+            "full_name": full_name,
+            "father_name": father_name,
             "gender": gender,
+            "country_of_stay": country_of_stay,
+            "date_of_birth": dob,
+            "issue_date": iss_date,
+            "expiry_date": exp_date,
             "nationality": nationality,
-            "id_card" if doc_type == "id_card" else "driving_license": identity_payload,
+            "issuing_authority": identity_payload["issuing_authority"],
+            "photo_present": True,
+            "address": addr_data if addr_data["line1"] else None,
         }
 
     # =========================================================================

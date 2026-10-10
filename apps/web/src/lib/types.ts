@@ -202,6 +202,8 @@ export interface ExtractionResult {
   invoice_number?: string | null;
   issue_date?: string | null;
   due_date?: string | null;
+  date_of_birth?: string | null;
+  expiry_date?: string | null;
   subtotal?: number | null;
   tax_amount?: number | null;
   total_amount?: number | null;
