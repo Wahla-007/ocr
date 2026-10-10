@@ -216,6 +216,52 @@ export function ResultsPanel({
         map["id_number"] = map["id_number"] || map["document_number"];
         delete map["document_number"];
       }
+      // HARD RULE: For all identification documents (ID card, CNIC, driver license, permit),
+      // the NAME field is mandatory and must NEVER be skipped.
+      if (!map["full_name"]) {
+        const fallbackName =
+          (fieldsObj as any)?.full_name ||
+          (fieldsObj as any)?.name?.full ||
+          result.full_name ||
+          result.customer_name;
+        if (fallbackName) {
+          map["full_name"] = fallbackName;
+        }
+      }
+
+      // Gender field (supports Sex, Sexe, Gender, M/F)
+      if (!map["gender"]) {
+        const fallbackGender =
+          (fieldsObj as any)?.gender ||
+          (fieldsObj as any)?.sex ||
+          (fieldsObj as any)?.sexe ||
+          result.gender;
+        if (fallbackGender) {
+          map["gender"] = fallbackGender;
+        }
+      }
+
+      // Address field
+      if (!map["address"]) {
+        const fallbackAddress =
+          (fieldsObj as any)?.address?.line1 ||
+          (fieldsObj as any)?.address ||
+          result.address;
+        if (fallbackAddress) {
+          map["address"] =
+            typeof fallbackAddress === "object"
+              ? fallbackAddress.line1 ||
+                Object.values(fallbackAddress).filter((v) => v && typeof v === "string").join(", ")
+              : fallbackAddress;
+        }
+      }
+    }
+
+    // Ensure address is formatted as clean string if present
+    if (map["address"] && typeof map["address"] === "object") {
+      const a = map["address"];
+      map["address"] =
+        a.line1 || Object.values(a).filter((v) => v && typeof v === "string").join(", ");
     }
 
     return map;
@@ -439,6 +485,18 @@ export function ResultsPanel({
                 )}
                 {docType === "id_card" || docType === "driving_license" ? (
                   <>
+                    {(extractedFieldsMap.full_name || result.full_name) && (
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Name / Cardholder</span>
+                        <span className="font-mono text-slate-200 font-semibold">{extractedFieldsMap.full_name || result.full_name}</span>
+                      </div>
+                    )}
+                    {(extractedFieldsMap.father_name || (fieldsObj as any)?.father_name) && (
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Father Name</span>
+                        <span className="font-mono text-slate-300">{extractedFieldsMap.father_name || (fieldsObj as any)?.father_name}</span>
+                      </div>
+                    )}
                     {(extractedFieldsMap.date_of_birth || result.date_of_birth) && (
                       <div>
                         <span className="text-[10px] font-mono text-slate-500 block uppercase">Date of Birth</span>

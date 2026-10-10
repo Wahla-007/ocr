@@ -199,6 +199,7 @@ export interface ExtractionResult {
   brand_name?: string | null;
   vendor_name?: string | null;
   customer_name?: string | null;
+  full_name?: string | null;
   invoice_number?: string | null;
   id_number?: string | null;
   document_number?: string | null;
@@ -206,6 +207,8 @@ export interface ExtractionResult {
   due_date?: string | null;
   date_of_birth?: string | null;
   expiry_date?: string | null;
+  gender?: string | null;
+  address?: string | null;
   subtotal?: number | null;
   tax_amount?: number | null;
   total_amount?: number | null;

@@ -19,6 +19,14 @@
       "type": "string",
       "description": "Expiration date in YYYY-MM-DD format"
     },
+    "gender": {
+      "type": "string",
+      "description": "Gender or sex (e.g. M, F, Male, Female)"
+    },
+    "address": {
+      "type": "string",
+      "description": "Residential address on identity document"
+    },
     "nationality": {
       "type": "string",
       "description": "Country of citizenship or issue"

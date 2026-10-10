@@ -31,7 +31,18 @@ class MockLLMProvider(LLMProvider):
         # Prompt injection test check: even if adversarial prompt injected, ignore it
         upper = compact_text.upper()
 
-        if "DRIVER LICENSE" in upper or "DRIVING LICENCE" in upper or "DRIVER'S LICENSE" in upper or "DL NO" in upper:
+        if (
+            "DRIVER LICENSE" in upper
+            or "DRIVER LICENCE" in upper
+            or "DRIVING LICENCE" in upper
+            or "DRIVING LICENSE" in upper
+            or "DRIVER'S LICENSE" in upper
+            or "DRIVER'S LICENCE" in upper
+            or "DL NO" in upper
+            or "LICENCE NO" in upper
+            or "LICENSE NO" in upper
+            or "VICROADS" in upper
+        ):
             return ClassificationResult(
                 doc_type="driving_license", confidence=0.99, reasoning="Driver's license format detected"
             )
@@ -517,9 +528,49 @@ class MockLLMProvider(LLMProvider):
                 fields.append(
                     ExtractedField(key="expiry_date", label="Expiration Date", value=exp_date, confidence=0.98)
                 )
+            gender = None
+            m_g = re.search(
+                r"(?i)\b(?:Gender|Sex(?:e)?|Sex/Sexe(?:/Sex)?|Geschlecht|Sexo|G[eé]nero)\b[:\s/A-Za-z-]*\b(MALE|FEMALE|MASCULIN|F[EÉ]MININ|[MF])\b",
+                parsed_text,
+            )
+            if m_g:
+                g_val = m_g.group(1).upper()
+                gender = "M" if g_val in ["M", "MALE", "MASCULIN"] else "F"
+            if not gender:
+                m_mrz_g = re.search(r"(?:[A-Z]{3}|\b)(\d{6})\d([MF])(\d{6})", parsed_text)
+                if m_mrz_g:
+                    gender = m_mrz_g.group(2).upper()
+
+            address = None
+            m_iso8 = re.search(r"(?i)(?:^|\n)\s*8\.\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", parsed_text)
+            if m_iso8:
+                address = " ".join(m_iso8.group(1).split())
+            if not address:
+                m_lbl_addr = re.search(
+                    r"(?i)\b(?:Domiciliu|Adresse|Address|Residential\s*Address)\b[:\s/A-Za-z-]*([^\n]+(?:\n[^\n]+)?)",
+                    parsed_text,
+                )
+                if m_lbl_addr:
+                    address = " ".join(m_lbl_addr.group(1).split())
+            if not address:
+                m_flt = re.search(
+                    r"(?i)\b((?:Flat\s*\d+[,\s]+)?\d{1,5}\s+[A-Za-z0-9\s,.-]+\b(?:Street|St|Road|Rd|Parade|Pde|Bank|Lane|Avenue|Ave|Boulevard|Blvd|Way)\b[^\n]*)",
+                    parsed_text,
+                )
+                if m_flt:
+                    address = m_flt.group(1).strip()
+
             if nationality:
                 fields.append(
                     ExtractedField(key="nationality", label="Nationality", value=nationality, confidence=0.97)
+                )
+            if gender:
+                fields.append(
+                    ExtractedField(key="gender", label="Gender", value=gender, confidence=0.98)
+                )
+            if address:
+                fields.append(
+                    ExtractedField(key="address", label="Address", value=address, confidence=0.97)
                 )
 
             discovered = self._discover_key_values(parsed_text)
