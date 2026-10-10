@@ -686,20 +686,24 @@ async def extract_file(file_path: Path) -> dict:
             m_f = re.search(r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)", text_content)
             if m_f:
                 father_name = m_f.group(1).strip()
+        if father_name:
+            father_name = re.sub(r"([a-z])([A-Z])", r"\1 \2", father_name).strip()
 
         # 3. Gender and Country of Stay
         gender = None
         country_of_stay = None
         for i, line in enumerate(detected_lines):
             line_s = line.strip()
-            if re.search(r"(?i)\bGender\b", line_s) and re.search(r"(?i)\bCountry\s*(?:of\s*Stay)?\b", line_s):
+            if re.search(r"(?i)Gender.*Country", line_s) or (re.search(r"(?i)\bGender\b", line_s) and re.search(r"(?i)\bCountry\b", line_s)):
                 if i + 1 < len(detected_lines):
                     val_line = detected_lines[i + 1].strip()
-                    m_gc = re.match(r"^([MF]|MALE|FEMALE)\s+([A-Za-z\s,.-]+)$", val_line, re.I)
+                    m_gc = re.match(r"^([MF]|MALE|FEMALE)\s*[, -]?\s*([A-Za-z\s,.-]+)$", val_line, re.I)
                     if m_gc:
                         g_val = m_gc.group(1).upper()
                         gender = "M" if g_val in ["M", "MALE"] else "F"
-                        country_of_stay = m_gc.group(2).strip()
+                        c_val = m_gc.group(2).strip(" ,-")
+                        c_val = re.sub(r",(?!\s)", ", ", c_val)
+                        country_of_stay = c_val
                         break
 
         if not gender:
@@ -711,7 +715,7 @@ async def extract_file(file_path: Path) -> dict:
         if not country_of_stay:
             m_cs = re.search(r"(?i)(?:Country\s*of\s*Stay)[:\s-]+([A-Za-z\s,.-]+?)(?=\n|\r|Identity|Date|$)", text_content)
             if m_cs:
-                country_of_stay = m_cs.group(1).strip()
+                country_of_stay = re.sub(r",(?!\s)", ", ", m_cs.group(1).strip())
 
         # 4. Identity Number (CNIC format: \d{5}-\d{7}-\d or standard ID)
         id_num = None
@@ -866,6 +870,7 @@ async def extract_file(file_path: Path) -> dict:
         }
 
         structured_fields = {
+            "id_number": id_num,
             "document_number": id_num,
             "full_name": full_name,
             "father_name": father_name,
@@ -1105,6 +1110,8 @@ async def extract_file(file_path: Path) -> dict:
         "vendor_name": vendor_name,
         "customer_name": customer_name,
         "invoice_number": inv_num,
+        "id_number": id_num,
+        "document_number": id_num or inv_num,
         "issue_date": issue_date,
         "due_date": due_date,
         "subtotal": subtotal,

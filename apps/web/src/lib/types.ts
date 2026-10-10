@@ -200,6 +200,8 @@ export interface ExtractionResult {
   vendor_name?: string | null;
   customer_name?: string | null;
   invoice_number?: string | null;
+  id_number?: string | null;
+  document_number?: string | null;
   issue_date?: string | null;
   due_date?: string | null;
   date_of_birth?: string | null;

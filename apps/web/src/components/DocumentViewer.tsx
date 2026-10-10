@@ -252,8 +252,14 @@ export function DocumentViewer({
             {showBboxes &&
               pageFields.map((field) => {
                 const bbox = field.bbox!;
-                const isSelected = selectedFieldKey === field.key;
-                const isHovered = hoveredFieldKey === field.key;
+                const isSelected =
+                  selectedFieldKey === field.key ||
+                  (selectedFieldKey === "id_number" && field.key === "document_number") ||
+                  (selectedFieldKey === "document_number" && field.key === "id_number");
+                const isHovered =
+                  hoveredFieldKey === field.key ||
+                  (hoveredFieldKey === "id_number" && field.key === "document_number") ||
+                  (hoveredFieldKey === "document_number" && field.key === "id_number");
                 const isActive = isSelected || isHovered;
 
                 const leftPct = (bbox.x / baseWidth) * 100;

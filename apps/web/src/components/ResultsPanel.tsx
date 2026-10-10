@@ -210,14 +210,25 @@ export function ResultsPanel({
     delete map["driving_license"];
     delete map["raw_fields"];
 
+    // For identity documents, consolidate document_number and id_number into id_number
+    if (docType === "id_card" || docType === "driving_license") {
+      if (map["id_number"] || map["document_number"]) {
+        map["id_number"] = map["id_number"] || map["document_number"];
+        delete map["document_number"];
+      }
+    }
+
     return map;
   }, [result, fieldsObj, docType]);
 
   const docNumber =
+    extractedFieldsMap.id_number ||
     extractedFieldsMap.document_number ||
     extractedFieldsMap.invoice_number ||
-    extractedFieldsMap.id_number ||
     extractedFieldsMap.receipt_number ||
+    result.id_number ||
+    result.document_number ||
+    result.invoice_number ||
     null;
 
   // Canonical JSON output: only include fields with actual content present
@@ -420,7 +431,9 @@ export function ResultsPanel({
                 </div>
                 {docNumber && (
                   <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Identifier</span>
+                    <span className="text-[10px] font-mono text-slate-500 block uppercase">
+                      {docType === "id_card" ? "ID Card Number" : docType === "driving_license" ? "License Number" : "Identifier"}
+                    </span>
                     <span className="font-mono text-slate-200 font-semibold">{docNumber}</span>
                   </div>
                 )}
@@ -482,7 +495,12 @@ export function ResultsPanel({
                       {Object.entries(extractedFieldsMap).map(([key, val], idx) => {
                         const isSelected = selectedFieldKey === key;
                         const isHovered = hoveredFieldKey === key;
-                        const labelText = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                        const labelText =
+                          key === "id_number" || (key === "document_number" && docType === "id_card")
+                            ? "ID Card Number"
+                            : key === "driving_license" || (key === "document_number" && docType === "driving_license")
+                            ? "License Number"
+                            : key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
                         const displayVal =
                           val === null || val === undefined
                             ? ""
