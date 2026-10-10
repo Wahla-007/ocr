@@ -8,6 +8,7 @@ import {
   Clock,
   Layers,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { SampleDocument } from "../lib/types";
 
@@ -46,6 +47,7 @@ export function DropZone({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       onFileSelected(e.dataTransfer.files[0]);
@@ -54,25 +56,28 @@ export function DropZone({
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      onFileSelected(e.target.files[0]);
+      const file = e.target.files[0];
+      e.target.value = "";
+      onFileSelected(file);
     }
   };
 
   return (
     <div className="w-full space-y-4">
       {/* Drop Target Box */}
-      <div
+      <label
+        htmlFor="openocr-file-upload-input"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={`relative group cursor-pointer rounded-2xl border-2 border-dashed transition-all p-7 text-center ${
+        className={`relative group cursor-pointer rounded-2xl border-2 border-dashed transition-all p-7 text-center block ${
           isDragOver
             ? "border-emerald-400 bg-emerald-500/10 shadow-xl shadow-emerald-500/10 scale-[1.01]"
             : "border-slate-800 hover:border-slate-700 bg-slate-900/60 hover:bg-slate-900/90"
-        }`}
+        } ${isProcessing ? "opacity-75 pointer-events-none" : ""}`}
       >
         <input
+          id="openocr-file-upload-input"
           ref={fileInputRef}
           type="file"
           accept=".pdf,.png,.jpg,.jpeg,.webp"
@@ -81,42 +86,58 @@ export function DropZone({
           disabled={isProcessing}
         />
 
-        <div className="flex flex-col items-center justify-center space-y-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-            <UploadCloud className="w-6 h-6" />
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-center gap-2">
+        {isProcessing ? (
+          <div className="flex flex-col items-center justify-center space-y-3 py-4">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+            <div className="space-y-1">
               <span className="font-semibold text-white text-base">
-                Drop any document here
+                Processing Document...
               </span>
-              <span className="text-slate-400 text-sm">or</span>
-              <span className="text-emerald-400 font-semibold text-sm underline underline-offset-4">
-                browse files
+              <p className="text-xs text-slate-400">
+                Extracting layout, text, tables, and structured fields
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+              <UploadCloud className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-semibold text-white text-base">
+                  Drop any document here
+                </span>
+                <span className="text-slate-400 text-sm">or</span>
+                <span className="text-emerald-400 font-semibold text-sm underline underline-offset-4">
+                  browse files
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Zero-Selection Intelligence: PDF, PNG, JPG, or WEBP auto-detected. No categories required.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-slate-400">
+              <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
+                PDF (Digital & Scanned)
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
+                Smartphone Receipts
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
+                Identity Cards (Auto-rotated)
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
+                Multi-page Reports
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Zero-Selection Intelligence: PDF, PNG, JPG, or WEBP auto-detected. No categories required.
-            </p>
           </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-slate-400">
-            <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
-              PDF (Digital & Scanned)
-            </span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
-              Smartphone Receipts
-            </span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
-              Identity Cards (Auto-rotated)
-            </span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60">
-              Multi-page Reports
-            </span>
-          </div>
-        </div>
-      </div>
+        )}
+      </label>
 
       {/* Control Bar: Format Selector & Execution Mode */}
       <div className="flex items-center justify-end gap-3 pt-1">

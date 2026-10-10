@@ -6,11 +6,9 @@ import { DropZone } from "../components/DropZone";
 import { PipelineStepper } from "../components/PipelineStepper";
 import { DocumentViewer } from "../components/DocumentViewer";
 import { ResultsPanel } from "../components/ResultsPanel";
-import { SAMPLE_DOCUMENTS } from "../lib/samples";
 import {
   ExtractionResult,
   PipelineProgress,
-  SampleDocument,
 } from "../lib/types";
 import {
   checkBackendHealth,
@@ -18,6 +16,7 @@ import {
   DEFAULT_API_URL,
   uploadAndExtract,
 } from "../lib/api";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 export default function PlaygroundPage() {
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
@@ -25,12 +24,9 @@ export default function PlaygroundPage() {
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [creditsBalance, setCreditsBalance] = useState(100);
 
-  // Active Document & Extraction State
-  const [selectedSampleId, setSelectedSampleId] = useState<string>("clean-invoice");
-  const [activeFileName, setActiveFileName] = useState<string>("clean_invoice.pdf");
-  const [result, setResult] = useState<ExtractionResult | null>(
-    SAMPLE_DOCUMENTS[0].result
-  );
+  // Active Document & Extraction State (null initially: upload-only first screen)
+  const [activeFileName, setActiveFileName] = useState<string>("");
+  const [result, setResult] = useState<ExtractionResult | null>(null);
 
   // Interaction State (Linked highlighting between canvas & sidebar)
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
@@ -63,7 +59,6 @@ export default function PlaygroundPage() {
   }, [apiUrl]);
 
   const handleFileSelected = async (file: File) => {
-    setSelectedSampleId("");
     setActiveFileName(file.name);
     setIsProcessing(true);
     setSelectedFieldKey(null);
@@ -102,7 +97,7 @@ export default function PlaygroundPage() {
       setProgress({
         stage: "completed",
         progressPercent: 100,
-        message: `Extracted ${res.doc_type.toUpperCase()} in ${Date.now() - startTime}ms`,
+        message: `Extracted ${(res.document_type || res.doc_type || "DOCUMENT").toUpperCase()} in ${Date.now() - startTime}ms`,
         elapsedMs: Date.now() - startTime,
       });
 
@@ -122,20 +117,6 @@ export default function PlaygroundPage() {
     }
   };
 
-  const handleSampleSelected = (sample: SampleDocument) => {
-    setSelectedSampleId(sample.id);
-    setActiveFileName(sample.fileName);
-    setResult(sample.result);
-    setSelectedFieldKey(null);
-    setHoveredFieldKey(null);
-    setProgress({
-      stage: "completed",
-      progressPercent: 100,
-      message: `Loaded sample ${sample.title} (${sample.docType.toUpperCase()})`,
-      elapsedMs: sample.result.latency_ms || 45,
-    });
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
       {/* Top Navigation */}
@@ -146,137 +127,142 @@ export default function PlaygroundPage() {
         apiKey={apiKey}
         setApiKey={setApiKey}
         creditsBalance={creditsBalance}
+        onGoToUpload={() => {
+          setResult(null);
+          setActiveFileName("");
+        }}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Breadcrumb & Hero Header matching Screenshot */}
-        <div className="space-y-3 pt-1">
-          <a
-            href="#"
-            className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
-          >
-            <span>&larr;</span>
-            <span>Products</span>
-          </a>
-
-          {(() => {
-            const raw = (result?.document_type || result?.detected_type || result?.doc_type || "invoice").toLowerCase();
-            const isDL = raw === "driving_license" || raw === "driver_license";
-            const isID = raw === "id_card" || raw === "identity_card";
-            const isRcpt = raw === "receipt";
-            const isCtr = raw === "contract";
-            const isInv = raw === "invoice" || (!isDL && !isID && !isRcpt && !isCtr && raw !== "document" && raw !== "report");
-
-            const heroTitle = isDL
-              ? "Driver License OCR"
-              : isID
-              ? "ID Card OCR"
-              : isRcpt
-              ? "Store Receipt OCR"
-              : isCtr
-              ? "Contract OCR"
-              : isInv
-              ? "Invoice OCR"
-              : "Document OCR";
-
-            const checkTag = isInv || isRcpt ? "arithmetic" : isDL || isID ? "checksum" : "structure";
-            const creditsTag = isInv ? 25 : isDL || isID ? 15 : isCtr ? 20 : 10;
-            const endpointPath = isInv
-              ? "/api/v1/id/invoice"
-              : isDL
-              ? "/api/v1/id/driving_license"
-              : isID
-              ? "/api/v1/id/id_card"
-              : isRcpt
-              ? "/api/v1/extract/receipt"
-              : isCtr
-              ? "/api/v1/extract/contract"
-              : "/api/v1/extract";
-
-            const heroDesc = isInv
-              ? "Supplier, buyer, line items with HSN codes, the tax split and the totals. Arithmetic verification checks line totals and tax balances with zero manual schema entry."
-              : isDL
-              ? "Driver identification, license class, issuing jurisdiction, endorsements, and expiration checks. Automated format verification and biometric portrait verification."
-              : isID
-              ? "National identity credentials, full legal names, document numbers, date of birth, and biometric photo presence. Instant 90°/180°/270° orientation normalization."
-              : isRcpt
-              ? "Store receipts, itemized register logs, cashiers, sales taxes, and payment methods. Automated arithmetic consistency validation across all line items."
-              : isCtr
-              ? "Legal agreements, executing parties, effective dates, governing laws, and signature blocks. Structural entity extraction and verification."
-              : "Universal layout analysis, table extraction, and zero-selection structured intelligence for any business document.";
-
-            return (
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="space-y-1.5 max-w-4xl">
-                  <div className="flex items-center gap-2.5">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                      {heroTitle}
-                    </h1>
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-900 border border-slate-800 text-slate-400 capitalize">
-                      {checkTag}
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                    {heroDesc}
-                  </p>
-                  <p className="text-xs font-mono text-slate-500 pt-0.5">
-                    <span className="text-emerald-400 font-semibold">POST</span> {endpointPath}{" "}
-                    <span className="text-slate-400">{creditsTag} credits per document</span>
-                  </p>
-                </div>
+        {/* ========================================================================= */}
+        {/* VIEW 1: FIRST PAGE (UPLOAD / DRAG & DROP ONLY)                            */}
+        {/* ========================================================================= */}
+        {!result && (
+          <div className="max-w-3xl mx-auto space-y-8 py-8 sm:py-14">
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 font-mono text-xs">
+                <span>Fast & Accurate Document Intelligence</span>
               </div>
-            );
-          })()}
-        </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                Universal Document OCR
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+                Zero-selection extraction for invoices, receipts, identity documents, contracts, and reports. Upload any file to get structured JSON, Markdown, and plain text.
+              </p>
+            </div>
 
-        {/* Drop Zone */}
-        <DropZone
-          onFileSelected={handleFileSelected}
-          isProcessing={isProcessing}
-          waitMode={waitMode}
-          setWaitMode={setWaitMode}
-          outputFormat={outputFormat}
-          setOutputFormat={setOutputFormat}
-        />
+            {/* Drop Zone */}
+            <DropZone
+              onFileSelected={handleFileSelected}
+              isProcessing={isProcessing}
+              waitMode={waitMode}
+              setWaitMode={setWaitMode}
+              outputFormat={outputFormat}
+              setOutputFormat={setOutputFormat}
+            />
 
-        {/* Pipeline Stepper (Visible strictly during processing) */}
-        {isProcessing && (
-          <PipelineStepper progress={progress} />
+            {/* Pipeline Stepper (Visible strictly during processing) */}
+            {isProcessing && (
+              <PipelineStepper progress={progress} />
+            )}
+          </div>
         )}
 
-        {/* Split Screen Workspace: Document Canvas (Left) & Extraction Results (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[500px] lg:min-h-[620px]">
-          {/* Left Panel: Document Canvas with Bounding Box Overlays */}
-          <div className="lg:col-span-7 h-full">
-            <DocumentViewer
-              fileName={activeFileName}
-              result={result}
-              selectedFieldKey={selectedFieldKey}
-              onSelectField={setSelectedFieldKey}
-              hoveredFieldKey={hoveredFieldKey}
-              onHoverField={setHoveredFieldKey}
-            />
-          </div>
+        {/* ========================================================================= */}
+        {/* VIEW 2: EXTRACTION WORKSPACE (DOCUMENT PREVIEW & RESULTS)                 */}
+        {/* ========================================================================= */}
+        {result && (
+          <div className="space-y-5">
+            {/* Dynamic Document Header based on auto-detected type */}
+            {(() => {
+              const rawType = (result.document_type || result.detected_type || result.doc_type || "document").toLowerCase();
+              const formattedType = rawType
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+              const dynamicTitle = `${formattedType} OCR`;
+              return (
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 font-mono text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                    <span>Auto-Detected: {formattedType}</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                    {dynamicTitle}
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+                    Zero-shot structured schema extraction and multimodal layout parsing for {formattedType.toLowerCase()} documents.
+                  </p>
+                </div>
+              );
+            })()}
 
-          {/* Right Panel: Multimodal Extraction Results & Inspector */}
-          <div className="lg:col-span-5 h-full">
-            <ResultsPanel
-              result={result}
-              selectedFieldKey={selectedFieldKey}
-              onSelectField={setSelectedFieldKey}
-              hoveredFieldKey={hoveredFieldKey}
-              onHoverField={setHoveredFieldKey}
-              apiUrl={apiUrl}
-              apiKey={apiKey}
-              activeFormat={outputFormat}
-              onFormatChange={setOutputFormat}
-              onReset={() => {
-                if (SAMPLE_DOCUMENTS[0]) handleSampleSelected(SAMPLE_DOCUMENTS[0]);
-              }}
-            />
+            {/* Workspace Action Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2.5">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setResult(null);
+                    setActiveFileName("");
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/60 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Upload Another Document</span>
+                </button>
+                <div className="h-4 w-px bg-slate-800 hidden sm:block" />
+                <span className="text-xs font-mono text-slate-400 truncate max-w-[180px] sm:max-w-xs">
+                  {activeFileName}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold tracking-wider uppercase bg-emerald-950/70 text-emerald-400 border border-emerald-800/60">
+                  {result.document_type || result.detected_type || result.doc_type}
+                </span>
+                {result.latency_ms && (
+                  <span className="text-xs text-slate-500 font-mono hidden sm:inline">
+                    {result.latency_ms}ms
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Split Screen Workspace: Document Canvas (Left) & Extraction Results (Right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Left Panel: Document Canvas with Bounding Box Overlays (Sticky & snug fit) */}
+              <div className="lg:col-span-7 sticky top-20 self-start">
+                <DocumentViewer
+                  fileName={activeFileName}
+                  result={result}
+                  selectedFieldKey={selectedFieldKey}
+                  onSelectField={setSelectedFieldKey}
+                  hoveredFieldKey={hoveredFieldKey}
+                  onHoverField={setHoveredFieldKey}
+                />
+              </div>
+
+              {/* Right Panel: Multimodal Extraction Results & Inspector */}
+              <div className="lg:col-span-5">
+                <ResultsPanel
+                  result={result}
+                  selectedFieldKey={selectedFieldKey}
+                  onSelectField={setSelectedFieldKey}
+                  hoveredFieldKey={hoveredFieldKey}
+                  onHoverField={setHoveredFieldKey}
+                  apiUrl={apiUrl}
+                  apiKey={apiKey}
+                  activeFormat={outputFormat}
+                  onFormatChange={setOutputFormat}
+                  onReset={() => {
+                    setResult(null);
+                    setActiveFileName("");
+                  }}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* Footer matching Screenshot */}

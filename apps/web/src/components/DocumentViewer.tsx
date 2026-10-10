@@ -70,7 +70,7 @@ export function DocumentViewer({
   const hasPreviewImage = Boolean(result?.preview_image);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-auto bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
       {/* Viewer Header / Toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-950/60 text-xs">
         <div className="flex items-center gap-2 truncate">
@@ -171,23 +171,23 @@ export function DocumentViewer({
       </div>
 
       {/* Canvas Viewport */}
-      <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center bg-slate-950/40 select-none">
+      <div className="overflow-auto p-3 sm:p-4 flex flex-col items-center justify-start bg-slate-950/40 select-none">
         <div
-          className="transition-transform duration-150 origin-center max-w-full"
+          className="transition-transform duration-150 origin-top max-w-full w-full flex justify-center"
           style={{ transform: `scale(${zoom})` }}
         >
           {/* Document Sheet Canvas */}
           <div
-            className={`relative rounded-lg shadow-2xl overflow-hidden transition-all duration-150 ${
+            className={`relative rounded-lg shadow-xl overflow-hidden transition-all duration-150 ${
               hasPreviewImage
-                ? "bg-transparent border border-slate-700/40"
-                : "bg-white border border-slate-300/40 text-slate-900 font-sans"
+                ? "bg-transparent border border-slate-700/50"
+                : "bg-transparent border-0"
             }`}
             style={{
               width: "100%",
               maxWidth: hasPreviewImage ? `${Math.min(baseWidth, 640)}px` : "620px",
               height: "auto",
-              padding: hasPreviewImage ? "0px" : "1.5rem",
+              padding: "0px",
             }}
           >
             {/* Visual Document Content Representation */}

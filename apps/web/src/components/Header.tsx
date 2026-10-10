@@ -21,6 +21,7 @@ interface HeaderProps {
   apiKey: string;
   setApiKey: (key: string) => void;
   creditsBalance: number;
+  onGoToUpload?: () => void;
 }
 
 export function Header({
@@ -30,6 +31,7 @@ export function Header({
   apiKey,
   setApiKey,
   creditsBalance,
+  onGoToUpload,
 }: HeaderProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [tempUrl, setTempUrl] = useState(apiUrl);
@@ -47,30 +49,39 @@ export function Header({
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo & Navigation */}
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2.5">
+            <button
+              onClick={onGoToUpload}
+              className="flex items-center gap-2.5 text-left hover:opacity-85 transition-opacity cursor-pointer"
+            >
               <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20 font-black text-xs font-mono">
                 [ ]
               </div>
               <span className="font-extrabold text-base tracking-widest text-white uppercase font-mono">
                 OCR
               </span>
-            </div>
+            </button>
 
             <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-400">
-              <a href="#" className="hover:text-white transition-colors flex items-center gap-1.5 text-emerald-400 font-semibold">
+              <button
+                onClick={onGoToUpload}
+                className="hover:text-white transition-colors flex items-center gap-1.5 text-emerald-400 font-semibold cursor-pointer"
+              >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Products</span>
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
+                <span>OCR</span>
+              </button>
+              <button
+                onClick={onGoToUpload}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
                 Playground
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
+              </button>
+              <a href="#api" className="hover:text-white transition-colors">
                 API Doc
               </a>
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#pricing" className="hover:text-white transition-colors">
                 Pricing
               </a>
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#self-hosted" className="hover:text-white transition-colors">
                 Self-hosted
               </a>
             </nav>
