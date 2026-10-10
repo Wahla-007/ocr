@@ -453,28 +453,88 @@ class MockLLMProvider(LLMProvider):
             father_match = re.search(r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)", parsed_text)
             father_name = father_match.group(1).strip() if father_match else None
 
-            dob_match = re.search(r"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
-            dob = dob_match.group(1).strip() if dob_match else None
+            def normalize_date_format(d_str: str | None) -> str | None:
+                if not d_str:
+                    return None
+                m_2y = re.match(r"^(\d{2})([./-])(\d{2})\2(\d{2})$", d_str.strip())
+                if m_2y:
+                    day, sep, month, yr = m_2y.groups()
+                    century = "20" if int(yr) <= 40 else "19"
+                    return f"{day}{sep}{month}{sep}{century}{yr}"
+                return d_str.strip()
 
-            iss_match = re.search(r"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
-            iss_date = iss_match.group(1).strip() if iss_match else None
+            dob = None
+            iss_date = None
+            exp_date = None
 
-            exp_match = re.search(r"(?i)(?:Date of Expiry|Expiry Date|Expires|EXP)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
-            exp_date = exp_match.group(1).strip() if exp_match else None
+            # ISO 18013 markers 4a (issue) and 4b (expiry)
+            m_4a = re.search(r"(?i)\b4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", parsed_text)
+            m_4b = re.search(r"(?i)\b4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", parsed_text)
+            if m_4a:
+                iss_date = normalize_date_format(m_4a.group(1))
+            if m_4b:
+                exp_date = normalize_date_format(m_4b.group(1))
 
-            all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", parsed_text)
+            # Multilingual validity ranges (Valabilitate, Validité, Validity, Vigencia)
+            m_v_range = re.search(
+                r"(?i)\b(?:Valabilitate|Validit[eé]|Validity|Validez|Vigencia|Valable|Valid\s*(?:from|by|till|until)?)\b[^\d\n]*\n?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\s*[-–—toau/]+\s*(\d{2}[./-]\d{2}[./-]\d{2,4})",
+                parsed_text,
+            )
+            if m_v_range:
+                if not iss_date:
+                    iss_date = normalize_date_format(m_v_range.group(1))
+                if not exp_date:
+                    exp_date = normalize_date_format(m_v_range.group(2))
+
+            # Standalone date range
+            if not (iss_date and exp_date):
+                m_drange = re.search(
+                    r"\b(\d{2}[./-]\d{2}[./-]\d{2,4})\s*[-–—]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b",
+                    parsed_text,
+                )
+                if m_drange:
+                    if not iss_date:
+                        iss_date = normalize_date_format(m_drange.group(1))
+                    if not exp_date:
+                        exp_date = normalize_date_format(m_drange.group(2))
+
+            # MRZ Line 2 fallback for DOB and Expiry
+            m_mrz_dates = re.search(r"(?:[A-Z]{3}|\b)(\d{6})\d[MF](\d{6})", parsed_text)
+            if m_mrz_dates:
+                raw_dob = m_mrz_dates.group(1)
+                raw_exp = m_mrz_dates.group(2)
+                if not dob:
+                    yr = int(raw_dob[:2])
+                    century = "19" if yr > 30 else "20"
+                    dob = f"{raw_dob[4:6]}.{raw_dob[2:4]}.{century}{raw_dob[:2]}"
+                if not exp_date:
+                    exp_date = f"{raw_exp[4:6]}.{raw_exp[2:4]}.20{raw_exp[:2]}"
+
+            if not dob:
+                dob_match = re.search(r"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+                dob = normalize_date_format(dob_match.group(1).strip()) if dob_match else None
+
+            if not iss_date:
+                iss_match = re.search(r"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+                iss_date = normalize_date_format(iss_match.group(1).strip()) if iss_match else None
+
+            if not exp_date:
+                exp_match = re.search(r"(?i)(?:Date of Expiry|Expiry Date|Expires|EXP)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+                exp_date = normalize_date_format(exp_match.group(1).strip()) if exp_match else None
+
+            all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", parsed_text)
             if len(all_dates) >= 3:
                 if not dob:
-                    dob = all_dates[0]
+                    dob = normalize_date_format(all_dates[0])
                 if not iss_date:
-                    iss_date = all_dates[1]
+                    iss_date = normalize_date_format(all_dates[1])
                 if not exp_date:
-                    exp_date = all_dates[2]
+                    exp_date = normalize_date_format(all_dates[2])
             elif len(all_dates) == 2:
                 if not iss_date:
-                    iss_date = all_dates[0]
+                    iss_date = normalize_date_format(all_dates[0])
                 if not exp_date:
-                    exp_date = all_dates[1]
+                    exp_date = normalize_date_format(all_dates[1])
 
             nationality = None
             if "PAKISTAN" in parsed_text.upper():
@@ -547,7 +607,7 @@ class MockLLMProvider(LLMProvider):
                 address = " ".join(m_iso8.group(1).split())
             if not address:
                 m_lbl_addr = re.search(
-                    r"(?i)\b(?:Domiciliu|Adresse|Address|Residential\s*Address)\b[:\s/A-Za-z-]*([^\n]+(?:\n[^\n]+)?)",
+                    r"(?i)\b(?:Domiciliu(?:/[A-Za-z]+)*|Adresse|Address|Residential\s*Address)\b[:\s/,-]*\n?\s*([^\n]+)",
                     parsed_text,
                 )
                 if m_lbl_addr:

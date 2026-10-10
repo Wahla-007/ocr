@@ -230,7 +230,7 @@ def extract_address_block(text: str, lines: list[str] | None = None) -> dict:
     # 2. Explicit address labels: Address, Domiciliu, Domicile, Adresse, etc.
     if not raw_addr:
         m_lbl = re.search(
-            r"(?i)\b(?:Domiciliu|Adresse|Address|Residential\s*Address|Permanent\s*Address|Current\s*Address)\b[:\s/A-Za-z-]*([^\n]+(?:\n[^\n]+)?)",
+            r"(?i)\b(?:Domiciliu(?:/[A-Za-z]+)*|Adresse|Address|Residential\s*Address|Permanent\s*Address|Current\s*Address)\b[:\s/,-]*\n?\s*([^\n]+)",
             text,
         )
         if m_lbl:
@@ -908,65 +908,120 @@ async def extract_file(file_path: Path) -> dict:
         iss_date = None
         exp_date = None
 
+        def normalize_date_format(d_str: str | None) -> str | None:
+            if not d_str:
+                return None
+            m_2y = re.match(r"^(\d{2})([./-])(\d{2})\2(\d{2})$", d_str.strip())
+            if m_2y:
+                day, sep, month, yr = m_2y.groups()
+                century = "20" if int(yr) <= 40 else "19"
+                return f"{day}{sep}{month}{sep}{century}{yr}"
+            return d_str.strip()
+
+        # 5a. ISO 18013 standard markers: 3 (DOB), 4a (Issue Date), 4b (Expiry Date)
+        m_4a = re.search(r"(?i)\b4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", text_content)
+        m_4b = re.search(r"(?i)\b4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", text_content)
+        if m_4a:
+            iss_date = normalize_date_format(m_4a.group(1))
+        if m_4b:
+            exp_date = normalize_date_format(m_4b.group(1))
+
+        # 5b. Multilingual validity ranges (Romanian: Valabilitate, French: Validité, Spanish: Vigencia/Validez, English: Validity)
+        m_v_range = re.search(
+            r"(?i)\b(?:Valabilitate|Validit[eé]|Validity|Validez|Vigencia|Valable|Valid\s*(?:from|by|till|until)?)\b[^\d\n]*\n?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\s*[-–—toau/]+\s*(\d{2}[./-]\d{2}[./-]\d{2,4})",
+            text_content,
+        )
+        if m_v_range:
+            if not iss_date:
+                iss_date = normalize_date_format(m_v_range.group(1))
+            if not exp_date:
+                exp_date = normalize_date_format(m_v_range.group(2))
+
+        # 5c. Layout line scanning for paired dates
         for i, line in enumerate(detected_lines):
             line_s = line.strip()
             # Side-by-side or stacked: Date of Issue & Date of Expiry
             if re.search(r"(?i)\b(?:Date\s*of\s*)?Issue\b|\bISS\b", line_s) and re.search(r"(?i)\b(?:Date\s*of\s*)?Expir\w*\b|\bEXP\b", line_s):
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1]
-                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
                     if len(d_pairs) >= 2:
-                        iss_date = d_pairs[0]
-                        exp_date = d_pairs[1]
+                        iss_date = iss_date or normalize_date_format(d_pairs[0])
+                        exp_date = exp_date or normalize_date_format(d_pairs[1])
                     elif len(d_pairs) == 1:
-                        iss_date = d_pairs[0]
+                        iss_date = iss_date or normalize_date_format(d_pairs[0])
 
             # Side-by-side or stacked: Expiry & Date of Birth (e.g. Victorian Driver Licence: "LICENCE EXPIRY DATEOF BIRTH")
             if re.search(r"(?i)\bexpir\w*\b", line_s) and re.search(r"(?i)\b(?:birth|dob)\b", line_s):
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1]
-                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
                     if len(d_pairs) >= 2:
-                        exp_date = d_pairs[0]
-                        dob = d_pairs[1]
+                        exp_date = exp_date or normalize_date_format(d_pairs[0])
+                        dob = dob or normalize_date_format(d_pairs[1])
 
             # Standalone Identity Number & Date of Birth
             if re.search(r"(?i)\bDate\s*of\s*Birth\b|\bDOB\b", line_s) and not re.search(r"(?i)\bexpir", line_s):
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1]
-                    d_found = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    d_found = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
                     if d_found:
-                        dob = d_found[-1]
+                        dob = dob or normalize_date_format(d_found[-1])
 
+        # 5d. Standalone date range anywhere: e.g. "15.02.19-16.05.2029"
+        if not (iss_date and exp_date):
+            m_drange = re.search(
+                r"\b(\d{2}[./-]\d{2}[./-]\d{2,4})\s*[-–—]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b",
+                text_content,
+            )
+            if m_drange:
+                if not iss_date:
+                    iss_date = normalize_date_format(m_drange.group(1))
+                if not exp_date:
+                    exp_date = normalize_date_format(m_drange.group(2))
+
+        # 5e. Label-targeted date regexes
         if not dob:
             dob_m = re.search(rf"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*{date_pat}", text_content)
             if dob_m:
-                dob = dob_m.group(1).strip()
+                dob = normalize_date_format(dob_m.group(1).strip())
 
         if not iss_date:
-            iss_m = re.search(rf"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*{date_pat}", text_content)
+            iss_m = re.search(rf"(?i)(?:Date of Issue|Issue Date|Issued|ISS|Emis[aă]?\s*la)[:\s-]*{date_pat}", text_content)
             if iss_m:
-                iss_date = iss_m.group(1).strip()
+                iss_date = normalize_date_format(iss_m.group(1).strip())
 
         if not exp_date:
-            exp_m = re.search(rf"(?i)(?:Date of Expiry|Expiry Date|Expires|Expiration Date|EXP)[:\s-]*{date_pat}", text_content)
+            exp_m = re.search(rf"(?i)(?:Date of Expiry|Expiry Date|Expires|Expiration Date|EXP|Valabil\s*p[aâ]n[aă]\s*la)[:\s-]*{date_pat}", text_content)
             if exp_m:
-                exp_date = exp_m.group(1).strip()
+                exp_date = normalize_date_format(exp_m.group(1).strip())
 
-        # If individual dates not matched, collect all dates from text
-        all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{4}|\d{4}[./-]\d{2}[./-]\d{2})\b", text_content)
+        # 5f. MRZ Line 2 fallback for DOB and Expiry (ICAO Doc 9303 TD1/TD2/TD3 standard)
+        m_mrz_dates = re.search(r"(?:[A-Z]{3}|\b)(\d{6})\d[MF](\d{6})", text_content)
+        if m_mrz_dates:
+            raw_dob = m_mrz_dates.group(1)
+            raw_exp = m_mrz_dates.group(2)
+            if not dob:
+                yr = int(raw_dob[:2])
+                century = "19" if yr > 30 else "20"
+                dob = f"{raw_dob[4:6]}.{raw_dob[2:4]}.{century}{raw_dob[:2]}"
+            if not exp_date:
+                exp_date = f"{raw_exp[4:6]}.{raw_exp[2:4]}.20{raw_exp[:2]}"
+
+        # 5g. Fallback list of dates
+        all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", text_content)
         if len(all_dates) >= 3:
             if not dob:
-                dob = all_dates[0]
+                dob = normalize_date_format(all_dates[0])
             if not iss_date:
-                iss_date = all_dates[1]
+                iss_date = normalize_date_format(all_dates[1])
             if not exp_date:
-                exp_date = all_dates[2]
+                exp_date = normalize_date_format(all_dates[2])
         elif len(all_dates) == 2:
             if not iss_date:
-                iss_date = all_dates[0]
+                iss_date = normalize_date_format(all_dates[0])
             if not exp_date:
-                exp_date = all_dates[1]
+                exp_date = normalize_date_format(all_dates[1])
 
         # 6. Nationality (never return single prepositions like "of")
         nationality = None
