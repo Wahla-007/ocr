@@ -537,14 +537,32 @@ class MockLLMProvider(LLMProvider):
                     exp_date = normalize_date_format(all_dates[1])
 
             nationality = None
-            if "PAKISTAN" in parsed_text.upper():
+            if re.search(r"\b(?:ROMANIA|ROUMANIE|ROMÂNIA|ROU)\b", parsed_text, re.I):
+                nationality = "Romania"
+            elif re.search(r"\b(?:PAKISTAN|ISLAMIC REPUBLIC OF PAKISTAN)\b", parsed_text, re.I):
                 nationality = "Pakistan"
-            elif "USA" in parsed_text.upper() or "UNITED STATES" in parsed_text.upper():
+            elif re.search(r"\b(?:USA|UNITED STATES)\b", parsed_text, re.I):
                 nationality = "United States"
+            elif re.search(r"\b(?:CANADA|CANADIAN)\b", parsed_text, re.I):
+                nationality = "Canada"
+            elif re.search(r"\b(?:AUSTRALIA|AUSTRALIAN)\b", parsed_text, re.I):
+                nationality = "Australia"
+            elif re.search(r"\b(?:UNITED KINGDOM|BRITISH|UK)\b", parsed_text, re.I):
+                nationality = "United Kingdom"
             else:
-                nat_match = re.search(r"(?i)(?:Nationality|Citizenship)[:\s-]*([A-Za-z]+)", parsed_text)
-                if nat_match and nat_match.group(1).lower() not in ["of", "stay", "card", "republic"]:
-                    nationality = nat_match.group(1).strip()
+                m_mrz_c = re.search(r"(?:[A-Z]{3}|\b)\d([A-Z]{3})\d{6}\d", parsed_text)
+                if m_mrz_c:
+                    c_code = m_mrz_c.group(1).upper()
+                    mrz_map = {"ROU": "Romania", "CAN": "Canada", "GBR": "United Kingdom", "USA": "United States", "PAK": "Pakistan", "IND": "India"}
+                    if c_code in mrz_map:
+                        nationality = mrz_map[c_code]
+                if not nationality:
+                    nat_match = re.search(r"(?i)\b(?:Cet[aă]tenie(?:/[A-Za-z]+)*|Nationality|Citizenship)\b[:\s/,-]*([A-Za-z\s/]+?)(?=\s*(?:Loc|Place|Sex|Domiciliu|Address|CNP|\n|$))", parsed_text)
+                    if nat_match:
+                        cand = nat_match.group(1).strip(" /,-")
+                        skip_words = {"of", "stay", "card", "republic", "sex", "sexe", "gender", "loc", "nastere", "place", "birth", "domiciliu", "address"}
+                        if cand.lower() not in skip_words and len(cand) > 1:
+                            nationality = cand
 
             if "JANE DOE" in parsed_text.upper():
                 name = "Jane Doe"

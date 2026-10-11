@@ -130,6 +130,8 @@ def detect_country(text: str) -> str | None:
         return "FR"
     if re.search(r"\b(?:Australia)\b", text, re.I):
         return "AU"
+    if re.search(r"\b(?:Romania|Roumanie|România|ROU)\b", text, re.I):
+        return "RO"
     if re.search(r"\b(?:United Arab Emirates|UAE|Dubai)\b", text, re.I):
         return "AE"
     return None
@@ -1023,20 +1025,52 @@ async def extract_file(file_path: Path) -> dict:
             if not exp_date:
                 exp_date = normalize_date_format(all_dates[1])
 
-        # 6. Nationality (never return single prepositions like "of")
+        # 6. Nationality (never return single prepositions or field labels like "of", "Sex", "Gender")
         nationality = None
-        if re.search(r"\b(?:PAKISTAN|ISLAMIC REPUBLIC OF PAKISTAN)\b", text_content, re.I):
+        if re.search(r"\b(?:ROMANIA|ROUMANIE|ROMÂNIA|ROU)\b", text_content, re.I):
+            nationality = "Romania"
+        elif re.search(r"\b(?:PAKISTAN|ISLAMIC REPUBLIC OF PAKISTAN)\b", text_content, re.I):
             nationality = "Pakistan"
         elif re.search(r"\b(?:USA|UNITED STATES)\b", text_content, re.I):
             nationality = "United States"
+        elif re.search(r"\b(?:CANADA|CANADIAN)\b", text_content, re.I):
+            nationality = "Canada"
+        elif re.search(r"\b(?:AUSTRALIA|AUSTRALIAN|VICTORIA AUSTRALIA)\b", text_content, re.I):
+            nationality = "Australia"
+        elif re.search(r"\b(?:UNITED KINGDOM|BRITISH|UK|GREAT BRITAIN)\b", text_content, re.I):
+            nationality = "United Kingdom"
         elif re.search(r"\b(?:INDIA|BHARAT)\b", text_content, re.I):
             nationality = "India"
         else:
-            nat_m = re.search(r"(?i)\b(?:Nationality|Citizenship)\b[:\s-]*([A-Za-z]+)", text_content)
-            if nat_m:
-                cand = nat_m.group(1).strip()
-                if cand.lower() not in ["of", "stay", "card", "republic", "state", "the"]:
-                    nationality = cand
+            # Check MRZ country codes (e.g. 1ROU, 8CAN, 1GBR)
+            m_mrz_c = re.search(r"(?:[A-Z]{3}|\b)\d([A-Z]{3})\d{6}\d", text_content)
+            if m_mrz_c:
+                c_code = m_mrz_c.group(1).upper()
+                mrz_map = {
+                    "ROU": "Romania", "CAN": "Canada", "GBR": "United Kingdom",
+                    "USA": "United States", "PAK": "Pakistan", "IND": "India",
+                    "AUS": "Australia", "FRA": "France", "DEU": "Germany",
+                    "ITA": "Italy", "ESP": "Spain",
+                }
+                if c_code in mrz_map:
+                    nationality = mrz_map[c_code]
+
+            if not nationality:
+                nat_m = re.search(
+                    r"(?i)\b(?:Cet[aă]tenie(?:/[A-Za-z]+)*|Nationality|Citizenship|Nationalit[eé])\b[:\s/,-]*([A-Za-z\s/]+?)(?=\s*(?:Loc|Place|Sex|Domiciliu|Address|CNP|\n|$))",
+                    text_content,
+                )
+                if nat_m:
+                    cand = nat_m.group(1).strip(" /,-")
+                    skip_nat_words = {
+                        "of", "stay", "card", "republic", "state", "the",
+                        "sex", "sexe", "gender", "loc", "nastere", "place", "birth",
+                        "domiciliu", "adresse", "address", "valabilitate", "validite", "validity",
+                        "name", "nume", "prenume", "first", "last", "identity"
+                    }
+                    if cand.lower() not in skip_nat_words and len(cand) > 1:
+                        nationality = cand
+
             if not nationality:
                 detected_c = detect_country(text_content)
                 if detected_c:
