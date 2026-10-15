@@ -69,12 +69,6 @@ export function Header({
                 <FileText className="w-3.5 h-3.5" />
                 <span>OCR</span>
               </button>
-              <button
-                onClick={onGoToUpload}
-                className="hover:text-white transition-colors cursor-pointer"
-              >
-                Playground
-              </button>
               <a href="#api" className="hover:text-white transition-colors">
                 API Doc
               </a>
