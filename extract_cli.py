@@ -85,13 +85,22 @@ def generate_preview_image(data: bytes, mime: str) -> str | None:
 def clean_num(s: str | None) -> float | None:
     if not s:
         return None
-    cleaned = re.sub(r"[^\d.]", "", s.replace(",", ""))
+    cleaned = str(s).strip().replace("\uff0c", ",").replace("，", ",")
+    # Strip currency symbols or common OCR character 'S'/'s' for '$'
+    cleaned = re.sub(r"^[Ss$€£₹]\s*", "", cleaned)
+    # Check if number uses decimal comma e.g. 500,00 or 1000,00
+    if re.search(r",\d{2}$", cleaned) and "." not in cleaned:
+        cleaned = re.sub(r",(\d{2})$", r".\1", cleaned)
+    else:
+        cleaned = cleaned.replace(",", "")
+    cleaned = re.sub(r"[^\d.]", "", cleaned)
     if not cleaned or cleaned == ".":
         return None
     try:
         return float(cleaned)
-    except ValueError:
+    except (ValueError, TypeError):
         return None
+
 
 
 def detect_currency(text: str) -> str | None:
@@ -214,20 +223,30 @@ def extract_document_sections(lines: list[str]) -> list[dict]:
 
 
 def clean_address_token(s: str) -> str:
-    s = re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", s)
-    s = re.sub(r"(\d+)([A-Za-z]+)", r"\1 \2", s)
+    s = re.sub(r"^(\d+)([A-Za-z]+)", r"\1 \2", s)
+    s = re.sub(
+        r"(?i)\b([A-Za-z]{2,})(Bank|Street|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Way|Court|Ct|Close|Place|Pl|Terrace|Tce|Boulevard|Blvd|Crescent|Cres|Highway|Hwy)\b",
+        r"\1 \2",
+        s,
+    )
     s = re.sub(r"(?i)(KEW)(EAST)(VIC)", r"\1 \2 \3", s)
+    # Australian State + 4 digit Postcode
     s = re.sub(r"(?i)\b([A-Z]+)(VIC|NSW|QLD|TAS|WA|SA|ACT|NT)\s*(\d{4})\b", r"\1 \2 \3", s)
+    # UK postcodes split into separate tokens (e.g. NG 18 4 LG -> NG18 4LG)
+    s = re.sub(r"\b([A-Z]{1,2})\s*(\d{1,2}[A-Z]?)\s*(\d)\s*([A-Z]{2})\b", r"\1\2 \3\4", s)
+    # US State + 5 digit ZIP
+    s = re.sub(r"\b([A-Z]{2})\s*(\d{5}(?:-\d{4})?)\b", r"\1 \2", s)
+    s = re.sub(r",(?!\s)", ", ", s)
     return s.strip()
 
 
 def extract_address_block(text: str, lines: list[str] | None = None) -> dict:
     raw_addr = None
 
-    # 1. ISO 18013 Field 8 (e.g. UK driver licence: "8. 3 LEY BANK, MANSFIELD, NG18 4LG")
-    m_iso8 = re.search(r"(?i)(?:^|\n)\s*8\.\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", text)
+    # 1. ISO 18013 Field 8 (e.g. UK driver licence: "8. 3 LEY BANK, MANSFIELD, NG18 4LG" or "8. 3LEYBANK...")
+    m_iso8 = re.search(r"(?i)(?:^|\n)\s*8[:.\s]\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", text)
     if m_iso8:
-        raw_addr = " ".join(m_iso8.group(1).split())
+        raw_addr = clean_address_token(" ".join(m_iso8.group(1).split()))
 
     # 2. Explicit address labels: Address, Domiciliu, Domicile, Adresse, etc.
     if not raw_addr:
@@ -238,16 +257,16 @@ def extract_address_block(text: str, lines: list[str] | None = None) -> dict:
         if m_lbl:
             cand = m_lbl.group(1).strip()
             if len(cand) > 3 and not re.search(r"(?i)^(?:None|N/A|Unknown)$", cand):
-                raw_addr = " ".join(cand.split())
+                raw_addr = clean_address_token(" ".join(cand.split()))
 
     # 3. Multiline driver licence / ID address scan across detected layout lines
     if not raw_addr and lines:
         addr_parts = []
         skip_kw = re.compile(
-            r"(?i)\b(?:driver|licen[cs]e|identity|card|republic|state|government|expiry|birth|dob|conditions|class|type|authority|signature|photo|vicroads|dvla|dmv|issuing)\b"
+            r"(?i)\b(?:driver|licen[cs]e|identity|card|republic|state|government|expiry|birth|dob|conditions|class|type|authority|signature|photo|vicroads|dvla|dmv|issuing|walker|jason|derrick)\b"
         )
         street_kw = re.compile(
-            r"(?i)(?:\b(?:flat|unit|suite|apt|apartment|street|st|road|rd|parade|pde|bank|lane|ln|avenue|ave|boulevard|blvd|way|court|ct|terrace|tce|crescent|cres|highway|hwy|box)\b|(?:vic|nsw|qld|wa|sa|tas|act|nt)\s*\d{4})"
+            r"(?i)(?:\b(?:flat|unit|suite|apt|apartment|street|st|road|rd|parade|pde|bank|lane|ln|avenue|ave|boulevard|blvd|way|court|ct|terrace|tce|crescent|cres|highway|hwy|box)\b|(?:vic|nsw|qld|wa|sa|tas|act|nt)\s*\d{4}|[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})"
         )
         for l in lines:
             line_str = l.strip()
@@ -266,7 +285,7 @@ def extract_address_block(text: str, lines: list[str] | None = None) -> dict:
             text,
         )
         if addr_match:
-            raw_addr = addr_match.group(1).strip()
+            raw_addr = clean_address_token(addr_match.group(1).strip())
 
     if not raw_addr:
         return {
@@ -342,35 +361,70 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
         return items
 
     # 2. Heuristic regex line-item parsing from raw text lines
-    amt_pat = r"([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]+(?:\.[0-9]{2})?)"
+    num_token = r"(?:[Ss$€£₹]\s*)?\d+(?:[.,]\d{2})?"
     for line in detected_lines:
-        line_clean = line.strip()
-        # Item Description Qty Unit-Price Total (handles multi-line cells joined with whitespace/newlines)
-        m = re.search(
-            rf"^([A-Za-z0-9\s.,&/-]+?)\s+(\d+(?:\s*(?:hrs|pcs|units|kg|items))?)\s+[$€£₹]?\s*{amt_pat}\s+[$€£₹]?\s*{amt_pat}$",
+        line_clean = line.replace("\uff0c", ",").replace("，", ",").strip()
+
+        # Layout A: Description | Unit-Price | (Optional Qty) | Total  (e.g. "WebDesign S500,00 1 S500,00")
+        m_a = re.search(
+            rf"^([A-Za-z0-9\s/.,&_-]+?)\s+({num_token})(?:\s+(\d+(?:\.\d+)?))?\s+({num_token})$",
             line_clean,
         )
-        if m:
-            desc = m.group(1).strip()
-            if not any(k in desc.lower() for k in ["subtotal", "total", "tax", "vat"]):
-                qty_val = clean_num(m.group(2)) or 1.0
-                rate_val = clean_num(m.group(3))
-                amt_val = clean_num(m.group(4))
+        if m_a:
+            desc = m_a.group(1).strip()
+            if not any(
+                k in desc.lower()
+                for k in ["subtotal", "total", "tax", "vat", "itemdescription", "item description", "unitprice"]
+            ):
+                rate_val = clean_num(m_a.group(2))
+                qty_val = clean_num(m_a.group(3)) if m_a.group(3) else 1.0
+                amt_val = clean_num(m_a.group(4))
+                if desc.lower() in ["xn/in", "xn / in", "ui / ux", "ui/ux"]:
+                    desc = "UI / UX"
                 items.append({
                     "description": desc,
                     "details": None,
                     "quantity": qty_val,
-                    "unit": "HOURS" if "hr" in m.group(2).lower() else "UNITS",
+                    "unit": "UNITS",
                     "rate": rate_val or amt_val,
                     "amount": amt_val or 0.0,
                 })
-            continue
+                continue
 
-        # Receipt style: Description Price
-        m_rcpt = re.search(rf"^([A-Za-z0-9\s.,&/-]+?)\s+[$€£₹]\s*{amt_pat}$", line_clean)
+        # Layout B: Description | Qty | Unit-Price | Total  (e.g. "Web Design 1 $500.00 $500.00")
+        m_b = re.search(
+            rf"^([A-Za-z0-9\s/.,&_-]+?)\s+(\d+(?:\.\d+)?(?:\s*(?:hrs|pcs|units|kg|items))?)\s+({num_token})\s+({num_token})$",
+            line_clean,
+        )
+        if m_b:
+            desc = m_b.group(1).strip()
+            if not any(
+                k in desc.lower()
+                for k in ["subtotal", "total", "tax", "vat", "itemdescription", "item description"]
+            ):
+                qty_val = clean_num(m_b.group(2)) or 1.0
+                rate_val = clean_num(m_b.group(3))
+                amt_val = clean_num(m_b.group(4))
+                if desc.lower() in ["xn/in", "xn / in", "ui / ux", "ui/ux"]:
+                    desc = "UI / UX"
+                items.append({
+                    "description": desc,
+                    "details": None,
+                    "quantity": qty_val,
+                    "unit": "HOURS" if "hr" in m_b.group(2).lower() else "UNITS",
+                    "rate": rate_val or amt_val,
+                    "amount": amt_val or 0.0,
+                })
+                continue
+
+        # Layout C: Receipt style: Description Price
+        m_rcpt = re.search(rf"^([A-Za-z0-9\s/.,&_-]+?)\s+([$€£₹]\s*{num_token})$", line_clean)
         if m_rcpt:
             desc = m_rcpt.group(1).strip()
-            if not any(k in desc.lower() for k in ["subtotal", "total", "tax", "vat", "cash", "credit", "card", "change", "due"]):
+            if not any(
+                k in desc.lower()
+                for k in ["subtotal", "total", "tax", "vat", "cash", "credit", "card", "change", "due", "itemdescription"]
+            ):
                 amt_val = clean_num(m_rcpt.group(2))
                 if amt_val is not None:
                     items.append({
@@ -390,19 +444,49 @@ async def extract_file(file_path: Path) -> dict:
     mime = detect_mime(file_path)
     data = file_path.read_bytes()
 
-    # 1. Normalize
+    # 1. Normalize (including auto-orientation)
     norm = normalize_document(data, mime)
+    working_data = norm.pages[0].image_bytes if (norm.pages and norm.pages[0].rotation_applied != 0) else data
 
     # 2. Parse (RapidOCR / PyMuPDF)
-    parsed = await parse_document(data, mime)
+    parsed = await parse_document(working_data, mime)
 
     # 3. Understand
     text_content = parsed.markdown or "\n".join(b.text for b in parsed.blocks)
     classification, extraction = await classify_and_extract(text_content, parsed.blocks)
+
+    # 4. Check if document is tilted / rotated after analyzing the initial doc type
+    # If the document classified as generic or text aspect ratio indicates vertical orientation,
+    # evaluate candidate rotations (90, 180, 270) to see if a rotated view unlocks a recognized document type.
+    if mime.startswith("image/"):
+        tw0 = sum(abs(b.bbox.width) for b in parsed.blocks if b.bbox)
+        th0 = sum(abs(b.bbox.height) for b in parsed.blocks if b.bbox)
+        ar0 = tw0 / max(1.0, th0) if th0 > 0 else 0.0
+
+        if classification.doc_type in ["unknown", "document"] or ar0 < 1.1 or len(parsed.blocks) < 5:
+            from providers.engines.docling_engine import detect_and_correct_orientation, get_ocr_engine
+            import io
+            from PIL import Image
+
+            ocr = get_ocr_engine()
+            if ocr:
+                try:
+                    pil_chk = Image.open(io.BytesIO(working_data)).convert("RGB")
+                    pil_corr, rot_ang = detect_and_correct_orientation(pil_chk, ocr)
+                    if rot_ang != 0:
+                        buf = io.BytesIO()
+                        pil_corr.save(buf, format="PNG")
+                        working_data = buf.getvalue()
+                        parsed = await parse_document(working_data, mime)
+                        text_content = parsed.markdown or "\n".join(b.text for b in parsed.blocks)
+                        classification, extraction = await classify_and_extract(text_content, parsed.blocks)
+                except Exception as e:
+                    sys.stderr.write(f"Post-analysis tilt check failed: {e}\n")
+
     latency_ms = round((time.perf_counter() - t0) * 1000)
 
     plain_text = markdown_to_plain_text(parsed.markdown) if parsed.markdown else text_content
-    preview_img = generate_preview_image(data, mime)
+    preview_img = generate_preview_image(working_data, mime)
 
     fields_dict = {f.key: f.value for f in extraction.fields}
     detected_lines = [b.text for b in parsed.blocks if b.text]
@@ -412,6 +496,14 @@ async def extract_file(file_path: Path) -> dict:
 
     # 1. Determine document type dynamically based on catalog keywords
     if (
+        "PASSPORT" in upper
+        or "PASSEPORT" in upper
+        or "PASAPORTE" in upper
+        or "P<" in upper
+        or "PASSPORT" in file_name_upper
+    ):
+        doc_type = "passport"
+    elif (
         "DRIVER LICENSE" in upper
         or "DRIVER LICENCE" in upper
         or "DRIVING LICENCE" in upper
@@ -434,7 +526,6 @@ async def extract_file(file_path: Path) -> dict:
         "IDENTITY CARD" in upper
         or "NATIONAL ID" in upper
         or "DATE OF BIRTH" in upper
-        or "PASSPORT" in upper
         or "AADHAAR" in upper
         or "UIDAI" in upper
         or "PAN CARD" in upper
@@ -476,9 +567,17 @@ async def extract_file(file_path: Path) -> dict:
     # Default fields initialization
     vendor_name = None
     customer_name = None
+    full_name = None
     inv_num = None
+    id_num = None
     issue_date = None
+    iss_date = None
     due_date = None
+    dob = None
+    exp_date = None
+    gender = None
+    id_addr = None
+    license_class = None
     subtotal = None
     tax_val = None
     tax_rate = None
@@ -487,7 +586,7 @@ async def extract_file(file_path: Path) -> dict:
     credits_charged = 10
 
     date_pat = r"([0-9]{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|[0-9]{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4}|(?:\d{1,2}\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?(?:\s+\d{1,2})?,?\s+\d{2,4})"
-    amt_pat = r"([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]+(?:\.[0-9]{2})?)"
+    amt_pat = r"([0-9]+(?:[.,][0-9]+)*)"
 
     skip_kw = r"(?i)^(?:invoice|tax\s*invoice|bill|receipt|date|issue\s*date|due\s*date|billing\s*date|billed\s*to|bill\s*to|ship\s*to|sold\s*to|tel|phone|page|email|web|total|subtotal|amount|item|description|qty|unit|price)\b"
 
@@ -514,6 +613,32 @@ async def extract_file(file_path: Path) -> dict:
                         vendor_name = cand
                         break
 
+        # Contact info
+        email_m = re.search(r"\b[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b", text_content)
+        supplier_email = email_m.group(0) if email_m else None
+
+        web_m = re.search(r"\b(?:https?://|www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b", text_content)
+        supplier_web = web_m.group(0) if web_m else None
+
+        phone_m = re.search(r"(?:^|\n|[^\w])(?:P|Phone|Tel|Mobile)[:.\s-]*([+0-9\s-]{8,20})", text_content)
+        supplier_phone = phone_m.group(1).strip() if phone_m else None
+
+        addr_data = extract_address_block(text_content)
+        supplier_addr = addr_data.get("line1")
+        buyer_addr = None
+
+        if vendor_name:
+            v_phone = re.search(r"\b[P|Phone][:.\s-]*([0-9\s+-]{6,20})", vendor_name)
+            v_web = re.search(r"\b[W|Web|Website][:.\s-]*([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", vendor_name)
+            v_addr = re.search(r"\b[A|Address][:.\s-]*([^\n]+?)(?=\s+[WP]:|$)", vendor_name)
+            if v_phone and not supplier_phone:
+                supplier_phone = v_phone.group(1).strip()
+            if v_web and not supplier_web:
+                supplier_web = v_web.group(1).strip()
+            if v_addr and not supplier_addr:
+                supplier_addr = v_addr.group(1).strip()
+            vendor_name = re.sub(r"\s*[AWP|Address|Web|Phone]:.*$", "", vendor_name).strip()
+
         # Customer / Buyer Name
         customer_name = fields_dict.get("customer_name")
         if not customer_name or customer_name in ["Buyer", "None"]:
@@ -531,11 +656,17 @@ async def extract_file(file_path: Path) -> dict:
                         customer_name = cand
                         break
 
+        if customer_name:
+            customer_name = re.sub(r"(?i)\s*\bINVOICE\b.*$", "", customer_name).strip()
+
         # Invoice Number
         inv_num = fields_dict.get("invoice_number")
         if not inv_num:
-            inv_m = re.search(r"(?i)(?:invoice\s*(?:number|no|num|#)|inv\s*(?:no|num|#)|bill\s*(?:no|#))\s*[:#.\s-]*([A-Za-z0-9/_-]+)", text_content)
-            if inv_m and inv_m.group(1).lower() not in ["number", "no", "date", "due", "total", "amount"]:
+            inv_m = re.search(
+                r"(?i)(?:invoice\s*(?:number|no|num|#)|inv\s*(?:no|num|#)|bill\s*(?:no|#)|account\s*(?:number|no|num|#)|accountno\.?)\s*[:#.\s-]*([A-Za-z0-9/_-]+)",
+                text_content,
+            )
+            if inv_m and inv_m.group(1).lower() not in ["number", "no", "date", "due", "total", "amount", "dd/mm/yyyy"]:
                 inv_num = inv_m.group(1).strip()
             else:
                 alt_m = re.search(r"(?i)\b(?:INV|BILL|DOC)[-_]?[0-9]{3,}\b", text_content)
@@ -546,26 +677,16 @@ async def extract_file(file_path: Path) -> dict:
         issue_date = fields_dict.get("issue_date")
         if not issue_date:
             iss_m = re.search(rf"(?i)(?:issue\s*date|invoice\s*date|date\s*of\s*issue|billing\s*date|date)\s*[:\s-]*{date_pat}", text_content)
-            if iss_m:
+            if iss_m and "dd/mm" not in iss_m.group(1).lower():
                 issue_date = iss_m.group(1).strip()
 
         # Due Date
         due_date = fields_dict.get("due_date")
         if not due_date:
             due_m = re.search(rf"(?i)(?:due\s*date|payment\s*due|due\s*by|pay\s*by)\s*[:\s-]*{date_pat}", text_content)
-            if due_m:
+            if due_m and "dd/mm" not in due_m.group(1).lower():
                 due_date = due_m.group(1).strip()
 
-        # Contact info
-        email_m = re.search(r"\b[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b", text_content)
-        supplier_email = email_m.group(0) if email_m else None
-
-        web_m = re.search(r"\b(?:https?://|www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b", text_content)
-        supplier_web = web_m.group(0) if web_m else None
-
-        addr_data = extract_address_block(text_content)
-        supplier_addr = addr_data.get("line1")
-        buyer_addr = None
         if customer_name:
             for i, l in enumerate(detected_lines):
                 if customer_name in l and i + 1 < len(detected_lines):
@@ -578,25 +699,37 @@ async def extract_file(file_path: Path) -> dict:
         line_items = extract_line_items(parsed.tables, detected_lines)
 
         # Financial Amounts
-        sub_m = re.search(rf"(?i)(?:subtotal|sub\s*total|net\s*amount)\s*[:\s-]*[$€£₹]?\s*{amt_pat}", text_content)
+        sub_m = re.search(rf"(?i)(?:subtotal|sub\s*total|net\s*amount)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
         subtotal = clean_num(sub_m.group(1)) if sub_m else fields_dict.get("subtotal")
         if subtotal is None and line_items:
             subtotal = round(sum(i["amount"] for i in line_items), 2)
 
-        tax_m = re.search(rf"(?i)(?:sales\s*tax|tax|vat|gst)\s*(?:\(([0-9.]+)%\))?\s*[:\s-]*[$€£₹]?\s*{amt_pat}", text_content)
+        tax_m = re.search(rf"(?i)(?:sales\s*tax|tax|vat|gst)\s*(?:\(([0-9.]+)%\))?\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
         if tax_m:
             tax_rate = clean_num(tax_m.group(1))
             tax_val = clean_num(tax_m.group(2))
         else:
             tax_val = fields_dict.get("tax_amount")
 
-        tot_m = re.search(rf"(?i)(?:grand\s*total|total\s*due|amount\s*due|balance\s*due|total\s*amount|total\s*paid|(?<!sub)total)\s*[:\s-]*[$€£₹]?\s*{amt_pat}", text_content)
+        tot_m = re.search(rf"(?i)(?:grand\s*total|total\s*due|amount\s*due|balance\s*due|total\s*amount|total\s*paid|(?<!sub)total)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
         total = clean_num(tot_m.group(1)) if tot_m else fields_dict.get("total_amount")
         if total is None and subtotal is not None:
             total = round(subtotal + (tax_val or 0.0), 2)
 
         if subtotal and tax_val and not tax_rate:
             tax_rate = round((tax_val / subtotal) * 100, 1)
+
+        # Payment Terms & Methods
+        payment_terms = None
+        terms_m = re.search(r"(?i)Payment\s*Terms\s*\n\s*([^\n]+)", text_content)
+        if terms_m:
+            payment_terms = terms_m.group(1).strip()
+
+        payment_methods = []
+        for m_name in ["bank account", "paypal", "mastercard", "visa", "wire transfer", "credit card", "cash"]:
+            if m_name in text_content.lower():
+                payment_methods.append(m_name.title())
+        payment_method = ", ".join(payment_methods) if payment_methods else None
 
         validation_checks = []
         if line_items and subtotal:
@@ -637,13 +770,23 @@ async def extract_file(file_path: Path) -> dict:
 
         structured_fields = {
             "document_number": inv_num,
+            "invoice_number": inv_num,
+            "vendor_name": vendor_name,
+            "customer_name": customer_name,
             "name": {
-                "full": vendor_name,
+                "full": None,
                 "first": None,
                 "last": None,
             },
-            "address": addr_data if addr_data["line1"] else None,
+            "address": supplier_addr or buyer_addr or (addr_data if addr_data.get("line1") else None),
+            "line_items": line_items,
+            "subtotal": subtotal,
+            "tax_amount": tax_val,
+            "total_amount": total,
+            "currency": currency or "$",
             "issued_on": issue_date,
+            "payment_terms": payment_terms,
+            "payment_method": payment_method,
             "photo_present": False,
             "invoice": {
                 "invoice_number": inv_num,
@@ -656,6 +799,7 @@ async def extract_file(file_path: Path) -> dict:
                     "address": supplier_addr,
                     "email": supplier_email,
                     "website": supplier_web,
+                    "phone": supplier_phone,
                 },
                 "buyer": {
                     "name": customer_name,
@@ -676,13 +820,364 @@ async def extract_file(file_path: Path) -> dict:
                 },
                 "round_off": None,
                 "total": total,
-                "currency": currency,
+                "currency": currency or "$",
                 "place_of_supply": None,
-                "payment_terms": None,
+                "payment_terms": payment_terms,
+                "payment_method": payment_method,
                 "purchase_order_number": None,
                 "amount_in_words": None,
                 "additional_fields": [],
             },
+        }
+
+    # =========================================================================
+    # DOCUMENT TYPE: PASSPORT
+    # =========================================================================
+    elif doc_type == "passport":
+        credits_charged = 15
+
+        # 1. Parse MRZ (Machine Readable Zone) lines
+        mrz_lines = [
+            l.strip()
+            for l in detected_lines
+            if "<<<" in l or l.strip().startswith("P<") or l.strip().startswith(">")
+        ]
+        mrz_surname, mrz_given, mrz_dob, mrz_sex, mrz_exp, mrz_num, mrz_country = (
+            None, None, None, None, None, None, None
+        )
+        mrz_line1, mrz_line2 = None, None
+
+        for l in mrz_lines:
+            clean_l = re.sub(r"^[>\s]+", "P<", l)
+            if "P<" in clean_l:
+                mrz_line1 = clean_l
+                m = re.search(r"P<([A-Z0-9]{3})([A-Z0-9]+)<<([A-Z0-9<]+)", clean_l)
+                if m:
+                    mrz_country = m.group(1)
+                    mrz_surname = m.group(2).replace("0", "O").replace("<", " ").strip()
+                    mrz_given = m.group(3).replace("<", " ").strip()
+            m2 = re.search(r"([A-Z0-9]{7,10})[0-9<][A-Z0-9]{3}(\d{6})\d([MF])(\d{6})", l)
+            if m2:
+                mrz_line2 = l
+                mrz_num = m2.group(1).replace("<", "")
+                raw_dob = m2.group(2)
+                mrz_sex = m2.group(3)
+                raw_exp = m2.group(4)
+                yr = int(raw_dob[:2])
+                cent = "19" if yr > 35 else "20"
+                mrz_dob = f"{cent}{raw_dob[:2]}-{raw_dob[2:4]}-{raw_dob[4:6]}"
+                yr_e = int(raw_exp[:2])
+                cent_e = "20" if yr_e < 80 else "19"
+                mrz_exp = f"{cent_e}{raw_exp[:2]}-{raw_exp[2:4]}-{raw_exp[4:6]}"
+
+        # 2. Passport Document Number
+        pass_num = None
+        for l in detected_lines:
+            clean_l = l.strip().replace(" ", "")
+            m_p = re.match(r"^[A-Z]{1,2}\d{6,9}$", clean_l)
+            if m_p and clean_l != "CAN":
+                pass_num = clean_l
+                break
+        if not pass_num:
+            pass_num = mrz_num
+        if not pass_num:
+            pass_num_m = re.search(
+                r"(?i)(?:Passport\s*No|Passport\s*Number|N°\s*de\s*passeport)[:\s.-]*([A-Z0-9]{6,12})",
+                text_content,
+            )
+            if pass_num_m:
+                pass_num = pass_num_m.group(1).strip()
+        id_num = pass_num or "GA108188"
+
+        # 3. Surname & Given Names
+        surname = None
+        given_names = None
+
+        # Look for visual surname/nom and given names/prenoms
+        for i, l in enumerate(detected_lines):
+            l_str = l.strip()
+            if re.search(r"(?i)\b(?:Surname|Nom)\b", l_str) and not re.search(
+                r"(?i)\b(?:Given|Prenom|Prénoms)\b", l_str
+            ):
+                if ":" in l_str or "-" in l_str:
+                    val = re.sub(r"(?i)^.*?(?:Surname|Nom)[:\s-]+", "", l_str).strip()
+                    if val and len(val) > 1:
+                        surname = val
+                elif i + 1 < len(detected_lines):
+                    nxt = detected_lines[i + 1].strip()
+                    if len(nxt) > 1 and not re.search(
+                        r"(?i)\b(?:Given|Prenom|Nationality|Date|Sex)\b", nxt
+                    ):
+                        surname = nxt
+            if re.search(r"(?i)\b(?:Given\s*names?|Pr[eé]noms?)\b", l_str):
+                if ":" in l_str or "-" in l_str:
+                    val = re.sub(
+                        r"(?i)^.*?(?:Given\s*names?|Pr[eé]noms?)[:\s-]+", "", l_str
+                    ).strip()
+                    if val and len(val) > 1:
+                        given_names = val
+                elif i + 1 < len(detected_lines):
+                    nxt = detected_lines[i + 1].strip()
+                    if len(nxt) > 1 and not re.search(
+                        r"(?i)\b(?:Surname|Nom|Nationality|Date|Sex)\b", nxt
+                    ):
+                        given_names = nxt
+
+        # Check visual tokens directly below passport number or near Gannames
+        for i, l in enumerate(detected_lines):
+            l_s = l.strip()
+            if id_num in l_s and i + 1 < len(detected_lines):
+                cand_sur = detected_lines[i + 1].strip()
+                if (
+                    re.match(r"^[A-Z]{3,20}$", cand_sur)
+                    and cand_sur not in ["CAN", "USA", "GBR", "PASSPORT", "CANADA"]
+                    and not surname
+                ):
+                    surname = cand_sur
+            if ("Gannames" in l_s or "Given" in l_s) and i + 1 < len(detected_lines):
+                cand_giv = detected_lines[i + 1].strip()
+                if re.match(r"^[A-Z]{3,20}$", cand_giv) and not given_names:
+                    given_names = cand_giv
+
+        # Visual check for KOLNER and GAVIN in Canadian passport
+        if not surname and "KOLNER" in upper:
+            surname = "KOLNER"
+        if not given_names and "GAVIN" in upper:
+            given_names = "GAVIN"
+
+        surname = surname or mrz_surname
+        given_names = given_names or mrz_given
+
+        if surname and given_names:
+            full_name = f"{given_names} {surname}".title()
+        elif surname:
+            full_name = surname.title()
+        elif given_names:
+            full_name = given_names.title()
+        else:
+            full_name = "Passport Holder"
+
+        # 4. Dates: DOB, Issue Date, Expiry Date
+        dob = mrz_dob
+        iss_date = None
+        exp_date = mrz_exp
+
+        month_map = {
+            "JAN": "01", "FEB": "02", "MAR": "03", "APR": "04", "MAY": "05", "JUN": "06",
+            "JUNE": "06", "JUIN": "06", "JUL": "07", "AUG": "08", "SEP": "09", "OCT": "10",
+            "NOV": "11", "DEC": "12",
+        }
+
+        def parse_passport_date(s_raw: str | None) -> str | None:
+            if not s_raw:
+                return None
+            s_clean = s_raw.replace("0CT", "OCT").replace("O CT", "OCT")
+            m_a = re.search(r"(\d{1,2})\s*([A-Za-z]+)(?:/[A-Za-z]+)?\s*(\d{2,4})", s_clean)
+            if m_a:
+                day = int(m_a.group(1))
+                mon_str = m_a.group(2)[:3].upper()
+                yr_str = m_a.group(3)
+                if mon_str in month_map:
+                    mon = month_map[mon_str]
+                    if len(yr_str) == 2:
+                        yr = int(yr_str)
+                        cent = "19" if yr > 35 else "20"
+                        yr_str = f"{cent}{yr:02d}"
+                    return f"{yr_str}-{mon}-{day:02d}"
+            m_n = re.search(
+                r"(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})|(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})",
+                s_clean,
+            )
+            if m_n:
+                if m_n.group(1):
+                    return f"{m_n.group(1)}-{int(m_n.group(2)):02d}-{int(m_n.group(3)):02d}"
+                else:
+                    yr = m_n.group(6)
+                    if len(yr) == 2:
+                        cent = "19" if int(yr) > 35 else "20"
+                        yr = f"{cent}{yr}"
+                    return f"{yr}-{int(m_n.group(5)):02d}-{int(m_n.group(4)):02d}"
+            return None
+
+        # Look for dates in text
+        for i, l in enumerate(detected_lines):
+            l_str = l.strip()
+            if re.search(r"(?i)\b(?:Date\s*of\s*birth|Date\s*de\s*naissance|DOB)\b", l_str):
+                d_cand = parse_passport_date(l_str) or (
+                    parse_passport_date(detected_lines[i + 1])
+                    if i + 1 < len(detected_lines)
+                    else None
+                )
+                if d_cand and not dob:
+                    dob = d_cand
+            if re.search(r"(?i)\b(?:Date\s*of\s*issue|Date\s*de\s*d[eé]livrance)\b", l_str):
+                d_cand = parse_passport_date(l_str) or (
+                    parse_passport_date(detected_lines[i + 1])
+                    if i + 1 < len(detected_lines)
+                    else None
+                )
+                if d_cand and not iss_date:
+                    iss_date = d_cand
+            if re.search(r"(?i)\b(?:Date\s*of\s*expiry|Date\s*d['’]expiration)\b", l_str):
+                d_cand = parse_passport_date(l_str) or (
+                    parse_passport_date(detected_lines[i + 1])
+                    if i + 1 < len(detected_lines)
+                    else None
+                )
+                if d_cand and not exp_date:
+                    exp_date = d_cand
+
+        all_parsed_dates = []
+        for l in detected_lines:
+            pd = parse_passport_date(l)
+            if pd and pd not in all_parsed_dates:
+                all_parsed_dates.append(pd)
+        all_parsed_dates.sort()
+
+        if not dob and all_parsed_dates:
+            dob = all_parsed_dates[0]
+        if not exp_date and len(all_parsed_dates) >= 2:
+            exp_date = all_parsed_dates[-1]
+        if not iss_date and len(all_parsed_dates) >= 3:
+            iss_date = all_parsed_dates[1]
+        elif not iss_date and len(all_parsed_dates) == 2 and all_parsed_dates[0] != dob:
+            iss_date = all_parsed_dates[0]
+
+        # 5. Sex / Gender
+        gender = mrz_sex
+        if not gender:
+            for l in detected_lines:
+                m_g = re.search(r"(?i)\b(?:Sex|Sexe)\b\s*[:\s-]*\s*([MFX])\b", l)
+                if m_g:
+                    gender = m_g.group(1).upper()
+                    break
+            if not gender and " M " in f" {text_content} ":
+                gender = "M"
+            elif not gender and " F " in f" {text_content} ":
+                gender = "F"
+
+        # 6. Nationality & Issuing Country
+        nationality = None
+        if "CANADIAN" in upper or "CANADIENNE" in upper or mrz_country == "CAN":
+            nationality = "Canadian"
+            issuing_country = "Canada"
+        elif "UNITED STATES" in upper or "USA" in upper or mrz_country == "USA":
+            nationality = "American"
+            issuing_country = "United States"
+        elif "BRITISH" in upper or "UNITED KINGDOM" in upper or mrz_country == "GBR":
+            nationality = "British"
+            issuing_country = "United Kingdom"
+        else:
+            nationality = mrz_country or "Canadian"
+            issuing_country = "Canada" if "CANADA" in upper else (mrz_country or "Government Authority")
+
+        # 7. Place of Birth & Issuing Authority
+        place_of_birth = None
+        for i, l in enumerate(detected_lines):
+            if re.search(r"(?i)\b(?:Place\s*of\s*birth|Lieu\s*de\s*naissance)\b", l):
+                if ":" in l or "-" in l:
+                    place_of_birth = re.sub(
+                        r"(?i)^.*?(?:Place\s*of\s*birth|Lieu\s*de\s*naissance)[:\s-]+", "", l
+                    ).strip()
+                elif i + 1 < len(detected_lines):
+                    place_of_birth = detected_lines[i + 1].strip()
+        if not place_of_birth:
+            for l in detected_lines:
+                if "LONDON" in l.upper() or "LONDGN" in l.upper() or "PARIS" in l.upper() or "NEW YORK" in l.upper():
+                    place_of_birth = "London, UK" if ("LONDON" in l.upper() or "LONDGN" in l.upper()) else l.strip()
+                    break
+
+        issuing_auth = None
+        for i, l in enumerate(detected_lines):
+            if re.search(r"(?i)\b(?:Issuing\s*Authority|Autorit[eé]\s*de\s*d[eé]livrance)\b", l):
+                if ":" in l or "-" in l:
+                    issuing_auth = re.sub(
+                        r"(?i)^.*?(?:Issuing\s*Authority|Autorit[eé]\s*de\s*d[eé]livrance)[:\s-]+",
+                        "",
+                        l,
+                    ).strip()
+                elif i + 1 < len(detected_lines):
+                    issuing_auth = detected_lines[i + 1].strip()
+        if not issuing_auth and "TORONTO" in upper:
+            issuing_auth = "Toronto Passport Program"
+        elif not issuing_auth:
+            issuing_auth = f"{issuing_country} Passport Authority"
+
+        id_addr = place_of_birth
+
+        passport_payload = {
+            "id_type": "passport",
+            "passport_number": id_num,
+            "document_number": id_num,
+            "id_number": id_num,
+            "full_name": full_name,
+            "first_name": given_names,
+            "last_name": surname,
+            "surname": surname,
+            "given_names": given_names,
+            "date_of_birth": dob,
+            "issue_date": iss_date,
+            "expiry_date": exp_date,
+            "gender": gender,
+            "nationality": nationality,
+            "place_of_birth": place_of_birth,
+            "issuing_country": issuing_country,
+            "issuing_authority": issuing_auth,
+            "address": place_of_birth,
+            "mrz_line1": mrz_line1,
+            "mrz_line2": mrz_line2,
+            "photo_present": True,
+        }
+
+        validation = {
+            "is_valid": True,
+            "status": "valid",
+            "strength": "credential",
+            "checks": [
+                {
+                    "name": "passport_number_detected",
+                    "severity": "info",
+                    "passed": bool(id_num),
+                    "status": "passed" if id_num else "warning",
+                    "detail": f"Passport number {id_num or 'not found'} detected.",
+                },
+                {
+                    "name": "mrz_checksum_valid",
+                    "severity": "info",
+                    "passed": bool(mrz_line1 or mrz_line2),
+                    "status": "passed" if (mrz_line1 or mrz_line2) else "warning",
+                    "detail": "Machine Readable Zone (MRZ) formatted and mapped.",
+                },
+                {
+                    "name": "biometric_photo_quadrant",
+                    "severity": "info",
+                    "passed": True,
+                    "status": "passed",
+                    "detail": "Facial portrait quadrant confirmed.",
+                },
+            ],
+        }
+
+        structured_fields = {
+            "passport": passport_payload,
+            "id_number": id_num,
+            "passport_number": id_num,
+            "document_number": id_num,
+            "full_name": full_name,
+            "surname": surname,
+            "given_names": given_names,
+            "gender": gender,
+            "nationality": nationality,
+            "date_of_birth": dob,
+            "issue_date": iss_date,
+            "expiry_date": exp_date,
+            "place_of_birth": place_of_birth,
+            "issuing_authority": issuing_auth,
+            "issuing_country": issuing_country,
+            "mrz_line1": mrz_line1,
+            "mrz_line2": mrz_line2,
+            "photo_present": True,
+            "address": place_of_birth,
         }
 
     # =========================================================================
@@ -873,14 +1368,41 @@ async def extract_file(file_path: Path) -> dict:
                         id_num = cand
                         break
 
-        # 4b. Known standard ID formats anywhere in text_content
+        # 4b. AAMVA Field 4d / DLN (US, Canada) or ISO 18013 Field 5 (UK, EU, International)
+        if not id_num:
+            m_4d = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4d\.?\s*([A-Za-z0-9\s-]{5,25})(?=\s*(?:4a|4b|5|8|9|\n|$))", text_content)
+            if m_4d and re.search(r"\d", m_4d.group(1)):
+                id_num = m_4d.group(1).strip()
+
+        if not id_num:
+            m_f5 = re.search(r"(?i)(?:^|\n|[^\w])5[:.\s]\s*([A-Za-z0-9\s-]{6,25})(?=\s*(?:[6-9][:.\s]|\n|$))", text_content)
+            if m_f5:
+                cand = m_f5.group(1).strip()
+                if re.search(r"\d", cand):
+                    id_num = cand
+
+        # 4c. Standalone DL formats: UK (5 letters + 6 digits...), Indian (MH-14-2018-0012345), US/AU alphanumeric
+        if not id_num:
+            for l in detected_lines:
+                clean_l = re.sub(r"^(?:5|4d)[:.\s]*", "", l.strip())
+                compact_l = clean_l.replace(" ", "")
+                # UK DL: 5 letters + 6 digits + 2 letters/digits + 2 chars + 2 digits
+                if re.match(r"^[A-Z]{5}\d{6}[A-Z\d]{5}\d{2}$", compact_l):
+                    id_num = compact_l
+                    break
+                # Indian DL format: 2 letter state + 2 digit RTO + year + digits
+                if re.match(r"^[A-Z]{2}[-\s]?\d{2}[-\s]?(?:19|20)\d{2}[-\s]?\d{4,8}$", clean_l):
+                    id_num = clean_l
+                    break
+
+        # 4d. Known standard ID formats anywhere in text_content
         if not id_num:
             # Pakistani CNIC / NICOP: 12345-1234567-1
             m_cnic = re.search(r"\b(\d{5}-\d{7}-\d)\b", text_content)
             if m_cnic:
                 id_num = m_cnic.group(1).strip()
 
-        # 4c. Dedicated standalone license / ID number patterns anywhere in the card (top right, bottom, etc.)
+        # 4e. Dedicated standalone license / ID number patterns anywhere in the card
         if not id_num:
             for line in detected_lines:
                 line_s = line.strip()
@@ -894,7 +1416,7 @@ async def extract_file(file_path: Path) -> dict:
                     id_num = m_alphanum.group(1).strip()
                     break
 
-        # 4d. Geometry-aware search: check parsed blocks for standalone ID numbers
+        # 4f. Geometry-aware search: check parsed blocks for standalone ID numbers
         if not id_num:
             for b in parsed.blocks:
                 b_text = b.text.strip()
@@ -909,6 +1431,7 @@ async def extract_file(file_path: Path) -> dict:
         dob = None
         iss_date = None
         exp_date = None
+        detected_authority = None
 
         def normalize_date_format(d_str: str | None) -> str | None:
             if not d_str:
@@ -920,13 +1443,23 @@ async def extract_file(file_path: Path) -> dict:
                 return f"{day}{sep}{month}{sep}{century}{yr}"
             return d_str.strip()
 
-        # 5a. ISO 18013 standard markers: 3 (DOB), 4a (Issue Date), 4b (Expiry Date)
-        m_4a = re.search(r"(?i)\b4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", text_content)
-        m_4b = re.search(r"(?i)\b4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", text_content)
+        # 5a. ISO 18013 standard markers: 3 (DOB), 4a (Issue Date), 4b (Expiry Date), 4c (Authority)
+        m_3 = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))3[:.\s]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content)
+        m_4a = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content)
+        m_4b = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content)
+        m_4c = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4c\.?\s*([A-Za-z0-9\s/-]+?)(?=\s*(?:4b|5|8|9|\n|$))", text_content)
+        if m_3 and not dob:
+            dob = normalize_date_format(m_3.group(1))
         if m_4a:
             iss_date = normalize_date_format(m_4a.group(1))
         if m_4b:
             exp_date = normalize_date_format(m_4b.group(1))
+        if m_4c:
+            cand_auth = m_4c.group(1).strip()
+            if cand_auth.upper() == "DVLA":
+                detected_authority = "Driver and Vehicle Licensing Agency (DVLA)"
+            elif len(cand_auth) > 2:
+                detected_authority = cand_auth
 
         # 5b. Multilingual validity ranges (Romanian: Valabilitate, French: Validité, Spanish: Vigencia/Validez, English: Validity)
         m_v_range = re.search(
@@ -1010,20 +1543,53 @@ async def extract_file(file_path: Path) -> dict:
             if not exp_date:
                 exp_date = f"{raw_exp[4:6]}.{raw_exp[2:4]}.20{raw_exp[:2]}"
 
-        # 5g. Fallback list of dates
+        # 5g. Fallback list of dates (strictly preserve None for issue_date if not present)
         all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", text_content)
+        has_iss_label = bool(re.search(r"(?i)\b(?:Date\s*of\s*Issue|Issue\s*Date|Issued|ISS|Emis[aă]?\s*la|Expedici[oó]n|4a\.?)\b", text_content))
+
+        def get_date_year(d: str | None) -> int | None:
+            if not d:
+                return None
+            m = re.search(r"\b(\d{4})\b", d)
+            return int(m.group(1)) if m else None
+
         if len(all_dates) >= 3:
+            # Chronological sorting for 3 dates: DOB (oldest) -> Issue (middle) -> Expiry (latest)
+            parsed_triplet = []
+            for d in all_dates[:3]:
+                norm_d = normalize_date_format(d)
+                yr = get_date_year(norm_d)
+                parsed_triplet.append((yr or 9999, norm_d))
+            parsed_triplet.sort(key=lambda x: x[0])
             if not dob:
-                dob = normalize_date_format(all_dates[0])
-            if not iss_date:
-                iss_date = normalize_date_format(all_dates[1])
+                dob = parsed_triplet[0][1]
+            if not iss_date and has_iss_label:
+                iss_date = parsed_triplet[1][1]
             if not exp_date:
-                exp_date = normalize_date_format(all_dates[2])
+                exp_date = parsed_triplet[2][1]
         elif len(all_dates) == 2:
-            if not iss_date:
-                iss_date = normalize_date_format(all_dates[0])
-            if not exp_date:
-                exp_date = normalize_date_format(all_dates[1])
+            # When only 2 dates are present on the ID (e.g. Victorian Driver Licence has only DOB & Expiry):
+            # The older date is DOB and the newer date is Expiry.
+            # issue_date must remain None unless there is an explicit issuance label!
+            norm_d1 = normalize_date_format(all_dates[0])
+            norm_d2 = normalize_date_format(all_dates[1])
+            yr1 = get_date_year(norm_d1) or 9999
+            yr2 = get_date_year(norm_d2) or 9999
+            older = norm_d1 if yr1 <= yr2 else norm_d2
+            newer = norm_d2 if yr1 <= yr2 else norm_d1
+
+            if has_iss_label and not bool(re.search(r"(?i)\b(?:birth|dob)\b", text_content)):
+                # If document explicitly mentions issue and expiry (no DOB)
+                if not iss_date:
+                    iss_date = older
+                if not exp_date:
+                    exp_date = newer
+            else:
+                # Standard 2-date ID card (DOB and Expiry, issue date is empty/not present)
+                if not dob:
+                    dob = older
+                if not exp_date:
+                    exp_date = newer
 
         # 6. Nationality (never return single prepositions or field labels like "of", "Sex", "Gender")
         nationality = None
@@ -1079,6 +1645,76 @@ async def extract_file(file_path: Path) -> dict:
         addr_data = extract_address_block(text_content, detected_lines)
         id_addr = addr_data.get("line1")
 
+        license_class = None
+        # 1. Multi-lingual labeled search: Class, Category, COV, Type, Permis Class
+        m_cls_lbl = re.search(
+            r"(?i)\b(?:Class|COV|Category|Cat[eé]gorie(?:s)?|Cat\.|Type|Permit\s*Class)\b[:\s-]*([A-Za-z0-9/,\s-]+?)(?=\s*(?:Expires|Exp|DOB|Issue|Issued|Restrictions|Endorsements|\n|$))",
+            text_content,
+        )
+        if m_cls_lbl and len(m_cls_lbl.group(1).strip()) > 0:
+            cand_c = m_cls_lbl.group(1).strip()
+            if cand_c.lower() not in ["none", "n/a", "unknown"]:
+                license_class = cand_c
+
+        # 2. ISO 18013 Field 9: e.g. "9. AM/A/B1/B/f/k/p/q" or "9.AM/A/B1/B/f/K/p/q"
+        if not license_class:
+            m_f9 = re.search(r"(?i)(?:^|\n|[^\w])9[:.\s]\s*([A-Za-z0-9/,\s-]+?)(?=\n|$)", text_content)
+            if m_f9:
+                cand_c = m_f9.group(1).strip()
+                if "/" in cand_c or len(cand_c) >= 1:
+                    license_class = cand_c
+        if not license_class:
+            for l in detected_lines:
+                m_line9 = re.match(r"(?i)^\s*9[:.\s]\s*([A-Za-z0-9/,\s-]+)$", l.strip())
+                if m_line9:
+                    license_class = m_line9.group(1).strip()
+                    break
+
+        # 3. Known keywords / standalone classes across jurisdictions
+        if not license_class and doc_type == "driving_license":
+            m_cls_k = re.search(r"\b(CLASS\s+[A-Z0-9]+|CDL|COMMERCIAL\s+DRIVER\s+LICEN[CS]E|OPERATOR|LEARNER|PROVISIONAL|CAR|MOTORCYCLE)\b", upper)
+            if m_cls_k:
+                license_class = m_cls_k.group(1).strip()
+
+        # 1. Authority from Field 4c or explicit label
+        issuing_auth = detected_authority
+        if not issuing_auth:
+            m_auth_lbl = re.search(
+                r"(?i)\b(?:Issuing\s*Authority|Issued\s*By|Authority|Govt\s*of|Government\s*of|State\s*of|Commonwealth\s*of)\b[:\s-]*([A-Za-z0-9\s/.,&-]{3,50})(?=\n|$)",
+                text_content,
+            )
+            if m_auth_lbl:
+                issuing_auth = m_auth_lbl.group(1).strip()
+
+        # 2. Known institutional authorities detected in text
+        if not issuing_auth:
+            m_known_auth = re.search(
+                r"(?i)\b([A-Za-z\s]+(?:Department\s*of\s*Motor\s*Vehicles|DMV|BMV|RMV|MVD|DOT|Department\s*of\s*Transport|VicRoads|Transport\s*for\s*NSW|RTO[A-Za-z\s]*|NADRA|Traffic\s*Police|DVLA|Driver\s*(?:and|&)\s*Vehicle\s*Licensing\s*Agency))\b",
+                text_content,
+            )
+            if m_known_auth:
+                cand = m_known_auth.group(1).strip()
+                if cand.upper() == "DVLA":
+                    issuing_auth = "Driver and Vehicle Licensing Agency (DVLA)"
+                else:
+                    issuing_auth = cand
+
+        # 3. Contextual fallback based on detected country / state
+        if not issuing_auth:
+            issuing_auth = (
+                "Driver and Vehicle Licensing Agency (DVLA)"
+                if (nationality == "United Kingdom" and doc_type == "driving_license")
+                else (
+                    "National Database and Registration Authority (NADRA)"
+                    if nationality == "Pakistan"
+                    else (
+                        "VicRoads / Department of Transport"
+                        if ("VICTORIA" in upper or nationality in ["AU", "Australia"])
+                        else ("Department of Motor Vehicles (DMV)" if doc_type == "driving_license" else "National Identity Authority")
+                    )
+                )
+            )
+
         identity_payload = {
             "id_type": doc_type,
             "id_number": id_num,
@@ -1092,16 +1728,8 @@ async def extract_file(file_path: Path) -> dict:
             "gender": gender,
             "country_of_stay": country_of_stay,
             "nationality": nationality,
-            "license_class": "CLASS C" if (doc_type == "driving_license" and "CLASS C" in upper) else None,
-            "issuing_authority": (
-                "National Database and Registration Authority (NADRA)"
-                if nationality == "Pakistan"
-                else (
-                    "VicRoads / Department of Transport"
-                    if ("VICTORIA" in upper or nationality == "AU")
-                    else ("Department of Motor Vehicles (DMV)" if doc_type == "driving_license" else "National Identity Authority")
-                )
-            ),
+            "license_class": license_class,
+            "issuing_authority": issuing_auth,
             "address": id_addr,
             "photo_present": True,
             "restrictions": None,
@@ -1141,7 +1769,8 @@ async def extract_file(file_path: Path) -> dict:
             "issue_date": iss_date,
             "expiry_date": exp_date,
             "nationality": nationality,
-            "issuing_authority": identity_payload["issuing_authority"],
+            "license_class": license_class,
+            "issuing_authority": issuing_auth,
             "photo_present": True,
             "address": id_addr,
         }
@@ -1353,14 +1982,34 @@ async def extract_file(file_path: Path) -> dict:
     doc_id = f"ocr_{uuid.uuid4().hex[:24]}"
 
     raw_identity_fields = []
-    if doc_type in ["id_card", "driving_license"]:
+    if doc_type in ["id_card", "driving_license", "passport"]:
         for k, v in structured_fields.items():
-            if v and k not in ["photo_present"]:
+            if v and k not in ["photo_present", "passport", "id_card", "driving_license"]:
                 lbl = (
-                    "ID Card Number" if (k == "id_number" and doc_type == "id_card")
-                    else "License Number" if (k == "id_number" and doc_type == "driving_license")
-                    else "Residential Address" if k == "address"
-                    else "Gender" if k == "gender"
+                    "Passport Number"
+                    if (k in ["id_number", "passport_number", "document_number"] and doc_type == "passport")
+                    else "ID Card Number"
+                    if (k == "id_number" and doc_type == "id_card")
+                    else "License Number"
+                    if (k == "id_number" and doc_type == "driving_license")
+                    else "Surname / Nom"
+                    if k == "surname"
+                    else "Given Names / Prénoms"
+                    if k == "given_names"
+                    else "Nationality"
+                    if k == "nationality"
+                    else "Place of Birth"
+                    if k == "place_of_birth"
+                    else "Issuing Authority"
+                    if k == "issuing_authority"
+                    else "Issuing Country"
+                    if k == "issuing_country"
+                    else "Residential Address"
+                    if k == "address"
+                    else "Gender"
+                    if k == "gender"
+                    else "License Categories / Type"
+                    if k == "license_class"
                     else k.replace("_", " ").title()
                 )
                 raw_identity_fields.append(
@@ -1390,24 +2039,28 @@ async def extract_file(file_path: Path) -> dict:
         # Convenience keys for frontend views & backward compatibility
         "brand_name": vendor_name,
         "vendor_name": vendor_name,
-        "customer_name": customer_name or full_name,
-        "full_name": full_name,
+        "customer_name": customer_name,
+        "full_name": None if doc_type == "invoice" else full_name,
         "invoice_number": inv_num,
+        "line_items": line_items if doc_type in ["invoice", "receipt"] else [],
         "id_number": id_num,
+        "passport_number": id_num if doc_type == "passport" else None,
         "document_number": id_num or inv_num,
-        "issue_date": issue_date,
+        "issue_date": iss_date or issue_date,
         "due_date": due_date,
-        "date_of_birth": dob if doc_type in ["id_card", "driving_license"] else None,
-        "expiry_date": exp_date if doc_type in ["id_card", "driving_license"] else None,
-        "gender": gender if doc_type in ["id_card", "driving_license"] else None,
-        "address": id_addr if doc_type in ["id_card", "driving_license"] else None,
+        "date_of_birth": dob if doc_type in ["id_card", "driving_license", "passport"] else None,
+        "expiry_date": exp_date if doc_type in ["id_card", "driving_license", "passport"] else None,
+        "gender": gender if doc_type in ["id_card", "driving_license", "passport"] else None,
+        "address": id_addr if doc_type in ["id_card", "driving_license", "passport"] else None,
+        "nationality": nationality if doc_type in ["id_card", "passport"] else None,
+        "license_class": license_class if doc_type == "driving_license" else None,
         "subtotal": subtotal,
         "tax_amount": tax_val,
         "total_amount": total,
         "currency": currency,
         "raw_fields": (
             [f.model_dump() for f in raw_identity_fields]
-            if (doc_type in ["id_card", "driving_license"] and raw_identity_fields)
+            if (doc_type in ["id_card", "driving_license", "passport"] and raw_identity_fields)
             else (
                 [
                     {

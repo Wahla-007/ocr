@@ -165,6 +165,7 @@ export interface StructuredFields {
   invoice?: StructuredInvoice;
   id_card?: StructuredIdentity;
   driving_license?: StructuredIdentity;
+  passport?: StructuredIdentity;
   receipt?: StructuredReceipt;
   contract?: StructuredContract;
   document?: StructuredGenericDocument;
@@ -209,6 +210,8 @@ export interface ExtractionResult {
   expiry_date?: string | null;
   gender?: string | null;
   address?: string | null;
+  license_class?: string | null;
+  issuing_authority?: string | null;
   subtotal?: number | null;
   tax_amount?: number | null;
   total_amount?: number | null;

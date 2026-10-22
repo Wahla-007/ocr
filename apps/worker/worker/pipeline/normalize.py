@@ -45,7 +45,7 @@ def _cap_image_resolution(img: Image.Image) -> tuple[Image.Image, int, int]:
 
 
 def _normalize_image_orientation(img: Image.Image) -> tuple[Image.Image, int]:
-    """Auto-orients image using EXIF orientation metadata if present."""
+    """Auto-orients image using EXIF orientation metadata, and falls back to visual OCR tilt detection."""
     rotation_applied = 0
     try:
         # ImageOps.exif_transpose applies orientation tag and returns upright image
@@ -54,6 +54,18 @@ def _normalize_image_orientation(img: Image.Image) -> tuple[Image.Image, int]:
             img = transposed
     except Exception:
         pass
+
+    try:
+        from providers.engines.docling_engine import detect_and_correct_orientation, get_ocr_engine
+
+        ocr = get_ocr_engine()
+        if ocr is not None:
+            img, rot = detect_and_correct_orientation(img, ocr)
+            if rot != 0:
+                rotation_applied = rot
+    except Exception:
+        pass
+
     return img, rotation_applied
 
 

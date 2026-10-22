@@ -105,7 +105,8 @@ export function ResultsPanel({
   const invData: StructuredInvoice | undefined = fieldsObj?.invoice;
   const dlData: StructuredIdentity | undefined = fieldsObj?.driving_license;
   const idData: StructuredIdentity | undefined = fieldsObj?.id_card;
-  const identityData = dlData || idData;
+  const passData: StructuredIdentity | undefined = fieldsObj?.passport;
+  const identityData = dlData || idData || passData;
   const receiptData: StructuredReceipt | undefined = fieldsObj?.receipt;
   const contractData: StructuredContract | undefined = fieldsObj?.contract;
   const docData: StructuredGenericDocument | undefined = fieldsObj?.document;
@@ -135,7 +136,7 @@ export function ResultsPanel({
       if (val === null || val === undefined) return;
       if (typeof val === "string" && val.trim() === "") return;
       // Skip redundant or noisy container keys
-      if (["id_card", "driving_license", "raw_fields", "custom_extraction"].includes(key)) {
+      if (["id_card", "driving_license", "passport", "raw_fields", "custom_extraction"].includes(key)) {
         if (typeof val === "object" && val !== null) {
           for (const [subKey, subVal] of Object.entries(val)) {
             addClean(subKey, subVal);
@@ -202,18 +203,25 @@ export function ResultsPanel({
       }
     } else {
       if (result.issue_date) addClean("issue_date", result.issue_date);
+      if (result.date_of_birth) addClean("date_of_birth", result.date_of_birth);
+      if (result.expiry_date) addClean("expiry_date", result.expiry_date);
+      if (result.license_class) addClean("license_class", result.license_class);
+      if (result.id_number) addClean("id_number", result.id_number);
+      if (result.address) addClean("address", result.address);
+      if (result.issuing_authority) addClean("issuing_authority", result.issuing_authority);
     }
 
     // Ensure no raw JSON container keys remain in the table
     delete map["name"];
     delete map["id_card"];
     delete map["driving_license"];
+    delete map["passport"];
     delete map["raw_fields"];
 
     // For identity documents, consolidate document_number and id_number into id_number
-    if (docType === "id_card" || docType === "driving_license") {
-      if (map["id_number"] || map["document_number"]) {
-        map["id_number"] = map["id_number"] || map["document_number"];
+    if (docType === "id_card" || docType === "driving_license" || docType === "passport") {
+      if (map["id_number"] || map["document_number"] || map["passport_number"]) {
+        map["id_number"] = map["id_number"] || map["passport_number"] || map["document_number"];
         delete map["document_number"];
       }
       // HARD RULE: For all identification documents (ID card, CNIC, driver license, permit),
@@ -253,6 +261,28 @@ export function ResultsPanel({
               ? fallbackAddress.line1 ||
                 Object.values(fallbackAddress).filter((v) => v && typeof v === "string").join(", ")
               : fallbackAddress;
+        }
+      }
+
+      // License categories / type
+      if (!map["license_class"]) {
+        const fallbackClass =
+          (fieldsObj as any)?.license_class ||
+          (fieldsObj as any)?.driving_license?.license_class ||
+          result.license_class;
+        if (fallbackClass) {
+          map["license_class"] = fallbackClass;
+        }
+      }
+
+      // Issuing authority
+      if (!map["issuing_authority"]) {
+        const fallbackAuth =
+          (fieldsObj as any)?.issuing_authority ||
+          (fieldsObj as any)?.driving_license?.issuing_authority ||
+          result.issuing_authority;
+        if (fallbackAuth) {
+          map["issuing_authority"] = fallbackAuth;
         }
       }
     }
@@ -478,16 +508,18 @@ export function ResultsPanel({
                 {docNumber && (
                   <div>
                     <span className="text-[10px] font-mono text-slate-500 block uppercase">
-                      {docType === "id_card" ? "ID Card Number" : docType === "driving_license" ? "License Number" : "Identifier"}
+                      {docType === "passport" ? "Passport Number" : docType === "id_card" ? "ID Card Number" : docType === "driving_license" ? "License Number" : "Identifier"}
                     </span>
                     <span className="font-mono text-slate-200 font-semibold">{docNumber}</span>
                   </div>
                 )}
-                {docType === "id_card" || docType === "driving_license" ? (
+                {docType === "id_card" || docType === "driving_license" || docType === "passport" ? (
                   <>
                     {(extractedFieldsMap.full_name || result.full_name) && (
                       <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Name / Cardholder</span>
+                        <span className="text-[10px] font-mono text-slate-500 block uppercase">
+                          {docType === "passport" ? "Passport Holder" : "Name / Cardholder"}
+                        </span>
                         <span className="font-mono text-slate-200 font-semibold">{extractedFieldsMap.full_name || result.full_name}</span>
                       </div>
                     )}
@@ -554,10 +586,14 @@ export function ResultsPanel({
                         const isSelected = selectedFieldKey === key;
                         const isHovered = hoveredFieldKey === key;
                         const labelText =
-                          key === "id_number" || (key === "document_number" && docType === "id_card")
-                            ? "ID Card Number"
-                            : key === "driving_license" || (key === "document_number" && docType === "driving_license")
+                          (key === "id_number" || key === "document_number") && docType === "driving_license"
                             ? "License Number"
+                            : key === "id_number" || (key === "document_number" && docType === "id_card")
+                            ? "ID Card Number"
+                            : key === "driving_license"
+                            ? "License Number"
+                            : key === "license_class"
+                            ? "License Categories / Type"
                             : key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
                         const displayVal =
                           val === null || val === undefined

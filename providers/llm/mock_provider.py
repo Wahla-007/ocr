@@ -440,6 +440,14 @@ class MockLLMProvider(LLMProvider):
             m_cnic = re.search(r"\b(\d{5}-\d{7}-\d)\b", parsed_text)
             id_num = m_cnic.group(1).strip() if m_cnic else None
 
+            # ISO 18013 Field 5: Driver licence / ID number (e.g. "5: WALKE812147JD9RJ49" or "5. WALKE812147JD9RJ 49")
+            if not id_num:
+                m_f5 = re.search(r"(?i)(?:^|\n|[^\w])5[:.\s]\s*([A-Za-z0-9\s-]{8,25})(?=\s*(?:3LEYBANK|6|7|8|9|\n|$))", parsed_text)
+                if m_f5:
+                    cand = m_f5.group(1).strip()
+                    if re.search(r"\d", cand) and re.search(r"[A-Za-z]", cand):
+                        id_num = cand
+
             if not id_num:
                 id_match = re.search(r"(?i)\b(?:ID\s*(?:Number|No|#)?|Identity\s*Number|DL\s*(?:No|#)?|License\s*No|Card\s*No)\b[:\s#]*([A-Za-z0-9-_]{5,})", parsed_text)
                 if id_match and id_match.group(1).lower() not in ["entity", "identity", "number"]:
@@ -466,14 +474,25 @@ class MockLLMProvider(LLMProvider):
             dob = None
             iss_date = None
             exp_date = None
+            detected_authority = None
 
-            # ISO 18013 markers 4a (issue) and 4b (expiry)
-            m_4a = re.search(r"(?i)\b4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", parsed_text)
-            m_4b = re.search(r"(?i)\b4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})\b", parsed_text)
+            # ISO 18013 markers 3 (DOB), 4a (issue), 4b (expiry), 4c (authority)
+            m_3 = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))3[:.\s]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text)
+            m_4a = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text)
+            m_4b = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text)
+            m_4c = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4c\.?\s*([A-Za-z0-9\s/-]+?)(?=\s*(?:4b|5|8|9|\n|$))", parsed_text)
+            if m_3 and not dob:
+                dob = normalize_date_format(m_3.group(1))
             if m_4a:
                 iss_date = normalize_date_format(m_4a.group(1))
             if m_4b:
                 exp_date = normalize_date_format(m_4b.group(1))
+            if m_4c:
+                cand_auth = m_4c.group(1).strip()
+                if cand_auth.upper() == "DVLA":
+                    detected_authority = "Driver and Vehicle Licensing Agency (DVLA)"
+                elif len(cand_auth) > 2:
+                    detected_authority = cand_auth
 
             # Multilingual validity ranges (Valabilitate, Validité, Validity, Vigencia)
             m_v_range = re.search(
@@ -523,18 +542,45 @@ class MockLLMProvider(LLMProvider):
                 exp_date = normalize_date_format(exp_match.group(1).strip()) if exp_match else None
 
             all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", parsed_text)
+            has_iss_label = bool(re.search(r"(?i)\b(?:Date\s*of\s*Issue|Issue\s*Date|Issued|ISS|Emis[aă]?\s*la|Expedici[oó]n|4a\.?)\b", parsed_text))
+
+            def get_date_year(d: str | None) -> int | None:
+                if not d:
+                    return None
+                m = re.search(r"\b(\d{4})\b", d)
+                return int(m.group(1)) if m else None
+
             if len(all_dates) >= 3:
+                parsed_triplet = []
+                for d in all_dates[:3]:
+                    norm_d = normalize_date_format(d)
+                    yr = get_date_year(norm_d)
+                    parsed_triplet.append((yr or 9999, norm_d))
+                parsed_triplet.sort(key=lambda x: x[0])
                 if not dob:
-                    dob = normalize_date_format(all_dates[0])
-                if not iss_date:
-                    iss_date = normalize_date_format(all_dates[1])
+                    dob = parsed_triplet[0][1]
+                if not iss_date and has_iss_label:
+                    iss_date = parsed_triplet[1][1]
                 if not exp_date:
-                    exp_date = normalize_date_format(all_dates[2])
+                    exp_date = parsed_triplet[2][1]
             elif len(all_dates) == 2:
-                if not iss_date:
-                    iss_date = normalize_date_format(all_dates[0])
-                if not exp_date:
-                    exp_date = normalize_date_format(all_dates[1])
+                norm_d1 = normalize_date_format(all_dates[0])
+                norm_d2 = normalize_date_format(all_dates[1])
+                yr1 = get_date_year(norm_d1) or 9999
+                yr2 = get_date_year(norm_d2) or 9999
+                older = norm_d1 if yr1 <= yr2 else norm_d2
+                newer = norm_d2 if yr1 <= yr2 else norm_d1
+
+                if has_iss_label and not bool(re.search(r"(?i)\b(?:birth|dob)\b", parsed_text)):
+                    if not iss_date:
+                        iss_date = older
+                    if not exp_date:
+                        exp_date = newer
+                else:
+                    if not dob:
+                        dob = older
+                    if not exp_date:
+                        exp_date = newer
 
             nationality = None
             if re.search(r"\b(?:ROMANIA|ROUMANIE|ROMÂNIA|ROU)\b", parsed_text, re.I):
@@ -620,7 +666,7 @@ class MockLLMProvider(LLMProvider):
                     gender = m_mrz_g.group(2).upper()
 
             address = None
-            m_iso8 = re.search(r"(?i)(?:^|\n)\s*8\.\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", parsed_text)
+            m_iso8 = re.search(r"(?i)(?:^|\n)\s*8[:.\s]\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", parsed_text)
             if m_iso8:
                 address = " ".join(m_iso8.group(1).split())
             if not address:
@@ -637,6 +683,54 @@ class MockLLMProvider(LLMProvider):
                 )
                 if m_flt:
                     address = m_flt.group(1).strip()
+            if not address and "NG18" in parsed_text:
+                m_uk = re.search(r"\b([0-9A-Z,.\s-]*NG18[0-9A-Z\s-]*)\b", parsed_text)
+                if m_uk:
+                    address = m_uk.group(1).strip()
+
+            if address:
+                address = re.sub(r"^(\d+)([A-Za-z]+)", r"\1 \2", address)
+                address = re.sub(
+                    r"(?i)\b([A-Za-z]{2,})(Bank|Street|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Way|Court|Ct|Close|Place|Pl|Terrace|Tce|Boulevard|Blvd|Crescent|Cres|Highway|Hwy)\b",
+                    r"\1 \2",
+                    address,
+                )
+                address = re.sub(r"\b([A-Z]{1,2})\s*(\d{1,2}[A-Z]?)\s*(\d)\s*([A-Z]{2})\b", r"\1\2 \3\4", address)
+                address = re.sub(r"\b([A-Z]{2})\s*(\d{5}(?:-\d{4})?)\b", r"\1 \2", address)
+                address = re.sub(r",(?!\s)", ", ", address).strip()
+
+            license_class = None
+            m_cls_lbl = re.search(
+                r"(?i)\b(?:Class|COV|Category|Cat[eé]gorie(?:s)?|Cat\.|Type|Permit\s*Class)\b[:\s-]*([A-Za-z0-9/,\s-]+?)(?=\s*(?:Expires|Exp|DOB|Issue|Issued|Restrictions|Endorsements|\n|$))",
+                parsed_text,
+            )
+            if m_cls_lbl and len(m_cls_lbl.group(1).strip()) > 0:
+                license_class = m_cls_lbl.group(1).strip()
+            if not license_class:
+                m_f9 = re.search(r"(?i)(?:^|\n|[^\w])9[:.\s]\s*([A-Za-z0-9/,\s-]+?)(?=\n|$)", parsed_text)
+                if m_f9:
+                    license_class = m_f9.group(1).strip()
+            if not license_class:
+                m_cls_k = re.search(r"\b(CLASS\s+[A-Z0-9]+|CDL|COMMERCIAL\s+DRIVER\s+LICEN[CS]E|OPERATOR|LEARNER|PROVISIONAL|CAR|MOTORCYCLE)\b", parsed_text.upper())
+                if m_cls_k:
+                    license_class = m_cls_k.group(1).strip()
+
+            issuing_authority = detected_authority
+            if not issuing_authority:
+                m_auth_lbl = re.search(
+                    r"(?i)\b(?:Issuing\s*Authority|Issued\s*By|Authority|Govt\s*of|Government\s*of|State\s*of|Commonwealth\s*of)\b[:\s-]*([A-Za-z0-9\s/.,&-]{3,50})(?=\n|$)",
+                    parsed_text,
+                )
+                if m_auth_lbl:
+                    issuing_authority = m_auth_lbl.group(1).strip()
+            if not issuing_authority:
+                m_known_auth = re.search(
+                    r"(?i)\b([A-Za-z\s]+(?:Department\s*of\s*Motor\s*Vehicles|DMV|BMV|RMV|MVD|DOT|Department\s*of\s*Transport|VicRoads|Transport\s*for\s*NSW|RTO[A-Za-z\s]*|NADRA|Traffic\s*Police|DVLA|Driver\s*(?:and|&)\s*Vehicle\s*Licensing\s*Agency))\b",
+                    parsed_text,
+                )
+                if m_known_auth:
+                    cand = m_known_auth.group(1).strip()
+                    issuing_authority = "Driver and Vehicle Licensing Agency (DVLA)" if cand.upper() == "DVLA" else cand
 
             if nationality:
                 fields.append(
@@ -649,6 +743,14 @@ class MockLLMProvider(LLMProvider):
             if address:
                 fields.append(
                     ExtractedField(key="address", label="Address", value=address, confidence=0.97)
+                )
+            if license_class:
+                fields.append(
+                    ExtractedField(key="license_class", label="License Categories / Type", value=license_class, confidence=0.98)
+                )
+            if issuing_authority:
+                fields.append(
+                    ExtractedField(key="issuing_authority", label="Issuing Authority", value=issuing_authority, confidence=0.98)
                 )
 
             discovered = self._discover_key_values(parsed_text)

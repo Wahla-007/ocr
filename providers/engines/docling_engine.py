@@ -38,12 +38,84 @@ def get_ocr_engine():
     return _rapid_ocr if _rapid_ocr is not False else None
 
 
+def detect_and_correct_orientation(pil_img: Image.Image, ocr_engine) -> tuple[Image.Image, int]:
+    """Detects if document image is rotated/tilted (90, 180, 270 deg) and returns upright image."""
+    try:
+        w, h = pil_img.size
+        scale = min(1.0, 900.0 / max(w, h))
+        thumb = pil_img.resize((int(w * scale), int(h * scale))) if scale < 1.0 else pil_img
+
+        res0, _ = ocr_engine(np.array(thumb))
+
+        def score_res(res, img_h):
+            if not res:
+                return 0.0, 0.0
+            tw = sum(abs(item[0][1][0] - item[0][0][0]) for item in res)
+            th = sum(abs(item[0][2][1] - item[0][1][1]) for item in res)
+            ar = tw / max(1.0, th)
+            conf = sum(item[2] for item in res) / len(res)
+
+            bonus = 0.0
+            for item in res:
+                t = str(item[1]).upper()
+                cy = (item[0][0][1] + item[0][2][1]) / 2.0
+                is_top = cy < img_h * 0.4
+                is_bottom = cy > img_h * 0.6
+                if is_top and any(
+                    k in t
+                    for k in [
+                        "PASSPORT",
+                        "PASSEPORT",
+                        "REPUBLIC",
+                        "GOVERNMENT",
+                        "CANADA",
+                        "INVOICE",
+                        "RECEIPT",
+                        "DRIVER",
+                        "LICENCE",
+                        "LICENSE",
+                        "IDENTITY",
+                    ]
+                ):
+                    bonus += 25.0
+                if is_bottom and (
+                    t.startswith("P<") or t.startswith("I<") or "<<<" in t or t.startswith(">")
+                ):
+                    bonus += 30.0
+                if is_top and (t.startswith("P<") or t.startswith("I<") or t.startswith(">")):
+                    bonus -= 35.0  # MRZ upside-down penalty
+
+            score = (len(res) * conf * min(ar, 6.0)) + bonus
+            return score, ar
+
+        score0, ar0 = score_res(res0, thumb.height)
+        # If text boxes are predominantly vertical (ar < 1.1) or sparse with low score, evaluate 90, 180, 270
+        if ar0 < 1.1 or len(res0) < 5 or score0 < 15.0:
+            best_angle = 0
+            best_score = score0
+            for angle in [90, 180, 270]:
+                rot_thumb = thumb.rotate(angle, expand=True)
+                res_a, _ = ocr_engine(np.array(rot_thumb))
+                score_a, ar_a = score_res(res_a, rot_thumb.height)
+                if score_a > best_score:
+                    best_score = score_a
+                    best_angle = angle
+            if best_angle != 0:
+                logger.info(
+                    f"Auto-orienting tilted document by {best_angle} degrees (score improved from {score0:.1f} to {best_score:.1f})"
+                )
+                return pil_img.rotate(best_angle, expand=True), best_angle
+    except Exception as e:
+        logger.warning(f"Auto-orientation check failed: {e}")
+    return pil_img, 0
+
+
 def run_ocr_on_image(
     image_bytes: bytes, page_num: int = 1
 ) -> tuple[list[ParsedBlock], list[str], float]:
-    """Runs RapidOCR on image bytes, groups horizontal text boxes into natural lines,
+    """Runs RapidOCR on image bytes with auto-tilt/orientation detection,
 
-    and returns parsed blocks, text lines, and average confidence.
+    groups horizontal text boxes into natural lines, and returns parsed blocks, text lines, and average confidence.
     """
     ocr = get_ocr_engine()
     blocks: list[ParsedBlock] = []
@@ -55,6 +127,10 @@ def run_ocr_on_image(
             pil_img = Image.open(io.BytesIO(image_bytes))
             if pil_img.mode != "RGB":
                 pil_img = pil_img.convert("RGB")
+
+            # Check if document is tilted or rotated, and auto-orient upright
+            pil_img, _ = detect_and_correct_orientation(pil_img, ocr)
+
             arr = np.array(pil_img)
             res, _ = ocr(arr)
             if res:
