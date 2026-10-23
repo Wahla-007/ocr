@@ -193,6 +193,12 @@ export function ResultsPanel({
         customer_name: result.customer_name,
         issue_date: result.issue_date,
         due_date: result.due_date,
+        product: result.product || (fieldsObj as any)?.product || invData?.product || invData?.order_details?.product,
+        order_number: result.order_number || (fieldsObj as any)?.order_number || invData?.order_number || invData?.order_details?.order_number,
+        customer_po_number: result.customer_po_number || (fieldsObj as any)?.customer_po_number || invData?.customer_po_number || invData?.purchase_order_number || invData?.order_details?.customer_po_number,
+        billing_period: result.billing_period || (fieldsObj as any)?.billing_period || invData?.billing_period || invData?.order_details?.billing_period,
+        payment_terms: result.payment_terms || (fieldsObj as any)?.payment_terms || invData?.payment_terms || invData?.order_details?.payment_terms,
+        payment_instructions: result.payment_instructions || (fieldsObj as any)?.payment_instructions || invData?.payment_instructions || invData?.order_details?.payment_instructions,
         subtotal: result.subtotal,
         tax_amount: result.tax_amount,
         total_amount: result.total_amount,
@@ -664,6 +670,73 @@ export function ResultsPanel({
                       {invData?.buyer?.address && (
                         <p className="text-[11px] text-slate-400">{invData.buyer.address}</p>
                       )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SECTION: ORDER & CONTRACT DETAILS */}
+            {(extractedFieldsMap.order_number || extractedFieldsMap.product || extractedFieldsMap.customer_po_number || extractedFieldsMap.billing_period || extractedFieldsMap.payment_terms || extractedFieldsMap.payment_instructions || invData?.order_details) && (
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
+                  Order & Contract Details
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  {(extractedFieldsMap.product || invData?.product || invData?.order_details?.product) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Product</span>
+                      <span className="font-mono text-slate-200 font-medium">
+                        {extractedFieldsMap.product || invData?.product || invData?.order_details?.product}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedFieldsMap.order_number || invData?.order_number || invData?.order_details?.order_number) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Order Number</span>
+                      <span className="font-mono text-slate-200 font-medium break-all">
+                        {extractedFieldsMap.order_number || invData?.order_number || invData?.order_details?.order_number}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedFieldsMap.customer_po_number || invData?.customer_po_number || invData?.purchase_order_number || invData?.order_details?.customer_po_number) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Customer PO Number</span>
+                      <span className="font-mono text-slate-200 font-medium">
+                        {extractedFieldsMap.customer_po_number || invData?.customer_po_number || invData?.purchase_order_number || invData?.order_details?.customer_po_number}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedFieldsMap.billing_period || invData?.billing_period || invData?.order_details?.billing_period) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Billing Period</span>
+                      <span className="font-mono text-slate-200 font-medium">
+                        {extractedFieldsMap.billing_period || invData?.billing_period || invData?.order_details?.billing_period}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedFieldsMap.payment_terms || invData?.payment_terms || invData?.order_details?.payment_terms) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Payment Terms</span>
+                      <span className="font-mono text-slate-200 font-medium">
+                        {extractedFieldsMap.payment_terms || invData?.payment_terms || invData?.order_details?.payment_terms}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedFieldsMap.due_date || invData?.due_date || invData?.order_details?.due_date) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
+                      <span className="font-mono text-slate-200 font-medium">
+                        {extractedFieldsMap.due_date || invData?.due_date || invData?.order_details?.due_date}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedFieldsMap.payment_instructions || invData?.payment_instructions || invData?.order_details?.payment_instructions) && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 sm:col-span-2">
+                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Payment Instructions</span>
+                      <span className="font-mono text-slate-300 text-[11px] leading-relaxed">
+                        {extractedFieldsMap.payment_instructions || invData?.payment_instructions || invData?.order_details?.payment_instructions}
+                      </span>
                     </div>
                   )}
                 </div>

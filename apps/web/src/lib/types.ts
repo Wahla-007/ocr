@@ -66,10 +66,26 @@ export interface StructuredTax {
   total: number;
 }
 
+export interface StructuredOrderDetails {
+  product?: string | null;
+  customer_po_number?: string | null;
+  order_number?: string | null;
+  billing_period?: string | null;
+  payment_terms?: string | null;
+  due_date?: string | null;
+  payment_instructions?: string | null;
+}
+
 export interface StructuredInvoice {
   invoice_number: string | null;
   invoice_date: string | null;
   due_date: string | null;
+  order_number?: string | null;
+  product?: string | null;
+  customer_po_number?: string | null;
+  billing_period?: string | null;
+  payment_instructions?: string | null;
+  order_details?: StructuredOrderDetails;
   supplier: StructuredSupplier;
   buyer: StructuredBuyer;
   line_items: StructuredLineItem[];
@@ -206,6 +222,13 @@ export interface ExtractionResult {
   document_number?: string | null;
   issue_date?: string | null;
   due_date?: string | null;
+  product?: string | null;
+  order_number?: string | null;
+  customer_po_number?: string | null;
+  billing_period?: string | null;
+  payment_terms?: string | null;
+  payment_instructions?: string | null;
+  order_details?: StructuredOrderDetails;
   date_of_birth?: string | null;
   expiry_date?: string | null;
   gender?: string | null;

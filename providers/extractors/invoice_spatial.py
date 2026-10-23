@@ -435,47 +435,71 @@ class LightweightSpatialInvoiceExtractor:
             # Product
             m_prod = re.search(r"(?i)^\s*product\s*[:#\s-]+\s*(.+)", t)
             if m_prod and not result["product"]:
-                result["product"] = m_prod.group(1).strip()
+                cand = m_prod.group(1).strip(" -:#|")
+                cand = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", cand).strip(" -:#|")
+                if cand:
+                    result["product"] = cand
             elif re.match(r"(?i)^\s*product\s*[:#\s-]*$", t) and not result["product"]:
                 cand = self._find_text_to_right(b, boxes)
                 if cand:
-                    result["product"] = cand
+                    cand = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", cand).strip(" -:#|")
+                    if cand:
+                        result["product"] = cand
 
             # Order Number / ID / GUID
             m_ord = re.search(r"(?i)^\s*order\s*(?:number|no\.?|id|#)\s*[:#\s-]+\s*([0-9a-zA-Z-]+)", t)
             if m_ord and not result["order_number"]:
-                result["order_number"] = m_ord.group(1).strip()
+                result["order_number"] = m_ord.group(1).strip(" -:#|")
             elif re.match(r"(?i)^\s*order\s*(?:number|no\.?|id|#)\s*[:#\s-]*$", t) and not result["order_number"]:
                 cand = self._find_text_to_right(b, boxes)
                 if cand:
-                    result["order_number"] = cand.split()[0] if cand else None
+                    result["order_number"] = cand.split()[0].strip(" -:#|")
+            
+            m_guid = re.search(r"\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4,12})\b", t)
+            if m_guid and not result["order_number"]:
+                result["order_number"] = m_guid.group(1)
 
             # Billing Period: e.g. 28/01/2017 - 27/01/2018
-            m_period = re.search(r"(?i)^\s*billing\s*period\s*[:#\s-]+\s*(.+)", t)
+            m_period = re.search(r"(?i)^\s*b[iil]*ing\s*period\s*[:#\s-]+\s*(.+)", t)
             if m_period and not result["billing_period"]:
-                result["billing_period"] = m_period.group(1).strip()
-            elif re.match(r"(?i)^\s*billing\s*period\s*[:#\s-]*$", t) and not result["billing_period"]:
+                result["billing_period"] = m_period.group(1).strip(" -:#|")
+            elif re.match(r"(?i)^\s*b[iil]*ing\s*period\s*[:#\s-]*$", t) and not result["billing_period"]:
                 cand = self._find_text_to_right(b, boxes)
                 if cand:
-                    result["billing_period"] = cand
+                    result["billing_period"] = cand.strip(" -:#|")
+            
+            m_drange = re.search(r"\b(\d{2}/\d{2}/\d{4}\s*-\s*\d{2}/\d{2}/\d{4})\b", t)
+            if m_drange and not result["billing_period"]:
+                result["billing_period"] = m_drange.group(1).strip()
 
             # Payment Terms: e.g. Net 30, Net 60, 30 days
-            m_terms = re.search(r"(?i)^\s*payment\s*terms?\s*[:#\s-]+\s*(.+)", t)
-            if m_terms and not result["payment_terms"]:
-                result["payment_terms"] = m_terms.group(1).strip()
-            elif re.match(r"(?i)^\s*payment\s*terms?\s*[:#\s-]*$", t) and not result["payment_terms"]:
-                cand = self._find_text_to_right(b, boxes)
-                if cand:
-                    result["payment_terms"] = cand
+            m_net = re.search(r"(?i)\b(Net\s*\d+|[0-9]+\s*days?|due\s*on\s*receipt|immediate)\b", t)
+            if m_net and not result["payment_terms"]:
+                result["payment_terms"] = m_net.group(1).title()
+            else:
+                m_terms = re.search(r"(?i)^\s*payment\s*terms?\s*[:#\s-]+\s*(.+)", t)
+                if m_terms and not result["payment_terms"]:
+                    cand = m_terms.group(1).strip(" -:#|")
+                    m_sub = re.search(r"(?i)\b(Net\s*\d+|[0-9]+\s*days?|due\s*on\s*receipt|immediate)\b", cand)
+                    result["payment_terms"] = m_sub.group(1).title() if m_sub else cand.split()[0]
+                elif re.match(r"(?i)^\s*payment\s*terms?\s*[:#\s-]*$", t) and not result["payment_terms"]:
+                    cand = self._find_text_to_right(b, boxes)
+                    if cand:
+                        m_sub = re.search(r"(?i)\b(Net\s*\d+|[0-9]+\s*days?|due\s*on\s*receipt|immediate)\b", cand)
+                        result["payment_terms"] = m_sub.group(1).title() if m_sub else cand.split()[0]
 
             # Customer PO Number
             m_cpo = re.search(r"(?i)^\s*customer\s*po\s*(?:number|no\.?|#)?\s*[:#\s-]+\s*([A-Za-z0-9_-]+)", t)
             if m_cpo and not result["po_number"]:
-                result["po_number"] = m_cpo.group(1).strip()
+                cand = m_cpo.group(1).strip(" -:#|")
+                if cand.lower() not in ["number", "no", "id", "#", "customer", "none"]:
+                    result["po_number"] = cand
             elif re.match(r"(?i)^\s*customer\s*po\s*(?:number|no\.?|#)?\s*[:#\s-]*$", t) and not result["po_number"]:
                 cand = self._find_text_to_right(b, boxes)
                 if cand:
-                    result["po_number"] = cand.split()[0]
+                    cand_first = cand.split()[0].strip(" -:#|")
+                    if cand_first.lower() not in ["number", "no", "id", "#", "customer", "none"]:
+                        result["po_number"] = cand_first
 
             # Payment Instructions
             if re.search(r"(?i)\bpayment\s*instructions?\b", t):
@@ -489,6 +513,15 @@ class LightweightSpatialInvoiceExtractor:
             m_url = re.search(r"(https?://[^\s)]+)", t)
             if m_url and not result["support_url"]:
                 result["support_url"] = m_url.group(1)
+
+        if result["product"]:
+            result["product"] = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", result["product"]).strip(" -:#|")
+        if result["billing_period"]:
+            m_drange = re.search(r"\b(\d{2}/\d{2}/\d{4}\s*-\s*\d{2}/\d{2}/\d{4})\b", result["billing_period"])
+            if m_drange:
+                result["billing_period"] = m_drange.group(1)
+        if result["po_number"] and str(result["po_number"]).lower() in ["number", "no", "id", "#", "customer", "none", "dicounts", "discounts", "billing", "summary", "vat"]:
+            result["po_number"] = None
 
         # 3. Billing Summary (Charges, Discounts, Credits)
         for b in boxes:

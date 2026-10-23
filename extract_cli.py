@@ -753,10 +753,74 @@ async def extract_file(file_path: Path) -> dict:
             tax_rate = round((tax_val / subtotal) * 100, 1)
 
         # Payment Terms & Methods
-        payment_terms = None
-        terms_m = re.search(r"(?i)Payment\s*Terms\s*\n\s*([^\n]+)", text_content)
-        if terms_m:
-            payment_terms = terms_m.group(1).strip()
+        payment_terms = spatial_data.get("payment_terms")
+        if not payment_terms:
+            terms_m = re.search(r"(?i)Payment\s*Terms\s*\n\s*([^\n]+)", text_content)
+            if terms_m:
+                payment_terms = terms_m.group(1).strip()
+
+        order_number = spatial_data.get("order_number")
+        if not order_number:
+            ord_m = re.search(r"(?i)(?:order\s*number|order\s*no\.?|order\s*#)\s*[:#\s-]*([A-Za-z0-9/_-]+)", text_content)
+            if ord_m:
+                order_number = ord_m.group(1).strip()
+
+        product = spatial_data.get("product")
+        if not product:
+            prod_m = re.search(r"(?i)(?:product|product\s*name)\s*[:#\s-]*([^\n]+)", text_content)
+            if prod_m:
+                product = prod_m.group(1).strip()
+
+        billing_period = spatial_data.get("billing_period")
+        if not billing_period:
+            bp_m = re.search(r"(?i)(?:billing\s*period|service\s*period)\s*[:#\s-]*([^\n]+)", text_content)
+            if bp_m:
+                billing_period = bp_m.group(1).strip()
+
+        payment_instructions = spatial_data.get("payment_instructions")
+        if not payment_instructions:
+            pi_m = re.search(r"(?i)(?:payment\s*instructions?|remittance\s*instructions?)\s*[:#\s-]*([^\n]+)", text_content)
+            if pi_m:
+                payment_instructions = pi_m.group(1).strip()
+
+        customer_po_number = po_number or spatial_data.get("po_number")
+        if not customer_po_number:
+            po_m = re.search(r"(?i)(?:customer\s*po\s*number|po\s*number|purchase\s*order(?:\s*number|\s*no\.?|\s*#)?)\s*[:#\s-]*([A-Za-z0-9/_-]+)", text_content)
+            if po_m and po_m.group(1).lower() not in ["number", "no", "id", "#", "customer", "dicounts", "discounts", "billing", "summary", "vat"]:
+                customer_po_number = po_m.group(1).strip()
+
+        if customer_po_number and str(customer_po_number).lower() in ["number", "no", "id", "#", "customer", "dicounts", "discounts", "billing", "summary", "vat"]:
+            customer_po_number = None
+
+        order_details = {
+            "product": product,
+            "customer_po_number": customer_po_number,
+            "order_number": order_number,
+            "billing_period": billing_period,
+            "payment_terms": payment_terms,
+            "due_date": due_date,
+            "payment_instructions": payment_instructions,
+        }
+
+        additional_fields = []
+        if product:
+            additional_fields.append({"label": "Product", "value": str(product)})
+        if customer_po_number:
+            additional_fields.append({"label": "Customer PO Number", "value": str(customer_po_number)})
+        if order_number:
+            additional_fields.append({"label": "Order Number", "value": str(order_number)})
+        if billing_period:
+            additional_fields.append({"label": "Billing Period", "value": str(billing_period)})
+        if payment_terms:
+            additional_fields.append({"label": "Payment Terms", "value": str(payment_terms)})
+        if due_date:
+            additional_fields.append({"label": "Due Date", "value": str(due_date)})
+        if payment_instructions:
+            additional_fields.append({"label": "Payment Instructions", "value": str(payment_instructions)})
+        if spatial_data.get("customer_vat_id"):
+            additional_fields.append({"label": "Customer VAT ID", "value": str(spatial_data["customer_vat_id"])})
+        if spatial_data.get("supplier_vat_id"):
+            additional_fields.append({"label": "Supplier VAT ID", "value": str(spatial_data["supplier_vat_id"])})
 
         payment_methods = []
         for m_name in ["bank account", "paypal", "mastercard", "visa", "wire transfer", "credit card", "cash"]:
@@ -807,6 +871,14 @@ async def extract_file(file_path: Path) -> dict:
             "invoice_number": inv_num,
             "vendor_name": vendor_name,
             "customer_name": customer_name,
+            "order_number": order_number,
+            "product": product,
+            "customer_po_number": customer_po_number,
+            "billing_period": billing_period,
+            "payment_terms": payment_terms,
+            "due_date": due_date,
+            "payment_instructions": payment_instructions,
+            "order_details": order_details,
             "name": {
                 "full": None,
                 "first": None,
@@ -819,13 +891,19 @@ async def extract_file(file_path: Path) -> dict:
             "total_amount": total,
             "currency": currency or "$",
             "issued_on": issue_date,
-            "payment_terms": payment_terms,
             "payment_method": payment_method,
             "photo_present": False,
             "invoice": {
                 "invoice_number": inv_num,
                 "invoice_date": issue_date,
                 "due_date": due_date,
+                "order_number": order_number,
+                "product": product,
+                "customer_po_number": customer_po_number,
+                "billing_period": billing_period,
+                "payment_terms": payment_terms,
+                "payment_instructions": payment_instructions,
+                "order_details": order_details,
                 "supplier": {
                     "name": vendor_name,
                     "pan": None,
@@ -834,12 +912,17 @@ async def extract_file(file_path: Path) -> dict:
                     "email": supplier_email,
                     "website": supplier_web,
                     "phone": supplier_phone,
+                    "vat_id": spatial_data.get("supplier_vat_id"),
                 },
                 "buyer": {
                     "name": customer_name,
                     "pan": None,
                     "gstin": None,
                     "address": buyer_addr,
+                    "vat_id": spatial_data.get("customer_vat_id"),
+                    "sold_to": spatial_data.get("sold_to"),
+                    "bill_to": spatial_data.get("bill_to"),
+                    "service_usage_address": spatial_data.get("service_usage_address"),
                 },
                 "line_items": line_items,
                 "subtotal": subtotal,
@@ -858,9 +941,9 @@ async def extract_file(file_path: Path) -> dict:
                 "place_of_supply": None,
                 "payment_terms": payment_terms,
                 "payment_method": payment_method,
-                "purchase_order_number": None,
+                "purchase_order_number": customer_po_number,
                 "amount_in_words": None,
-                "additional_fields": [],
+                "additional_fields": additional_fields,
             },
         }
 
