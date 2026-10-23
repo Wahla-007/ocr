@@ -34,12 +34,16 @@ for p in [ROOT_DIR, ROOT_DIR / "apps" / "api", ROOT_DIR / "apps" / "worker"]:
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
+from dotenv import load_dotenv
+load_dotenv(ROOT_DIR / ".env")
+
 import pymupdf
 
 from apps.worker.worker.pipeline.normalize import normalize_document
 from apps.worker.worker.pipeline.parse import parse_document
 from apps.worker.worker.pipeline.understand import classify_and_extract, map_fields_to_bboxes
 from providers.base import ExtractedField
+from providers.extractors.invoice_spatial import LightweightSpatialInvoiceExtractor, OCRBox
 
 
 def detect_mime(path: Path) -> str:
@@ -552,11 +556,16 @@ async def extract_file(file_path: Path) -> dict:
         doc_type = "contract"
     elif (
         "INVOICE" in upper
+        or "FACTURE" in upper
         or "INV-" in upper
+        or "INV/" in upper
         or "TAX INVOICE" in upper
         or "BILL TO" in upper
         or "INVOICE NUMBER" in upper
+        or "MONTANT HT" in upper
+        or "MONTANT TTC" in upper
         or "INVOICE" in file_name_upper
+        or "FACTU" in file_name_upper
     ):
         doc_type = "invoice"
     else:
@@ -598,8 +607,20 @@ async def extract_file(file_path: Path) -> dict:
     if doc_type == "invoice":
         credits_charged = 25
 
+        # Run lightweight 2D spatial extraction on detected blocks
+        spatial_data = {}
+        try:
+            sp_boxes = []
+            for b in parsed.blocks:
+                if b.bbox and b.text:
+                    sp_boxes.append(OCRBox(b.bbox.x, b.bbox.y, b.bbox.x + b.bbox.width, b.bbox.y + b.bbox.height, b.text, b.confidence))
+            spatial_extractor = LightweightSpatialInvoiceExtractor()
+            spatial_data = spatial_extractor.extract_from_boxes(sp_boxes)
+        except Exception as e:
+            sys.stderr.write(f"Spatial invoice extraction failed: {e}\n")
+
         # Vendor Name: prominent top non-keyword header line
-        vendor_name = fields_dict.get("brand_name") or fields_dict.get("vendor_name")
+        vendor_name = fields_dict.get("brand_name") or fields_dict.get("vendor_name") or spatial_data.get("supplier")
         if not vendor_name or vendor_name in ["Vendor", "None"]:
             for l in detected_lines[:6]:
                 clean_l = l.strip()
@@ -624,8 +645,8 @@ async def extract_file(file_path: Path) -> dict:
         supplier_phone = phone_m.group(1).strip() if phone_m else None
 
         addr_data = extract_address_block(text_content)
-        supplier_addr = addr_data.get("line1")
-        buyer_addr = None
+        supplier_addr = spatial_data.get("address") or addr_data.get("line1")
+        buyer_addr = spatial_data.get("customer_address")
 
         if vendor_name:
             v_phone = re.search(r"\b[P|Phone][:.\s-]*([0-9\s+-]{6,20})", vendor_name)
@@ -640,7 +661,7 @@ async def extract_file(file_path: Path) -> dict:
             vendor_name = re.sub(r"\s*[AWP|Address|Web|Phone]:.*$", "", vendor_name).strip()
 
         # Customer / Buyer Name
-        customer_name = fields_dict.get("customer_name")
+        customer_name = fields_dict.get("customer_name") or spatial_data.get("customer")
         if not customer_name or customer_name in ["Buyer", "None"]:
             for i, l in enumerate(detected_lines):
                 m_bill = re.search(r"(?i)(?:billed\s*to|bill\s*to|customer|client|sold\s*to|invoice\s*to)\s*[:\s-]*$", l.strip())
@@ -660,7 +681,7 @@ async def extract_file(file_path: Path) -> dict:
             customer_name = re.sub(r"(?i)\s*\bINVOICE\b.*$", "", customer_name).strip()
 
         # Invoice Number
-        inv_num = fields_dict.get("invoice_number")
+        inv_num = fields_dict.get("invoice_number") or spatial_data.get("invoice_number")
         if not inv_num:
             inv_m = re.search(
                 r"(?i)(?:invoice\s*(?:number|no|num|#)|inv\s*(?:no|num|#)|bill\s*(?:no|#)|account\s*(?:number|no|num|#)|accountno\.?)\s*[:#.\s-]*([A-Za-z0-9/_-]+)",
@@ -674,18 +695,20 @@ async def extract_file(file_path: Path) -> dict:
                     inv_num = alt_m.group(0).strip()
 
         # Issue Date
-        issue_date = fields_dict.get("issue_date")
+        issue_date = fields_dict.get("issue_date") or spatial_data.get("invoice_date")
         if not issue_date:
             iss_m = re.search(rf"(?i)(?:issue\s*date|invoice\s*date|date\s*of\s*issue|billing\s*date|date)\s*[:\s-]*{date_pat}", text_content)
             if iss_m and "dd/mm" not in iss_m.group(1).lower():
                 issue_date = iss_m.group(1).strip()
 
         # Due Date
-        due_date = fields_dict.get("due_date")
+        due_date = fields_dict.get("due_date") or spatial_data.get("invoice_due_date")
         if not due_date:
             due_m = re.search(rf"(?i)(?:due\s*date|payment\s*due|due\s*by|pay\s*by)\s*[:\s-]*{date_pat}", text_content)
             if due_m and "dd/mm" not in due_m.group(1).lower():
                 due_date = due_m.group(1).strip()
+
+        po_number = spatial_data.get("po_number")
 
         if customer_name:
             for i, l in enumerate(detected_lines):
@@ -697,22 +720,32 @@ async def extract_file(file_path: Path) -> dict:
 
         # Line Items
         line_items = extract_line_items(parsed.tables, detected_lines)
+        if not line_items and spatial_data.get("lines"):
+            for l in spatial_data["lines"]:
+                line_items.append({
+                    "description": l["description"],
+                    "details": l.get("uom"),
+                    "quantity": l.get("quantity") or 1.0,
+                    "unit": l.get("uom") or "UNITS",
+                    "rate": l.get("price"),
+                    "amount": l.get("sub_total"),
+                })
 
         # Financial Amounts
         sub_m = re.search(rf"(?i)(?:subtotal|sub\s*total|net\s*amount)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
-        subtotal = clean_num(sub_m.group(1)) if sub_m else fields_dict.get("subtotal")
+        subtotal = spatial_data.get("total_untaxed") if spatial_data.get("total_untaxed") is not None else (clean_num(sub_m.group(1)) if sub_m else fields_dict.get("subtotal"))
         if subtotal is None and line_items:
-            subtotal = round(sum(i["amount"] for i in line_items), 2)
+            subtotal = round(sum(i["amount"] for i in line_items if i.get("amount")), 2)
 
         tax_m = re.search(rf"(?i)(?:sales\s*tax|tax|vat|gst)\s*(?:\(([0-9.]+)%\))?\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
         if tax_m:
             tax_rate = clean_num(tax_m.group(1))
-            tax_val = clean_num(tax_m.group(2))
+            tax_val = spatial_data.get("tax_amount") if spatial_data.get("tax_amount") is not None else clean_num(tax_m.group(2))
         else:
-            tax_val = fields_dict.get("tax_amount")
+            tax_val = spatial_data.get("tax_amount") or fields_dict.get("tax_amount")
 
         tot_m = re.search(rf"(?i)(?:grand\s*total|total\s*due|amount\s*due|balance\s*due|total\s*amount|total\s*paid|(?<!sub)total)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
-        total = clean_num(tot_m.group(1)) if tot_m else fields_dict.get("total_amount")
+        total = spatial_data.get("total_amount") if spatial_data.get("total_amount") is not None else (clean_num(tot_m.group(1)) if tot_m else fields_dict.get("total_amount"))
         if total is None and subtotal is not None:
             total = round(subtotal + (tax_val or 0.0), 2)
 

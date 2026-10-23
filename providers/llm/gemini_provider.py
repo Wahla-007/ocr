@@ -22,9 +22,9 @@ from providers.base import (
 class GeminiLLMProvider(LLMProvider):
     """Gemini Provider communicating with Google Generative AI API."""
 
-    def __init__(self, api_key: str | None = None, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
-        self.model = model
+        self.model = model or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
 
     @property

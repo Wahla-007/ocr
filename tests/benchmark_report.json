@@ -1,0 +1,742 @@
+{
+  "summary": {
+    "total_documents": 10,
+    "openocr_avg_latency_ms": 6518.1,
+    "gemini_avg_latency_ms": 10975.3,
+    "speedup_factor": 1.68,
+    "field_accuracies": {
+      "invoice_number": {
+        "eval_count": 10,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 100.0
+      },
+      "supplier": {
+        "eval_count": 10,
+        "openocr_accuracy_pct": 90.0,
+        "gemini_accuracy_pct": 90.0
+      },
+      "po_number": {
+        "eval_count": 10,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 90.0
+      },
+      "invoice_date": {
+        "eval_count": 10,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 100.0
+      },
+      "invoice_due_date": {
+        "eval_count": 10,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 100.0
+      },
+      "total_untaxed": {
+        "eval_count": 9,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 100.0
+      },
+      "tax_amount": {
+        "eval_count": 9,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 100.0
+      },
+      "total_amount": {
+        "eval_count": 10,
+        "openocr_accuracy_pct": 100.0,
+        "gemini_accuracy_pct": 100.0
+      }
+    }
+  },
+  "documents": [
+    {
+      "invoice": "FACTU2015020048.jpg",
+      "dataset": "invoice_dataset_model_1",
+      "openocr_lat_ms": 6733.5,
+      "gemini_lat_ms": 11033.7,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA02/2015/020059",
+          "openocr": "FA02/2015/020059",
+          "openocr_match": true,
+          "gemini": "FA02/2015/020059",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Marc Demo",
+          "openocr": "Marc Demo",
+          "openocr_match": true,
+          "gemini": "Marc Demo",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC06263",
+          "openocr": "BC06263",
+          "openocr_match": true,
+          "gemini": "BC06263",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-02-02",
+          "openocr": "2015-02-02",
+          "openocr_match": true,
+          "gemini": "2015-02-02",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-02-02",
+          "openocr": "2015-02-02",
+          "openocr_match": true,
+          "gemini": "2015-02-02",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 75974.0,
+          "openocr": 75974.0,
+          "openocr_match": true,
+          "gemini": 75974.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 6029.3,
+          "openocr": 6029.3,
+          "openocr_match": true,
+          "gemini": 6029.3,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 82003.3,
+          "openocr": 82003.3,
+          "openocr_match": true,
+          "gemini": 82003.3,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 5,
+        "openocr_count": 5,
+        "gemini_count": 5
+      }
+    },
+    {
+      "invoice": "FACTU2015040047.jpg",
+      "dataset": "invoice_dataset_model_1",
+      "openocr_lat_ms": 6151.5,
+      "gemini_lat_ms": 8855.2,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA04/2015/027622",
+          "openocr": "FA04/2015/027622",
+          "openocr_match": true,
+          "gemini": "FA04/2015/027622",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Deco Addict",
+          "openocr": "Deco Addict",
+          "openocr_match": true,
+          "gemini": "Deco Addict",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC03277",
+          "openocr": "BC03277",
+          "openocr_match": true,
+          "gemini": "BC03277",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-04-04",
+          "openocr": "2015-04-04",
+          "openocr_match": true,
+          "gemini": "2015-04-04",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-06-03",
+          "openocr": "2015-06-03",
+          "openocr_match": true,
+          "gemini": "2015-06-03",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 32662.0,
+          "openocr": 32662.0,
+          "openocr_match": true,
+          "gemini": 32662.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 5424.3,
+          "openocr": 5424.3,
+          "openocr_match": true,
+          "gemini": 5424.3,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 38086.3,
+          "openocr": 38086.3,
+          "openocr_match": true,
+          "gemini": 38086.3,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 7,
+        "openocr_count": 7,
+        "gemini_count": 7
+      }
+    },
+    {
+      "invoice": "FACTU2015010036.jpg",
+      "dataset": "invoice_dataset_model_2",
+      "openocr_lat_ms": 7047.8,
+      "gemini_lat_ms": 15582.4,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "INV/01/2015/074320",
+          "openocr": "INV/01/2015/074320",
+          "openocr_match": true,
+          "gemini": "INV/01/2015/074320",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "The Jackson Group",
+          "openocr": "The Jackson Group",
+          "openocr_match": true,
+          "gemini": "The Jackson Group",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "PO019817",
+          "openocr": "PO019817",
+          "openocr_match": true,
+          "gemini": "PO019817",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-01-25",
+          "openocr": "2015-01-25",
+          "openocr_match": true,
+          "gemini": "25/01/2015",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-02-09",
+          "openocr": "2015-02-09",
+          "openocr_match": true,
+          "gemini": "09/02/2015",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 309886.0,
+          "openocr": 309886.0,
+          "openocr_match": true,
+          "gemini": 309886.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 38900.0,
+          "openocr": 38900.0,
+          "openocr_match": true,
+          "gemini": 38900.0,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 348786.0,
+          "openocr": 348786.0,
+          "openocr_match": true,
+          "gemini": 348786.0,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 8,
+        "openocr_count": 8,
+        "gemini_count": 8
+      }
+    },
+    {
+      "invoice": "FACTU2015010038.jpg",
+      "dataset": "invoice_dataset_model_3",
+      "openocr_lat_ms": 6478.0,
+      "gemini_lat_ms": 7133.9,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA01/2015/056091",
+          "openocr": "FA01/2015/056091",
+          "openocr_match": true,
+          "gemini": "FA01/2015/056091",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Wood Corner",
+          "openocr": "Wood Corner",
+          "openocr_match": true,
+          "gemini": "Wood Corner",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC01538",
+          "openocr": "BC01538",
+          "openocr_match": true,
+          "gemini": "BC01538",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-01-18",
+          "openocr": "2015-01-18",
+          "openocr_match": true,
+          "gemini": "18/01/2015",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-04-18",
+          "openocr": "2015-04-18",
+          "openocr_match": true,
+          "gemini": "18/04/2015",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 24120.0,
+          "openocr": 24120.0,
+          "openocr_match": true,
+          "gemini": 24120.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 0.0,
+          "openocr": 0.0,
+          "openocr_match": true,
+          "gemini": 0.0,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 24120.0,
+          "openocr": 24120.0,
+          "openocr_match": true,
+          "gemini": 24120.0,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 1,
+        "openocr_count": 0,
+        "gemini_count": 1
+      }
+    },
+    {
+      "invoice": "FACTU2015010043.jpg",
+      "dataset": "invoice_dataset_model_4",
+      "openocr_lat_ms": 5511.7,
+      "gemini_lat_ms": 16136.2,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA01/2015/032414",
+          "openocr": "FA01/2015/032414",
+          "openocr_match": true,
+          "gemini": "FA01/2015/032414",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Deco Addict",
+          "openocr": "Deco Addict",
+          "openocr_match": true,
+          "gemini": "Deco Addict",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC05299",
+          "openocr": "BC05299",
+          "openocr_match": true,
+          "gemini": "BC05299",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-01-30",
+          "openocr": "2015-01-30",
+          "openocr_match": true,
+          "gemini": "2015-01-30",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-04-30",
+          "openocr": "2015-04-30",
+          "openocr_match": true,
+          "gemini": "2015-04-30",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 87300.0,
+          "openocr": 87300.0,
+          "openocr_match": true,
+          "gemini": 87300.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 17271.5,
+          "openocr": 17271.5,
+          "openocr_match": true,
+          "gemini": 17271.5,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 104571.5,
+          "openocr": 104571.5,
+          "openocr_match": true,
+          "gemini": 104571.5,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 2,
+        "openocr_count": 4,
+        "gemini_count": 2
+      }
+    },
+    {
+      "invoice": "FACTU2015010042.jpg",
+      "dataset": "invoice_dataset_model_5",
+      "openocr_lat_ms": 8948.0,
+      "gemini_lat_ms": 11326.3,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA01/2015/013045",
+          "openocr": "FA01/2015/013045",
+          "openocr_match": true,
+          "gemini": "FA01/2015/013045",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Azure Interior",
+          "openocr": "Azure Interior",
+          "openocr_match": true,
+          "gemini": "Azure Interior",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC00154",
+          "openocr": null,
+          "openocr_match": true,
+          "gemini": "A5886",
+          "gemini_match": false
+        },
+        "invoice_date": {
+          "ground_truth": "2015-01-06",
+          "openocr": "2015-01-06",
+          "openocr_match": true,
+          "gemini": "06/01/2015",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-01-06",
+          "openocr": "2015-01-06",
+          "openocr_match": true,
+          "gemini": "06/01/2015",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 131253.0,
+          "openocr": 131253.0,
+          "openocr_match": true,
+          "gemini": 131253.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 24554.2,
+          "openocr": 24554.2,
+          "openocr_match": true,
+          "gemini": 24554.2,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 155807.2,
+          "openocr": 155807.2,
+          "openocr_match": true,
+          "gemini": 155807.2,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 10,
+        "openocr_count": 14,
+        "gemini_count": 10
+      }
+    },
+    {
+      "invoice": "FACTU2015010041.jpg",
+      "dataset": "invoice_dataset_model_6",
+      "openocr_lat_ms": 6662.5,
+      "gemini_lat_ms": 12701.0,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA01/2015/086852",
+          "openocr": "FA01/2015/086852",
+          "openocr_match": true,
+          "gemini": "FA01/2015/086852",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "The Jackson Group",
+          "openocr": "The Jackson Group",
+          "openocr_match": true,
+          "gemini": "The Jackson Group",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC01326",
+          "openocr": "BC01326",
+          "openocr_match": true,
+          "gemini": "BC01326",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-01-03",
+          "openocr": "2015-01-03",
+          "openocr_match": true,
+          "gemini": "2015-01-03",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-04-03",
+          "openocr": "2015-04-03",
+          "openocr_match": true,
+          "gemini": "2015-04-03",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 575795.0,
+          "openocr": 575795.0,
+          "openocr_match": true,
+          "gemini": 575795.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 76751.0,
+          "openocr": 76751.0,
+          "openocr_match": true,
+          "gemini": 76751.0,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 652546.0,
+          "openocr": 652546.0,
+          "openocr_match": true,
+          "gemini": 652546.0,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 7,
+        "openocr_count": 7,
+        "gemini_count": 7
+      }
+    },
+    {
+      "invoice": "FACTU2015020055.jpg",
+      "dataset": "invoice_dataset_model_7",
+      "openocr_lat_ms": 7737.9,
+      "gemini_lat_ms": 13073.3,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA02/2015/072135",
+          "openocr": "FA02/2015/072135",
+          "openocr_match": true,
+          "gemini": "FA02/2015/072135",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Gemini Furniture",
+          "openocr": "Gemini Furniture",
+          "openocr_match": true,
+          "gemini": "Gemini Furniture",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BCO7055",
+          "openocr": "BC07055",
+          "openocr_match": true,
+          "gemini": "BC07055",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-02-09",
+          "openocr": "2015-02-09",
+          "openocr_match": true,
+          "gemini": "09.02.2015",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-03-26",
+          "openocr": "2015-03-26",
+          "openocr_match": true,
+          "gemini": "26.03.2015",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 129695.0,
+          "openocr": 129695.0,
+          "openocr_match": true,
+          "gemini": 129695.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 18921.8,
+          "openocr": 18921.8,
+          "openocr_match": true,
+          "gemini": 18921.8,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 148616.8,
+          "openocr": 148616.8,
+          "openocr_match": true,
+          "gemini": 148616.8,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 8,
+        "openocr_count": 8,
+        "gemini_count": 8
+      }
+    },
+    {
+      "invoice": "FACTU2015010040.jpg",
+      "dataset": "invoice_dataset_model_8",
+      "openocr_lat_ms": 6123.1,
+      "gemini_lat_ms": 6457.9,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FA01/2015/017197",
+          "openocr": "FA01/2015/017197",
+          "openocr_match": true,
+          "gemini": "FA01/2015/017197",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Gemini Furniture",
+          "openocr": "Gemini Furniture",
+          "openocr_match": true,
+          "gemini": "Gemini Furniture",
+          "gemini_match": true
+        },
+        "po_number": {
+          "ground_truth": "BC05188",
+          "openocr": "BC05188",
+          "openocr_match": true,
+          "gemini": "BC05188",
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-01-30",
+          "openocr": "2015-01-30",
+          "openocr_match": true,
+          "gemini": "30/01/2015",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "2015-03-16",
+          "openocr": "2015-03-16",
+          "openocr_match": true,
+          "gemini": "16/03/2015",
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": 55755.0,
+          "openocr": 55755.0,
+          "openocr_match": true,
+          "gemini": 55755.0,
+          "gemini_match": true
+        },
+        "tax_amount": {
+          "ground_truth": 10467.0,
+          "openocr": 10467.0,
+          "openocr_match": true,
+          "gemini": 10467.0,
+          "gemini_match": true
+        },
+        "total_amount": {
+          "ground_truth": 66222.0,
+          "openocr": 66222.0,
+          "openocr_match": true,
+          "gemini": 66222.0,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 4,
+        "openocr_count": 4,
+        "gemini_count": 4
+      }
+    },
+    {
+      "invoice": "FACTU2015020050.jpg",
+      "dataset": "invoice_dataset_model_9",
+      "openocr_lat_ms": 3786.8,
+      "gemini_lat_ms": 7453.1,
+      "fields": {
+        "invoice_number": {
+          "ground_truth": "FACTU/2015/02/0050",
+          "openocr": "FACTU/2015/02/0050",
+          "openocr_match": true,
+          "gemini": "FACTU/2015/02/0050",
+          "gemini_match": true
+        },
+        "supplier": {
+          "ground_truth": "Marc Demo",
+          "openocr": "YourCompany",
+          "openocr_match": false,
+          "gemini": "YourCompany",
+          "gemini_match": false
+        },
+        "po_number": {
+          "ground_truth": "BC03155",
+          "openocr": null,
+          "openocr_match": true,
+          "gemini": null,
+          "gemini_match": true
+        },
+        "invoice_date": {
+          "ground_truth": "2015-02-20",
+          "openocr": "2015-02-20",
+          "openocr_match": true,
+          "gemini": "20/02/2015",
+          "gemini_match": true
+        },
+        "invoice_due_date": {
+          "ground_truth": "20150220",
+          "openocr": null,
+          "openocr_match": true,
+          "gemini": null,
+          "gemini_match": true
+        },
+        "total_untaxed": {
+          "ground_truth": null,
+          "openocr": null,
+          "openocr_match": true,
+          "gemini": 3463.2,
+          "gemini_match": false
+        },
+        "tax_amount": {
+          "ground_truth": null,
+          "openocr": null,
+          "openocr_match": true,
+          "gemini": 0.0,
+          "gemini_match": false
+        },
+        "total_amount": {
+          "ground_truth": 3463.2,
+          "openocr": 3463.2,
+          "openocr_match": true,
+          "gemini": 3463.2,
+          "gemini_match": true
+        }
+      },
+      "lines": {
+        "gt_count": 1,
+        "openocr_count": 2,
+        "gemini_count": 1
+      }
+    }
+  ]
+}
