@@ -436,13 +436,13 @@ class LightweightSpatialInvoiceExtractor:
             m_prod = re.search(r"(?i)^\s*product\s*[:#\s-]+\s*(.+)", t)
             if m_prod and not result["product"]:
                 cand = m_prod.group(1).strip(" -:#|")
-                cand = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", cand).strip(" -:#|")
+                cand = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|charges?|gross\s*amount|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", cand).strip(" -:#|")
                 if cand:
                     result["product"] = cand
             elif re.match(r"(?i)^\s*product\s*[:#\s-]*$", t) and not result["product"]:
                 cand = self._find_text_to_right(b, boxes)
                 if cand:
-                    cand = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", cand).strip(" -:#|")
+                    cand = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|charges?|gross\s*amount|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", cand).strip(" -:#|")
                     if cand:
                         result["product"] = cand
 
@@ -515,7 +515,7 @@ class LightweightSpatialInvoiceExtractor:
                 result["support_url"] = m_url.group(1)
 
         if result["product"]:
-            result["product"] = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", result["product"]).strip(" -:#|")
+            result["product"] = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|charges?|gross\s*amount|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", result["product"]).strip(" -:#|")
         if result["billing_period"]:
             m_drange = re.search(r"\b(\d{2}/\d{2}/\d{4}\s*-\s*\d{2}/\d{2}/\d{4})\b", result["billing_period"])
             if m_drange:

@@ -135,10 +135,32 @@ export function ResultsPanel({
     const addClean = (key: string, val: any) => {
       if (val === null || val === undefined) return;
       if (typeof val === "string" && val.trim() === "") return;
+
+      // Skip line items container from scalar table (it has its own dedicated table)
+      if (key === "line_items") return;
+
+      // Unroll additional_fields array of {label, value} into individual clean scalar keys
+      if (key === "additional_fields" && Array.isArray(val)) {
+        for (const item of val) {
+          if (item && typeof item === "object") {
+            const lbl = item.label || item.key;
+            const v = item.value;
+            if (lbl && v !== null && v !== undefined && String(v).trim() !== "") {
+              addClean(String(lbl).toLowerCase().replace(/[^a-z0-9_]+/g, "_"), v);
+            }
+          }
+        }
+        return;
+      }
+
       // Skip redundant or noisy container keys
-      if (["id_card", "driving_license", "passport", "raw_fields", "custom_extraction"].includes(key)) {
+      if (["id_card", "driving_license", "passport", "raw_fields", "custom_extraction", "order_details", "tax", "buyer", "supplier", "invoice", "receipt", "contract", "document"].includes(key)) {
         if (typeof val === "object" && val !== null) {
           for (const [subKey, subVal] of Object.entries(val)) {
+            // Avoid tax subfields 'amount' or 'total' clobbering invoice totals
+            if (key === "tax" && (subKey === "amount" || subKey === "total")) {
+              continue;
+            }
             addClean(subKey, subVal);
           }
         }
@@ -155,6 +177,13 @@ export function ResultsPanel({
       if (typeof val === "object" && !Array.isArray(val) && val !== null) {
         for (const [subKey, subVal] of Object.entries(val)) {
           addClean(subKey, subVal);
+        }
+        return;
+      }
+      if (Array.isArray(val)) {
+        const primitives = val.filter((item) => typeof item !== "object" && item !== null && item !== undefined);
+        if (primitives.length > 0) {
+          map[key] = primitives.join(", ");
         }
         return;
       }
@@ -223,6 +252,40 @@ export function ResultsPanel({
     delete map["driving_license"];
     delete map["passport"];
     delete map["raw_fields"];
+    delete map["line_items"];
+    delete map["additional_fields"];
+    delete map["tax"];
+    delete map["order_details"];
+    delete map["buyer"];
+    delete map["supplier"];
+    delete map["invoice"];
+    delete map["receipt"];
+    delete map["contract"];
+    delete map["document"];
+
+    if (isFinancial) {
+      delete map["photo_present"];
+      // Avoid conflicting tax breakdown 'amount' (which was 0) or 'total' (which was 0)
+      if (map["total_amount"] !== undefined) {
+        delete map["total"];
+        delete map["amount"];
+      }
+      if (map["document_number"] && map["invoice_number"] && map["document_number"] === map["invoice_number"]) {
+        delete map["document_number"];
+      }
+      if (map["issued_on"] && map["invoice_date"] && map["issued_on"] === map["invoice_date"]) {
+        delete map["issued_on"];
+      }
+      if (map["issue_date"] && map["invoice_date"] && map["issue_date"] === map["invoice_date"]) {
+        delete map["issue_date"];
+      }
+      if (map["round_off"] === null || map["round_off"] === 0 || map["round_off"] === undefined) {
+        delete map["round_off"];
+      }
+      if (map["place_of_supply"] === null || map["place_of_supply"] === undefined) {
+        delete map["place_of_supply"];
+      }
+    }
 
     // For identity documents, consolidate document_number and id_number into id_number
     if (docType === "id_card" || docType === "driving_license" || docType === "passport") {
@@ -601,16 +664,30 @@ export function ResultsPanel({
                             : key === "license_class"
                             ? "License Categories / Type"
                             : key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-                        const displayVal =
-                          val === null || val === undefined
-                            ? ""
-                            : typeof val === "boolean"
-                            ? val
-                              ? "Yes"
-                              : "No"
-                            : typeof val === "object"
-                            ? Object.values(val).filter((v) => v !== null && v !== undefined && String(v).trim() !== "").join(", ")
-                            : String(val);
+                        let displayVal = "";
+                        if (val === null || val === undefined) {
+                          displayVal = "";
+                        } else if (typeof val === "boolean") {
+                          displayVal = val ? "Yes" : "No";
+                        } else if (Array.isArray(val)) {
+                          displayVal = val
+                            .map((item) =>
+                              item && typeof item === "object"
+                                ? item.label && item.value !== undefined
+                                  ? `${item.label}: ${item.value}`
+                                  : Object.values(item).filter((v) => v !== null && typeof v !== "object").join(" ")
+                                : String(item)
+                            )
+                            .filter(Boolean)
+                            .join(", ");
+                        } else if (typeof val === "object") {
+                          displayVal = Object.entries(val)
+                            .filter(([_, sub]) => sub !== null && sub !== undefined && typeof sub !== "object" && String(sub).trim() !== "")
+                            .map(([subKey, subVal]) => `${subKey.replace(/_/g, " ")}: ${subVal}`)
+                            .join("; ");
+                        } else {
+                          displayVal = String(val);
+                        }
 
                         return (
                           <tr

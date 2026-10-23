@@ -770,6 +770,8 @@ async def extract_file(file_path: Path) -> dict:
             prod_m = re.search(r"(?i)(?:product|product\s*name)\s*[:#\s-]*([^\n]+)", text_content)
             if prod_m:
                 product = prod_m.group(1).strip()
+        if product:
+            product = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|charges?|gross\s*amount|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", product).strip(" -:#|")
 
         billing_period = spatial_data.get("billing_period")
         if not billing_period:
@@ -892,7 +894,6 @@ async def extract_file(file_path: Path) -> dict:
             "currency": currency or "$",
             "issued_on": issue_date,
             "payment_method": payment_method,
-            "photo_present": False,
             "invoice": {
                 "invoice_number": inv_num,
                 "invoice_date": issue_date,
