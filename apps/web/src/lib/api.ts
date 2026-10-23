@@ -35,6 +35,7 @@ export async function uploadAndExtract(
   wait: boolean = true,
   format: "json" | "markdown" | "text" = "json",
   onProgress?: (stage: string, percent: number) => void
+): Promise<ExtractionResult> {
   // Always read local base64 preview for instant rendering
   let localFileB64 = "";
   if (file.type.startsWith("image/")) {
