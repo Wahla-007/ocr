@@ -35,7 +35,19 @@ export async function uploadAndExtract(
   wait: boolean = true,
   format: "json" | "markdown" | "text" = "json",
   onProgress?: (stage: string, percent: number) => void
-): Promise<ExtractionResult> {
+  // Always read local base64 preview for instant rendering
+  let localFileB64 = "";
+  if (file.type.startsWith("image/")) {
+    try {
+      localFileB64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve((e.target?.result as string) || "");
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+      });
+    } catch {}
+  }
+
   // 1. First attempt: Execute real RapidOCR pipeline via local Next.js API route
   try {
     onProgress?.("Uploading Document...", 20);
@@ -51,15 +63,8 @@ export async function uploadAndExtract(
     if (apiRes.ok) {
       onProgress?.("Extracting Fields & Bounding Boxes...", 90);
       const data = await apiRes.json();
-      if (!data.preview_image && file.type.startsWith("image/")) {
-        try {
-          const b64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve((e.target?.result as string) || "");
-            reader.readAsDataURL(file);
-          });
-          if (b64) data.preview_image = b64;
-        } catch {}
+      if (!data.preview_image && localFileB64) {
+        data.preview_image = localFileB64;
       }
       onProgress?.("Completed!", 100);
       return data;
@@ -149,12 +154,16 @@ export async function uploadAndExtract(
             bbox: { x: 50, y: 140, width: 280, height: 28 },
           },
         ],
+        preview_image: localFileB64 || undefined,
       };
     }
 
     const res = { ...matched.result };
     res.summary = `Processed ${file.name} (${Math.round(file.size / 1024)} KB) via zero-selection pipeline.`;
     res.text = res.text || markdownToPlainText(res.markdown || "");
+    if (localFileB64) {
+      res.preview_image = localFileB64;
+    }
     return res;
   }
 

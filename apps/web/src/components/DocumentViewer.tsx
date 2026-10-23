@@ -21,6 +21,7 @@ interface DocumentViewerProps {
   onSelectField: (key: string | null) => void;
   hoveredFieldKey: string | null;
   onHoverField: (key: string | null) => void;
+  uploadedPreviewUrl?: string | null;
 }
 
 export function DocumentViewer({
@@ -30,6 +31,7 @@ export function DocumentViewer({
   onSelectField,
   hoveredFieldKey,
   onHoverField,
+  uploadedPreviewUrl,
 }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [showBboxes, setShowBboxes] = useState(true);
@@ -67,7 +69,8 @@ export function DocumentViewer({
   const baseHeight = naturalDimensions?.height || pageSize?.height || 842;
   const aspectRatio = baseWidth / Math.max(1, baseHeight);
 
-  const hasPreviewImage = Boolean(result?.preview_image);
+  const previewSrc = result?.preview_image || uploadedPreviewUrl;
+  const hasPreviewImage = Boolean(previewSrc);
 
   return (
     <div className="flex flex-col h-auto bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
@@ -191,10 +194,10 @@ export function DocumentViewer({
             }}
           >
             {/* Visual Document Content Representation */}
-            {hasPreviewImage && result?.preview_image ? (
+            {hasPreviewImage && previewSrc ? (
               <div className="relative w-full block">
                 <img
-                  src={result.preview_image}
+                  src={previewSrc}
                   alt={fileName}
                   onLoad={(e) => {
                     const img = e.currentTarget;

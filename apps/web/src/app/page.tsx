@@ -27,6 +27,7 @@ export default function PlaygroundPage() {
   // Active Document & Extraction State (null initially: upload-only first screen)
   const [activeFileName, setActiveFileName] = useState<string>("");
   const [result, setResult] = useState<ExtractionResult | null>(null);
+  const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(null);
 
   // Interaction State (Linked highlighting between canvas & sidebar)
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
@@ -62,6 +63,14 @@ export default function PlaygroundPage() {
     setActiveFileName(file.name);
     setIsProcessing(true);
     setSelectedFieldKey(null);
+
+    // Immediately generate preview URL so image renders reliably
+    if (file.type.startsWith("image/")) {
+      try {
+        const objUrl = URL.createObjectURL(file);
+        setUploadedPreviewUrl(objUrl);
+      } catch {}
+    }
 
     const startTime = Date.now();
     setProgress({
@@ -204,6 +213,7 @@ export default function PlaygroundPage() {
                   onClick={() => {
                     setResult(null);
                     setActiveFileName("");
+                    setUploadedPreviewUrl(null);
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/60 transition-colors cursor-pointer"
                 >
@@ -239,6 +249,7 @@ export default function PlaygroundPage() {
                   onSelectField={setSelectedFieldKey}
                   hoveredFieldKey={hoveredFieldKey}
                   onHoverField={setHoveredFieldKey}
+                  uploadedPreviewUrl={uploadedPreviewUrl}
                 />
               </div>
 

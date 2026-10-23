@@ -24,31 +24,58 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     fs.writeFileSync(tempFilePath, buffer);
 
-    // Run extract_cli.py using repo virtual environment
-    const rootDir = path.resolve(process.cwd(), "..", "..");
-    const pythonExe = path.join(rootDir, ".venv", "Scripts", "python.exe");
-    const cliScript = path.join(rootDir, "extract_cli.py");
+    // Robustly resolve repo root and Python executable
+    let rootDir = process.cwd();
+    const candidates = [
+      rootDir,
+      path.resolve(rootDir, ".."),
+      path.resolve(rootDir, "..", ".."),
+      "D:\\openocr",
+    ];
+    let resolvedRoot = rootDir;
+    for (const c of candidates) {
+      if (fs.existsSync(path.join(c, "extract_cli.py"))) {
+        resolvedRoot = c;
+        break;
+      }
+    }
+
+    let pythonExe = path.join(resolvedRoot, ".venv", "Scripts", "python.exe");
+    if (!fs.existsSync(pythonExe)) {
+      pythonExe = path.join(resolvedRoot, ".venv", "bin", "python");
+    }
+    if (!fs.existsSync(pythonExe)) {
+      pythonExe = "python";
+    }
+    const cliScript = path.join(resolvedRoot, "extract_cli.py");
 
     const result = await new Promise<{ stdout: string; stderr: string; code: number }>(
       (resolve) => {
-        const proc = spawn(pythonExe, [cliScript, tempFilePath], {
-          cwd: rootDir,
-        });
-
         let stdout = "";
         let stderr = "";
+        try {
+          const proc = spawn(pythonExe, [cliScript, tempFilePath], {
+            cwd: resolvedRoot,
+          });
 
-        proc.stdout.on("data", (d) => {
-          stdout += d.toString();
-        });
+          proc.stdout.on("data", (d) => {
+            stdout += d.toString();
+          });
 
-        proc.stderr.on("data", (d) => {
-          stderr += d.toString();
-        });
+          proc.stderr.on("data", (d) => {
+            stderr += d.toString();
+          });
 
-        proc.on("close", (code) => {
-          resolve({ stdout, stderr, code: code ?? 0 });
-        });
+          proc.on("error", (err) => {
+            resolve({ stdout, stderr: err.message, code: 1 });
+          });
+
+          proc.on("close", (code) => {
+            resolve({ stdout, stderr, code: code ?? 0 });
+          });
+        } catch (err: any) {
+          resolve({ stdout: "", stderr: err?.message || "Spawn failed", code: 1 });
+        }
       }
     );
 
@@ -93,6 +120,10 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = JSON.parse(jsonStr);
+
+    if (!payload.preview_image && file.type.startsWith("image/")) {
+      payload.preview_image = `data:${file.type};base64,${buffer.toString("base64")}`;
+    }
 
     if (format === "markdown") {
       return new NextResponse(payload.markdown || "", {

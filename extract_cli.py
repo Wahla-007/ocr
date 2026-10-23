@@ -766,7 +766,8 @@ async def extract_file(file_path: Path) -> dict:
 
         validation_checks = []
         if line_items and subtotal:
-            items_sum = round(sum(i["amount"] for i in line_items), 2)
+            valid_amounts = [float(i["amount"]) for i in line_items if isinstance(i, dict) and i.get("amount") is not None]
+            items_sum = round(sum(valid_amounts), 2) if valid_amounts else 0.0
             passed = abs(items_sum - subtotal) < 0.05
             validation_checks.append({
                 "name": "line_items_sum_matches_subtotal",
@@ -1832,7 +1833,8 @@ async def extract_file(file_path: Path) -> dict:
         receipt_items = extract_line_items([], detected_lines)
 
         sub_m = re.search(rf"(?i)SUBTOTAL:\s*[$€£₹]?\s*{amt_pat}", text_content)
-        subtotal = clean_num(sub_m.group(1)) if sub_m else (round(sum(i["amount"] for i in receipt_items), 2) if receipt_items else None)
+        receipt_amounts = [float(i["amount"]) for i in receipt_items if isinstance(i, dict) and i.get("amount") is not None] if receipt_items else []
+        subtotal = clean_num(sub_m.group(1)) if sub_m else (round(sum(receipt_amounts), 2) if receipt_amounts else None)
 
         tax_m = re.search(rf"(?i)(?:sales\s*)?tax[^:]*:\s*[$€£₹]?\s*{amt_pat}", text_content)
         tax_val = clean_num(tax_m.group(1)) if tax_m else None
