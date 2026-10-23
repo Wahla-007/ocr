@@ -7,6 +7,7 @@ import { PipelineStepper } from "../components/PipelineStepper";
 import { DocumentViewer } from "../components/DocumentViewer";
 import { ResultsPanel } from "../components/ResultsPanel";
 import { DeveloperModal } from "../components/DeveloperModal";
+import { UpgradeModal } from "../components/UpgradeModal";
 import {
   ExtractionResult,
   PipelineProgress,
@@ -17,22 +18,28 @@ import {
   DEFAULT_API_URL,
   uploadAndExtract,
 } from "../lib/api";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, AlertTriangle, ShieldCheck } from "lucide-react";
+import { PRO_DEMO_KEY } from "../lib/keys";
 
 export default function PlaygroundPage() {
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [apiKey, setApiKey] = useState(DEFAULT_API_KEY);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
-  const [creditsBalance, setCreditsBalance] = useState(10000);
+  const [creditsBalance, setCreditsBalance] = useState(10);
+  const [itemsProcessed, setItemsProcessed] = useState(0);
   const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
   const [developerModalInitialTab, setDeveloperModalInitialTab] = useState<"quickstart" | "keys" | "pricing" | "endpoints">("quickstart");
 
-  // Active Document & Extraction State (null initially: upload-only first screen)
+  // Upgrade Modal State
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState("");
+
+  // Active Document & Extraction State
   const [activeFileName, setActiveFileName] = useState<string>("");
   const [result, setResult] = useState<ExtractionResult | null>(null);
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(null);
 
-  // Interaction State (Linked highlighting between canvas & sidebar)
+  // Interaction State
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
   const [hoveredFieldKey, setHoveredFieldKey] = useState<string | null>(null);
 
@@ -46,6 +53,9 @@ export default function PlaygroundPage() {
     message: "",
     elapsedMs: 0,
   });
+
+  const isPro = apiKey.startsWith("ocr_live_pro") || apiKey.includes("pro");
+  const maxAllowedItems = isPro ? 999999 : 5;
 
   // Check backend health periodically
   useEffect(() => {
@@ -63,6 +73,13 @@ export default function PlaygroundPage() {
   }, [apiUrl]);
 
   const handleFileSelected = async (file: File) => {
+    // Check if free user already exceeded 5 items before uploading
+    if (!isPro && itemsProcessed >= 5) {
+      setUpgradeReason("You have reached the free trial limit of 5 lifetime items. Upgrade to Pro for unlimited documents.");
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
     setActiveFileName(file.name);
     setIsProcessing(true);
     setSelectedFieldKey(null);
@@ -113,24 +130,45 @@ export default function PlaygroundPage() {
         elapsedMs: Date.now() - startTime,
       });
 
+      // Increment document counter
+      setItemsProcessed((prev) => prev + 1);
+
       // Deduct credits in ledger
-      const charged = res.credits_charged ?? res.usage?.credits ?? 25;
+      const charged = res.credits_charged ?? res.usage?.credits ?? 1;
       setCreditsBalance((prev) => Math.max(0, prev - charged));
     } catch (err: any) {
+      const errMsg = err.message || "Extraction failed";
+
+      // If user hit free limits
+      if (
+        errMsg.includes("FREE_TIER") ||
+        errMsg.includes("Free plan") ||
+        errMsg.includes("limit reached") ||
+        errMsg.includes("402")
+      ) {
+        setUpgradeReason(errMsg);
+        setIsUpgradeModalOpen(true);
+      }
+
       setProgress({
         stage: "error",
         progressPercent: 100,
-        message: err.message || "Extraction failed",
+        message: errMsg,
         elapsedMs: Date.now() - startTime,
-        error: err.message,
+        error: errMsg,
       });
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleSwitchToProKey = (proKey: string) => {
+    setApiKey(proKey);
+    setCreditsBalance(25000);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors">
       {/* Top Navigation */}
       <Header
         isBackendConnected={isBackendConnected}
@@ -139,6 +177,9 @@ export default function PlaygroundPage() {
         apiKey={apiKey}
         setApiKey={setApiKey}
         creditsBalance={creditsBalance}
+        itemsProcessed={itemsProcessed}
+        maxItems={5}
+        plan={isPro ? "pro" : "free"}
         onGoToUpload={() => {
           setResult(null);
           setActiveFileName("");
@@ -147,24 +188,50 @@ export default function PlaygroundPage() {
           if (tab) setDeveloperModalInitialTab(tab);
           setIsDeveloperModalOpen(true);
         }}
+        onOpenUpgradeModal={() => {
+          setUpgradeReason("Upgrade to Pro for unlimited documents and up to 500 pages per document.");
+          setIsUpgradeModalOpen(true);
+        }}
       />
+
+      {/* Free tier banner when approaching or reaching limit */}
+      {!isPro && itemsProcessed > 0 && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/40 px-4 py-2 text-xs">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+              <span className="font-medium text-zinc-900 dark:text-white">Free Trial:</span>
+              <span>{itemsProcessed} of 5 items processed. Max 2 pages per document.</span>
+            </div>
+            <button
+              onClick={() => {
+                setUpgradeReason("Upgrade to the Pro Plan ($9/mo) for unlimited documents, 500 pages/doc, and 300 req/min rate limit.");
+                setIsUpgradeModalOpen(true);
+              }}
+              className="font-semibold text-zinc-900 dark:text-white hover:underline flex items-center gap-1"
+            >
+              <span>Upgrade to Pro</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* ========================================================================= */}
-        {/* VIEW 1: FIRST PAGE (UPLOAD / DRAG & DROP ONLY)                            */}
+        {/* VIEW 1: UPLOAD / DROP ZONE                                                */}
         {/* ========================================================================= */}
         {!result && (
-          <div className="max-w-3xl mx-auto space-y-8 py-8 sm:py-14">
+          <div className="max-w-3xl mx-auto space-y-8 py-8 sm:py-16">
             <div className="text-center space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 font-mono text-xs">
-                <span>Fast & Accurate Document Intelligence</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-mono text-xs">
+                <span>Research-Grade Document Intelligence</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                Universal Document OCR
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                Universal Document Extraction
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
-                Zero-selection extraction for invoices, receipts, identity documents, contracts, and reports. Upload any file to get structured JSON, Markdown, and plain text.
+              <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
+                Zero-selection extraction for invoices, receipts, identity documents, and reports. High-speed pure CPU inference with structured JSON and spatial coordinates.
               </p>
             </div>
 
@@ -189,32 +256,9 @@ export default function PlaygroundPage() {
         {/* VIEW 2: EXTRACTION WORKSPACE (DOCUMENT PREVIEW & RESULTS)                 */}
         {/* ========================================================================= */}
         {result && (
-          <div className="space-y-5">
-            {/* Dynamic Document Header based on auto-detected type */}
-            {(() => {
-              const rawType = (result.document_type || result.detected_type || result.doc_type || "document").toLowerCase();
-              const formattedType = rawType
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (char) => char.toUpperCase());
-              const dynamicTitle = `${formattedType} OCR`;
-              return (
-                <div className="space-y-1.5">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 font-mono text-xs">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                    <span>Auto-Detected: {formattedType}</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                    {dynamicTitle}
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-                    Zero-shot structured schema extraction and multimodal layout parsing for {formattedType.toLowerCase()} documents.
-                  </p>
-                </div>
-              );
-            })()}
-
-            {/* Workspace Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2.5">
+          <div className="space-y-4">
+            {/* Minimalist Document Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 shadow-sm">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
@@ -222,24 +266,24 @@ export default function PlaygroundPage() {
                     setActiveFileName("");
                     setUploadedPreviewUrl(null);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/60 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Upload Another Document</span>
+                  <span>Upload Another</span>
                 </button>
-                <div className="h-4 w-px bg-slate-800 hidden sm:block" />
-                <span className="text-xs font-mono text-slate-400 truncate max-w-[180px] sm:max-w-xs">
+                <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
+                <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-[200px] sm:max-w-xs">
                   {activeFileName}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold tracking-wider uppercase bg-emerald-950/70 text-emerald-400 border border-emerald-800/60">
+                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold tracking-wider uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
                   {result.document_type || result.detected_type || result.doc_type}
                 </span>
                 {result.latency_ms && (
-                  <span className="text-xs text-slate-500 font-mono hidden sm:inline">
-                    {result.latency_ms}ms
+                  <span className="text-xs text-zinc-500 font-mono hidden sm:inline">
+                    {result.latency_ms}ms CPU
                   </span>
                 )}
               </div>
@@ -247,8 +291,8 @@ export default function PlaygroundPage() {
 
             {/* Split Screen Workspace: Document Canvas (Left) & Extraction Results (Right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Left Panel: Document Canvas with Bounding Box Overlays (Sticky & snug fit) */}
-              <div className="lg:col-span-7 sticky top-20 self-start">
+              {/* Left Panel: Document Canvas with Bounding Box Overlays */}
+              <div className="lg:col-span-7 sticky top-16 self-start">
                 <DocumentViewer
                   fileName={activeFileName}
                   result={result}
@@ -283,61 +327,34 @@ export default function PlaygroundPage() {
         )}
       </main>
 
-      {/* Footer matching Screenshot */}
-      <footer className="border-t border-slate-900 bg-slate-950 px-6 py-10 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="space-y-2.5">
-              <p className="font-bold text-slate-400 uppercase tracking-wider text-[11px] font-mono">
-                Product
-              </p>
-              <ul className="space-y-1.5">
-                <li><button onClick={() => { setDeveloperModalInitialTab("quickstart"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">API Playground</button></li>
-                <li><button onClick={() => { setDeveloperModalInitialTab("pricing"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Pricing ($0.001)</button></li>
-                <li><button onClick={() => { setDeveloperModalInitialTab("endpoints"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Self-hosted</button></li>
-              </ul>
-            </div>
-            <div className="space-y-2.5">
-              <p className="font-bold text-slate-400 uppercase tracking-wider text-[11px] font-mono">
-                Developers
-              </p>
-              <ul className="space-y-1.5">
-                <li><button onClick={() => { setDeveloperModalInitialTab("quickstart"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Quickstart Guide</button></li>
-                <li><button onClick={() => { setDeveloperModalInitialTab("endpoints"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">API Endpoints</button></li>
-                <li><button onClick={() => { setDeveloperModalInitialTab("keys"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">API Keys & Balance</button></li>
-                <li><button onClick={() => { setDeveloperModalInitialTab("pricing"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Cost Calculator</button></li>
-              </ul>
-            </div>
-            <div className="space-y-2.5">
-              <p className="font-bold text-slate-400 uppercase tracking-wider text-[11px] font-mono">
-                Company
-              </p>
-              <ul className="space-y-1.5">
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Contact us</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Support</a></li>
-                <li><button onClick={() => { setDeveloperModalInitialTab("keys"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Create API Key</button></li>
-              </ul>
-            </div>
-            <div className="space-y-2.5">
-              <p className="font-bold text-slate-400 uppercase tracking-wider text-[11px] font-mono">
-                Legal
-              </p>
-              <ul className="space-y-1.5">
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Terms & conditions</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Privacy policy</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">DPDP compliance</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Refund & cancellation</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">GST & Invoicing</a></li>
-              </ul>
-            </div>
+      {/* Clean Minimalist Footer */}
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-6 py-8 text-xs text-zinc-500 dark:text-zinc-400 transition-colors">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-zinc-900 dark:text-white">OpenOCR</span>
+            <span>&bull;</span>
+            <span>Pure CPU Document Intelligence &bull; $0.001 / page</span>
           </div>
 
-          <div className="pt-6 border-t border-slate-900/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
-            <p>&copy; 2026 OpenOCR &bull; Commercial Document Intelligence at $0.001 / page</p>
-            <div className="flex items-center gap-4 text-slate-600">
-              <span>Universal Two-Stage Pipeline</span>
-              <span>Docling 1.0</span>
-            </div>
+          <div className="flex items-center gap-5 text-xs">
+            <button
+              onClick={() => { setDeveloperModalInitialTab("quickstart"); setIsDeveloperModalOpen(true); }}
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              API Reference
+            </button>
+            <button
+              onClick={() => { setDeveloperModalInitialTab("pricing"); setIsDeveloperModalOpen(true); }}
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              Pricing ($0.001)
+            </button>
+            <button
+              onClick={() => { setDeveloperModalInitialTab("endpoints"); setIsDeveloperModalOpen(true); }}
+              className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              Self-Hosted
+            </button>
           </div>
         </div>
       </footer>
@@ -350,6 +367,15 @@ export default function PlaygroundPage() {
         setApiKey={setApiKey}
         creditsBalance={creditsBalance}
         setCreditsBalance={setCreditsBalance}
+      />
+
+      {/* Upgrade to Pro Modal */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        reason={upgradeReason}
+        itemsProcessed={itemsProcessed}
+        onSwitchToProKey={handleSwitchToProKey}
       />
     </div>
   );

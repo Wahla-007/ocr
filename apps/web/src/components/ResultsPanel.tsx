@@ -89,10 +89,10 @@ export function ResultsPanel({
 
   if (!result) {
     return (
-      <div className="flex flex-col h-full bg-[#090d16] border border-slate-800/80 rounded-2xl p-8 items-center justify-center text-center">
-        <FileText className="w-10 h-10 text-slate-700 mb-3 stroke-1" />
-        <p className="text-sm font-medium text-slate-400">No document processed yet</p>
-        <p className="text-xs text-slate-600 mt-1">Upload a document to inspect extracted JSON and fields.</p>
+      <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 items-center justify-center text-center">
+        <FileText className="w-10 h-10 text-zinc-400 dark:text-zinc-600 mb-3 stroke-1" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No document processed yet</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Upload a document to inspect extracted JSON and fields.</p>
       </div>
     );
   }
@@ -435,32 +435,32 @@ export function ResultsPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#090d16] border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm text-zinc-900 dark:text-zinc-100">
       {/* Top Header / Toolbar */}
-      <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-950/90 px-4 py-2.5 text-xs">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 px-4 py-2.5 text-xs">
         {/* Document Classification & Number Pill */}
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-emerald-950/70 text-emerald-400 border border-emerald-800/60">
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
             {docType}
           </span>
           {docNumber && (
-            <span className="font-mono text-slate-300 text-[11px] truncate max-w-[140px]">
+            <span className="font-mono text-zinc-600 dark:text-zinc-300 text-[11px] truncate max-w-[140px]">
               {docNumber}
             </span>
           )}
-          <span className="hidden sm:inline text-slate-500 text-[10px] font-mono">
+          <span className="hidden sm:inline text-zinc-400 dark:text-zinc-500 text-[10px] font-mono">
             {Math.round((result.doc_type_confidence || result.overall_confidence || 0.98) * 100)}% conf
           </span>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 rounded-lg p-0.5 text-xs">
           <button
             onClick={() => handleTabChange("json")}
             className={`px-3 py-1 rounded-md font-mono text-[11px] font-medium transition-colors ${
               activeTab === "json"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
             JSON
@@ -469,8 +469,8 @@ export function ResultsPanel({
             onClick={() => handleTabChange("fields")}
             className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
               activeTab === "fields"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
             Fields
@@ -479,8 +479,8 @@ export function ResultsPanel({
             onClick={() => handleTabChange("text")}
             className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
               activeTab === "text"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
             Text
@@ -489,8 +489,8 @@ export function ResultsPanel({
             onClick={() => handleTabChange("markdown")}
             className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
               activeTab === "markdown"
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
             Markdown
@@ -501,18 +501,18 @@ export function ResultsPanel({
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => handleCopy(jsonString, "json-copy")}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             title="Copy JSON"
           >
             {copiedKey === "json-copy" ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-500" />
             ) : (
               <Copy className="w-3.5 h-3.5" />
             )}
           </button>
           <button
             onClick={handleDownloadJson}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             title="Download JSON File"
           >
             <Download className="w-3.5 h-3.5" />
@@ -528,18 +528,18 @@ export function ResultsPanel({
         {activeTab === "json" && (
           <div className="space-y-3 font-mono text-xs">
             {/* Search Filter Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
               <div className="relative flex-1 max-w-xs">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Filter keys or values..."
                   value={jsonSearchQuery}
                   onChange={(e) => setJsonSearchQuery(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1 text-slate-300 placeholder-slate-600 text-[11px] focus:outline-none focus:border-slate-700"
+                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-8 pr-3 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 text-[11px] focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700"
                 />
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-slate-500">
+              <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
                 <span>{jsonString.split("\n").length} lines</span>
                 <span>•</span>
                 <span>{Math.round(jsonString.length / 1024 * 10) / 10} KB</span>
@@ -547,7 +547,7 @@ export function ResultsPanel({
             </div>
 
             {/* Formatted Code Block */}
-            <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-3 overflow-x-auto text-[11px] leading-relaxed">
+            <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3 overflow-x-auto text-[11px] leading-relaxed">
               <JsonSyntaxHighlighter json={fullJsonPayload} filter={jsonSearchQuery} />
             </div>
           </div>
@@ -559,12 +559,12 @@ export function ResultsPanel({
         {activeTab === "fields" && (
           <div className="space-y-4 text-xs font-sans">
             {/* SECTION 1: DOCUMENT IDENTITY */}
-            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider">
+                <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
                   Document Identity
                 </span>
-                <span className="text-[10px] font-mono text-slate-500">
+                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
                   {result.pages || 1} page(s)
                 </span>
               </div>

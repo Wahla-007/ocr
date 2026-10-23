@@ -443,13 +443,28 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
     return items
 
 
-async def extract_file(file_path: Path) -> dict:
+async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
     t0 = time.perf_counter()
     mime = detect_mime(file_path)
     data = file_path.read_bytes()
 
+    # Fast page count limit check before expensive OCR
+    if mime == "application/pdf":
+        try:
+            doc_probe = pymupdf.open(stream=data, filetype="pdf")
+            total_pdf_pages = len(doc_probe)
+            if total_pdf_pages > max_pages:
+                return {
+                    "error": "TOO_MANY_PAGES",
+                    "pages": total_pdf_pages,
+                    "max_pages": max_pages,
+                    "message": f"Document contains {total_pdf_pages} pages, which exceeds the allowed plan limit of {max_pages} pages per document.",
+                }
+        except Exception as e:
+            sys.stderr.write(f"PDF probe failed: {e}\n")
+
     # 1. Normalize (including auto-orientation)
-    norm = normalize_document(data, mime)
+    norm = normalize_document(data, mime, max_pages=max_pages)
     working_data = norm.pages[0].image_bytes if (norm.pages and norm.pages[0].rotation_applied != 0) else data
 
     # 2. Parse (RapidOCR / PyMuPDF)
@@ -2223,6 +2238,7 @@ async def extract_file(file_path: Path) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file_path", help="Path to document file")
+    parser.add_argument("--max-pages", type=int, default=500, help="Maximum allowed pages per document")
     args = parser.parse_args()
 
     p = Path(args.file_path)
@@ -2230,7 +2246,7 @@ if __name__ == "__main__":
         sys.stderr.write(f"File not found: {p}\n")
         sys.exit(1)
 
-    res = asyncio.run(extract_file(p))
+    res = asyncio.run(extract_file(p, max_pages=args.max_pages))
     print("===OPENOCR_JSON_START===")
     print(json.dumps(res, indent=2))
     print("===OPENOCR_JSON_END===")

@@ -3,7 +3,7 @@ import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { validateApiKey, deductCredits, DEFAULT_COST_PER_PAGE_USD } from "@/lib/keys";
+import { validateApiKey, deductCredits, enforcePageLimits, DEFAULT_COST_PER_PAGE_USD } from "@/lib/keys";
 
 export const dynamic = "force-dynamic";
 
@@ -19,23 +19,38 @@ export async function POST(req: NextRequest) {
 
   const auth = validateApiKey(apiKeyHeader);
   if (!auth.valid) {
+    const status = auth.statusCode || 401;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-OpenOCR-Cost-USD": "0.000",
+      "X-OpenOCR-Plan": auth.record?.plan || "none",
+      "X-OpenOCR-Items-Used": String(auth.record?.itemsProcessed || 0),
+      "X-OpenOCR-Items-Max": String(auth.record?.maxItems || 0),
+    };
+    if (status === 429 && auth.rateLimitResetSeconds) {
+      headers["Retry-After"] = String(auth.rateLimitResetSeconds);
+      headers["X-RateLimit-Reset"] = String(auth.rateLimitResetSeconds);
+      headers["X-RateLimit-Limit"] = String(auth.record?.rateLimitPerMinute || 10);
+      headers["X-RateLimit-Remaining"] = "0";
+    }
     return NextResponse.json(
       {
         error: {
-          code: auth.statusCode === 429 ? "RATE_LIMIT_EXCEEDED" : auth.statusCode === 402 ? "INSUFFICIENT_CREDITS" : "UNAUTHORIZED",
+          code: auth.errorCode || (status === 429 ? "RATE_LIMIT_EXCEEDED" : status === 402 ? "FREE_TIER_LIMIT_REACHED" : "UNAUTHORIZED"),
           message: auth.error,
+          plan: auth.record?.plan || "none",
+          items_processed: auth.record?.itemsProcessed || 0,
+          max_items_allowed: auth.record?.maxItems || 0,
+          upgrade_url: "/pricing",
           pricing_info: {
             cost_per_page: `$${DEFAULT_COST_PER_PAGE_USD} USD`,
-            pricing_url: "/api/v1/pricing",
+            pro_plan_monthly: "$9.00 USD/mo (unlimited items, 500 pages/doc, 300 req/min)",
           },
         },
       },
       {
-        status: auth.statusCode || 401,
-        headers: {
-          "Content-Type": "application/json",
-          "X-OpenOCR-Cost-USD": "0.000",
-        },
+        status,
+        headers,
       }
     );
   }
@@ -110,12 +125,13 @@ export async function POST(req: NextRequest) {
       pythonExe = "python";
     }
     const cliScript = path.join(resolvedRoot, "extract_cli.py");
+    const maxPages = auth.record?.maxPagesPerItem || 2;
 
     const result = await new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
       let stdout = "";
       let stderr = "";
       try {
-        const proc = spawn(pythonExe, [cliScript, tempFilePath], {
+        const proc = spawn(pythonExe, [cliScript, tempFilePath, "--max-pages", String(maxPages)], {
           cwd: resolvedRoot,
         });
 
@@ -181,7 +197,61 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = JSON.parse(jsonStr);
+
+    // Check if CLI returned page limit error
+    if (payload.error === "TOO_MANY_PAGES") {
+      return NextResponse.json(
+        {
+          error: {
+            code: "FREE_TIER_PAGE_LIMIT",
+            message: payload.message || `Free plan is limited to ${auth.record!.maxPagesPerItem} pages max per document (document has ${payload.pages} pages). Please upgrade to the Pro plan ($9/mo) to process multi-page documents.`,
+            pages_found: payload.pages,
+            max_pages_allowed: auth.record!.maxPagesPerItem,
+            plan: auth.record!.plan,
+            upgrade_url: "/pricing",
+          },
+        },
+        {
+          status: 402,
+          headers: {
+            "Content-Type": "application/json",
+            "X-OpenOCR-Plan": auth.record!.plan,
+            "X-OpenOCR-Cost-USD": "0.000",
+            "X-OpenOCR-Items-Used": String(auth.record!.itemsProcessed),
+            "X-OpenOCR-Items-Max": String(auth.record!.maxItems),
+          },
+        }
+      );
+    }
+
     const pagesCount = payload.pages || payload.page_count || 1;
+
+    // Strict page limit enforcement
+    const pageCheck = enforcePageLimits(auth.record!, pagesCount);
+    if (!pageCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: pageCheck.errorCode || "FREE_TIER_PAGE_LIMIT",
+            message: pageCheck.error,
+            pages_found: pagesCount,
+            max_pages_allowed: auth.record!.maxPagesPerItem,
+            plan: auth.record!.plan,
+            upgrade_url: "/pricing",
+          },
+        },
+        {
+          status: 402,
+          headers: {
+            "Content-Type": "application/json",
+            "X-OpenOCR-Plan": auth.record!.plan,
+            "X-OpenOCR-Cost-USD": "0.000",
+            "X-OpenOCR-Items-Used": String(auth.record!.itemsProcessed),
+            "X-OpenOCR-Items-Max": String(auth.record!.maxItems),
+          },
+        }
+      );
+    }
 
     // 2. Deduct Credits & Record Cost
     const debit = deductCredits(auth.record!.key, pagesCount);
@@ -189,16 +259,23 @@ export async function POST(req: NextRequest) {
 
     // Standard commercial response headers
     const responseHeaders: Record<string, string> = {
+      "X-OpenOCR-Plan": auth.record!.plan,
+      "X-OpenOCR-Items-Used": String(debit.itemsProcessed),
+      "X-OpenOCR-Items-Max": String(debit.maxItems === Number.POSITIVE_INFINITY ? "unlimited" : debit.maxItems),
       "X-OpenOCR-Credits-Used": String(debit.charged),
       "X-OpenOCR-Credits-Remaining": String(debit.remaining),
       "X-OpenOCR-Cost-USD": debit.costUsd.toFixed(4),
       "X-OpenOCR-Latency-Ms": String(latencyMs),
       "X-RateLimit-Limit": String(auth.record?.rateLimitPerMinute || 120),
       "X-RateLimit-Remaining": String(Math.max(0, (auth.record?.rateLimitPerMinute || 120) - (auth.record?.requestsThisMinute || 1))),
+      "X-RateLimit-Reset": String(auth.rateLimitResetSeconds || 60),
     };
 
-    // Inject usage into payload
+    // Inject usage and plan info into payload
     payload.billing = {
+      plan: auth.record!.plan,
+      items_processed: debit.itemsProcessed,
+      max_items: debit.maxItems === Number.POSITIVE_INFINITY ? "unlimited" : debit.maxItems,
       pages_billed: debit.charged,
       cost_usd: debit.costUsd,
       credits_remaining: debit.remaining,

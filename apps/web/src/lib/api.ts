@@ -2,7 +2,7 @@ import { ExtractionResult } from "./types";
 import { SAMPLE_DOCUMENTS } from "./samples";
 
 export const DEFAULT_API_URL = "http://localhost:8000";
-export const DEFAULT_API_KEY = "sk_live_demo1234567890";
+export const DEFAULT_API_KEY = "ocr_free_trial12345";
 
 export async function checkBackendHealth(baseUrl: string = DEFAULT_API_URL): Promise<boolean> {
   try {
@@ -49,15 +49,18 @@ export async function uploadAndExtract(
     } catch {}
   }
 
-  // 1. First attempt: Execute real RapidOCR pipeline via local Next.js API route
+  // 1. First attempt: Execute real RapidOCR pipeline via commercial API route
   try {
     onProgress?.("Uploading Document...", 20);
     const formData = new FormData();
     formData.append("file", file);
 
     onProgress?.("Normalizing & Running RapidOCR...", 50);
-    const apiRes = await fetch(`/api/extract?format=json`, {
+    const apiRes = await fetch(`/api/v1/extract?format=${format}`, {
       method: "POST",
+      headers: {
+        "X-API-Key": apiKey || DEFAULT_API_KEY,
+      },
       body: formData,
     });
 
@@ -71,10 +74,24 @@ export async function uploadAndExtract(
       return data;
     } else {
       const errPayload = await apiRes.json().catch(() => ({}));
-      console.warn("Local extract route returned error:", errPayload);
+      const errorObj = errPayload.error || errPayload;
+      const msg = errorObj.message || errorObj.error || `HTTP ${apiRes.status}`;
+      throw new Error(msg);
     }
-  } catch (e) {
-    console.warn("Local extract route fetch failed:", e);
+  } catch (e: any) {
+    // If it's a 402 or 429 limit error, throw immediately so UI shows Upgrade Modal
+    const msg = e.message || String(e);
+    if (
+      msg.includes("FREE_TIER") ||
+      msg.includes("Free plan") ||
+      msg.includes("limit reached") ||
+      msg.includes("Rate limit") ||
+      msg.includes("402") ||
+      msg.includes("429")
+    ) {
+      throw e;
+    }
+    console.warn("Commercial extract route fetch failed:", e);
   }
 
   const isHealthy = await checkBackendHealth(baseUrl);

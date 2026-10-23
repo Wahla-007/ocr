@@ -1,0 +1,60 @@
+version: '3.8'
+
+# ==============================================================================
+# OpenOCR Self-Hosted Standalone Architecture
+# Pure CPU | Air-Gapped Capable | Zero External Cloud Dependencies
+# ==============================================================================
+
+services:
+  # 1. Standalone Core Engine (FastAPI + RapidOCR + PyMuPDF)
+  openocr-core:
+    build:
+      context: .
+      dockerfile: Dockerfile.selfhosted
+    container_name: openocr_selfhosted_core
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - ENV=production
+      - OPENOCR_SELF_HOSTED=true
+      - ONNXRUNTIME_EXECUTION_PROVIDERS=CPUExecutionProvider
+      - LOCAL_STORAGE_DIR=/app/data
+      - LLM_PROVIDER=local
+      - MAX_PAGE_LIMIT=500
+      - LOG_LEVEL=info
+    volumes:
+      - ./data/storage:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4096M
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+
+  # 2. Minimalist Research Web UI (Next.js)
+  openocr-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: openocr_selfhosted_web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_SELF_HOSTED=true
+    depends_on:
+      openocr-core:
+        condition: service_healthy
+
+volumes:
+  openocr_data:

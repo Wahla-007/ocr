@@ -73,20 +73,20 @@ export function DocumentViewer({
   const hasPreviewImage = Boolean(previewSrc);
 
   return (
-    <div className="flex flex-col h-auto bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
       {/* Viewer Header / Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-950/60 text-xs">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 text-xs">
         <div className="flex items-center gap-2 truncate">
-          <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span className="font-semibold text-white truncate max-w-[200px] sm:max-w-[280px]">
+          <FileText className="w-4 h-4 text-zinc-500 shrink-0" />
+          <span className="font-semibold text-zinc-900 dark:text-white truncate max-w-[200px] sm:max-w-[280px]">
             {fileName || "Document Preview"}
           </span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 shrink-0">
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0 border border-zinc-200 dark:border-zinc-700/60">
             {result?.doc_type ? result.doc_type.toUpperCase() : "RAW"}
           </span>
           {hasPreviewImage && (
-            <span className="hidden sm:inline px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
-              REAL OCR CANVAS
+            <span className="hidden sm:inline px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60">
+              OCR CANVAS
             </span>
           )}
         </div>
@@ -95,11 +95,11 @@ export function DocumentViewer({
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Page navigation */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 mr-1 text-slate-300">
+            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 mr-1 text-zinc-700 dark:text-zinc-300">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage <= 1}
-                className="disabled:opacity-30 hover:text-white"
+                className="disabled:opacity-30 hover:text-zinc-900 dark:hover:text-white"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -109,7 +109,7 @@ export function DocumentViewer({
               <button
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage >= totalPages}
-                className="disabled:opacity-30 hover:text-white"
+                className="disabled:opacity-30 hover:text-zinc-900 dark:hover:text-white"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -122,13 +122,13 @@ export function DocumentViewer({
               onClick={() => setShowAllOcrBlocks((b) => !b)}
               className={`p-1.5 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
                 showAllOcrBlocks
-                  ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-400"
-                  : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                  ? "bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white"
+                  : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
               title={showAllOcrBlocks ? "Hide OCR Line Boxes" : "Show All OCR Line Boxes"}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span className="hidden md:inline font-mono text-[10px]">OCR Lines</span>
+              <span className="hidden md:inline font-mono text-[10px]">Lines</span>
             </button>
           )}
 
@@ -137,8 +137,8 @@ export function DocumentViewer({
             onClick={() => setShowBboxes((b) => !b)}
             className={`p-1.5 rounded-lg border transition-colors ${
               showBboxes
-                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                ? "bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white"
+                : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
             }`}
             title={showBboxes ? "Hide Bounding Boxes" : "Show Bounding Boxes"}
           >
@@ -148,24 +148,24 @@ export function DocumentViewer({
           {/* Zoom Controls */}
           <button
             onClick={handleZoomOut}
-            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
+            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[11px] font-mono text-slate-400 w-9 text-center">
+          <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 w-9 text-center">
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={handleZoomIn}
-            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
+            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleResetZoom}
-            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
+            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
             title="Reset Zoom"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -174,7 +174,7 @@ export function DocumentViewer({
       </div>
 
       {/* Canvas Viewport */}
-      <div className="overflow-auto p-3 sm:p-4 flex flex-col items-center justify-start bg-slate-950/40 select-none">
+      <div className="overflow-auto p-3 sm:p-4 flex flex-col items-center justify-start bg-zinc-100/50 dark:bg-zinc-950/40 select-none">
         <div
           className="transition-transform duration-150 origin-top max-w-full w-full flex justify-center"
           style={{ transform: `scale(${zoom})` }}

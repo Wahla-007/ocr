@@ -203,42 +203,42 @@ func main() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#090d16] border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-zinc-900 dark:text-zinc-100">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-800/80 px-6 py-4 bg-slate-950/80">
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 bg-zinc-50 dark:bg-zinc-950/80">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
               <Zap className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white tracking-wide uppercase font-mono flex items-center gap-2">
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide uppercase font-mono flex items-center gap-2">
                 OpenOCR Developer API
-                <span className="px-2 py-0.5 rounded text-[10px] font-normal bg-emerald-950 text-emerald-400 border border-emerald-800">
+                <span className="px-2 py-0.5 rounded text-[10px] font-normal bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                   $0.001 / page
                 </span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Low-cost, high-speed pure CPU document intelligence API with zero transformer latency.
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                Low-cost, high-speed pure CPU document intelligence API with zero cloud GPU latency.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center border-b border-slate-800/80 bg-slate-950/40 px-6 text-xs font-mono">
+        <div className="flex items-center border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 px-6 text-xs font-mono">
           <button
             onClick={() => setActiveTab("quickstart")}
             className={`py-3 px-4 border-b-2 font-medium flex items-center gap-2 transition-colors ${
               activeTab === "quickstart"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold"
+                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             <Code className="w-3.5 h-3.5" />
@@ -248,19 +248,19 @@ func main() {
             onClick={() => setActiveTab("keys")}
             className={`py-3 px-4 border-b-2 font-medium flex items-center gap-2 transition-colors ${
               activeTab === "keys"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold"
+                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             <Key className="w-3.5 h-3.5" />
-            <span>API Keys & Balance</span>
+            <span>API Keys & Metering</span>
           </button>
           <button
             onClick={() => setActiveTab("pricing")}
             className={`py-3 px-4 border-b-2 font-medium flex items-center gap-2 transition-colors ${
               activeTab === "pricing"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold"
+                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
@@ -270,8 +270,8 @@ func main() {
             onClick={() => setActiveTab("endpoints")}
             className={`py-3 px-4 border-b-2 font-medium flex items-center gap-2 transition-colors ${
               activeTab === "endpoints"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold"
+                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />

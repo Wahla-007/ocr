@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
       name: record.name,
       plan: record.plan,
       rate_limit: `${record.rateLimitPerMinute} requests / min`,
+      items_processed: record.itemsProcessed,
+      max_items: record.maxItems === Number.POSITIVE_INFINITY ? "unlimited" : record.maxItems,
+      max_pages_per_item: record.maxPagesPerItem,
     },
     metering: {
       cost_per_page_usd: record.costPerCreditUsd,
@@ -45,6 +48,7 @@ export async function GET(req: NextRequest) {
       credits_used: record.creditsUsed,
       balance_usd: `$${currentBalanceUsd}`,
       total_spent_usd: `$${totalSpentUsd}`,
+      plan_status: record.plan === "free" && record.itemsProcessed >= record.maxItems ? "LIMIT_EXCEEDED" : "ACTIVE",
     },
     pricing_tier: {
       name: "Developer Pay-As-You-Go",

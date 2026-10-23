@@ -1,7 +1,12 @@
+export type PlanTier = "free" | "pro" | "enterprise";
+
 export interface ApiKeyRecord {
   key: string;
   name: string;
-  plan: "developer_payg" | "starter" | "pro" | "enterprise";
+  plan: PlanTier;
+  itemsProcessed: number;
+  maxItems: number; // 5 for free, Infinity for pro
+  maxPagesPerItem: number; // 2 for free, 500 for pro
   creditsRemaining: number;
   creditsUsed: number;
   costPerCreditUsd: number;
@@ -14,55 +19,101 @@ export interface ApiKeyRecord {
 // In-memory key store seeded with initial commercial & developer test keys
 const API_KEY_STORE: Map<string, ApiKeyRecord> = new Map();
 
-// Default commercial pricing: $0.001 per page (1/10th of a cent)
+// Standard pricing
 export const DEFAULT_COST_PER_PAGE_USD = 0.001;
+export const FREE_TIER_MAX_ITEMS = 5;
+export const FREE_TIER_MAX_PAGES_PER_ITEM = 2;
 
-// Pre-seeded developer key with 10,000 initial trial credits ($10.00 value)
-const DEFAULT_KEY = "ocr_live_demo1234567890";
-API_KEY_STORE.set(DEFAULT_KEY, {
-  key: DEFAULT_KEY,
-  name: "Default Sandbox Key",
-  plan: "developer_payg",
-  creditsRemaining: 10000,
-  creditsUsed: 14,
-  costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
+// 1. Free Trial Seeded Key (strict 5 items max, 2 pages max)
+export const FREE_TRIAL_KEY = "ocr_free_trial12345";
+API_KEY_STORE.set(FREE_TRIAL_KEY, {
+  key: FREE_TRIAL_KEY,
+  name: "Free Trial Developer Key",
+  plan: "free",
+  itemsProcessed: 0,
+  maxItems: FREE_TIER_MAX_ITEMS,
+  maxPagesPerItem: FREE_TIER_MAX_PAGES_PER_ITEM,
+  creditsRemaining: 10,
+  creditsUsed: 0,
+  costPerCreditUsd: 0.000,
   createdAt: new Date().toISOString(),
-  rateLimitPerMinute: 120,
+  rateLimitPerMinute: 10,
   requestsThisMinute: 0,
   lastRequestMinute: Math.floor(Date.now() / 60000),
 });
 
-// Secondary free tier key
-const FREE_KEY = "sk_live_demo1234567890";
-API_KEY_STORE.set(FREE_KEY, {
-  key: FREE_KEY,
-  name: "Demo Key",
-  plan: "starter",
-  creditsRemaining: 5000,
-  creditsUsed: 2,
+// 2. Pro Paid Key (unlimited items, 500 pages max, high rate limit)
+export const PRO_DEMO_KEY = "ocr_live_pro123456789";
+API_KEY_STORE.set(PRO_DEMO_KEY, {
+  key: PRO_DEMO_KEY,
+  name: "Pro Paid Key",
+  plan: "pro",
+  itemsProcessed: 12,
+  maxItems: Number.POSITIVE_INFINITY,
+  maxPagesPerItem: 500,
+  creditsRemaining: 25000,
+  creditsUsed: 12,
   costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
   createdAt: new Date().toISOString(),
-  rateLimitPerMinute: 60,
+  rateLimitPerMinute: 300,
+  requestsThisMinute: 0,
+  lastRequestMinute: Math.floor(Date.now() / 60000),
+});
+
+// Backward-compatible alias for existing demo key
+API_KEY_STORE.set("ocr_live_demo1234567890", {
+  key: "ocr_live_demo1234567890",
+  name: "Pro Sandbox Key",
+  plan: "pro",
+  itemsProcessed: 3,
+  maxItems: Number.POSITIVE_INFINITY,
+  maxPagesPerItem: 500,
+  creditsRemaining: 10000,
+  creditsUsed: 3,
+  costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
+  createdAt: new Date().toISOString(),
+  rateLimitPerMinute: 300,
+  requestsThisMinute: 0,
+  lastRequestMinute: Math.floor(Date.now() / 60000),
+});
+
+API_KEY_STORE.set("sk_live_demo1234567890", {
+  key: "sk_live_demo1234567890",
+  name: "Demo Key",
+  plan: "free",
+  itemsProcessed: 0,
+  maxItems: FREE_TIER_MAX_ITEMS,
+  maxPagesPerItem: FREE_TIER_MAX_PAGES_PER_ITEM,
+  creditsRemaining: 10,
+  creditsUsed: 0,
+  costPerCreditUsd: 0.000,
+  createdAt: new Date().toISOString(),
+  rateLimitPerMinute: 10,
   requestsThisMinute: 0,
   lastRequestMinute: Math.floor(Date.now() / 60000),
 });
 
 export function generateApiKey(
   name: string = "Developer Key",
-  plan: "developer_payg" | "starter" | "pro" | "enterprise" = "developer_payg",
-  initialCredits: number = 10000
+  plan: PlanTier = "free",
+  initialCredits: number = 10
 ): ApiKeyRecord {
   const randPart = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-  const key = `ocr_live_${randPart}`;
+  const key = plan === "pro" ? `ocr_live_${randPart}` : `ocr_free_${randPart}`;
+  const isPro = plan === "pro" || plan === "enterprise";
+
   const record: ApiKeyRecord = {
     key,
     name,
     plan,
-    creditsRemaining: initialCredits,
+    itemsProcessed: 0,
+    maxItems: isPro ? Number.POSITIVE_INFINITY : FREE_TIER_MAX_ITEMS,
+    maxPagesPerItem: isPro ? 500 : FREE_TIER_MAX_PAGES_PER_ITEM,
+    creditsRemaining: isPro ? 25000 : initialCredits,
     creditsUsed: 0,
-    costPerCreditUsd: plan === "pro" ? 0.0008 : DEFAULT_COST_PER_PAGE_USD,
+    costPerCreditUsd: isPro ? DEFAULT_COST_PER_PAGE_USD : 0.000,
     createdAt: new Date().toISOString(),
-    rateLimitPerMinute: plan === "pro" ? 300 : 120,
+    rateLimitPerMinute: isPro ? 300 : 10,
     requestsThisMinute: 0,
     lastRequestMinute: Math.floor(Date.now() / 60000),
   };
@@ -70,52 +121,94 @@ export function generateApiKey(
   return record;
 }
 
+export function upgradeKeyToPro(key: string): ApiKeyRecord | null {
+  const cleanKey = key.startsWith("Bearer ") ? key.slice(7).trim() : key.trim();
+  let record = API_KEY_STORE.get(cleanKey);
+  if (!record) {
+    record = generateApiKey("Pro Upgraded Key", "pro", 25000);
+    return record;
+  }
+  record.plan = "pro";
+  record.maxItems = Number.POSITIVE_INFINITY;
+  record.maxPagesPerItem = 500;
+  record.rateLimitPerMinute = 300;
+  record.creditsRemaining += 25000;
+  return record;
+}
+
 export function validateApiKey(apiKeyInput: string | null): {
   valid: boolean;
   record?: ApiKeyRecord;
   error?: string;
+  errorCode?: string;
   statusCode?: number;
+  rateLimitResetSeconds?: number;
 } {
   if (!apiKeyInput) {
     return {
       valid: false,
-      error: "Missing API Key. Pass 'X-API-Key: ocr_live_...' or 'Authorization: Bearer ocr_live_...'",
+      error: "Missing API Key. The OpenOCR API is on paid plan only (or free trial up to 5 items, 2 pages max). Pass 'X-API-Key: ocr_...'",
+      errorCode: "UNAUTHORIZED",
       statusCode: 401,
     };
   }
 
-  // Support Bearer prefix
   const cleanKey = apiKeyInput.startsWith("Bearer ") ? apiKeyInput.slice(7).trim() : apiKeyInput.trim();
-
   let record = API_KEY_STORE.get(cleanKey);
 
-  // Auto-provision demo key if cleanKey has valid ocr_ prefix
-  if (!record && cleanKey.startsWith("ocr_")) {
-    record = {
-      key: cleanKey,
-      name: "Custom Developer Key",
-      plan: "developer_payg",
-      creditsRemaining: 10000,
-      creditsUsed: 0,
-      costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
-      createdAt: new Date().toISOString(),
-      rateLimitPerMinute: 120,
-      requestsThisMinute: 0,
-      lastRequestMinute: Math.floor(Date.now() / 60000),
-    };
-    API_KEY_STORE.set(cleanKey, record);
+  // Auto-provision if cleanKey has valid prefix
+  if (!record) {
+    if (cleanKey.startsWith("ocr_free_")) {
+      record = {
+        key: cleanKey,
+        name: "Free Trial Key",
+        plan: "free",
+        itemsProcessed: 0,
+        maxItems: FREE_TIER_MAX_ITEMS,
+        maxPagesPerItem: FREE_TIER_MAX_PAGES_PER_ITEM,
+        creditsRemaining: 5,
+        creditsUsed: 0,
+        costPerCreditUsd: 0.000,
+        createdAt: new Date().toISOString(),
+        rateLimitPerMinute: 10,
+        requestsThisMinute: 0,
+        lastRequestMinute: Math.floor(Date.now() / 60000),
+      };
+      API_KEY_STORE.set(cleanKey, record);
+    } else if (cleanKey.startsWith("ocr_live_") || cleanKey.startsWith("ocr_pro_")) {
+      record = {
+        key: cleanKey,
+        name: "Pro Key",
+        plan: "pro",
+        itemsProcessed: 0,
+        maxItems: Number.POSITIVE_INFINITY,
+        maxPagesPerItem: 500,
+        creditsRemaining: 10000,
+        creditsUsed: 0,
+        costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
+        createdAt: new Date().toISOString(),
+        rateLimitPerMinute: 300,
+        requestsThisMinute: 0,
+        lastRequestMinute: Math.floor(Date.now() / 60000),
+      };
+      API_KEY_STORE.set(cleanKey, record);
+    }
   }
 
   if (!record) {
     return {
       valid: false,
-      error: "Invalid API Key. Please provide a valid OpenOCR API key.",
+      error: "Invalid API Key. Please provide a valid active OpenOCR API key.",
+      errorCode: "INVALID_KEY",
       statusCode: 401,
     };
   }
 
-  // Rate Limiting Window Check
+  // 1. Sliding Window Rate Limiting (Best practice token bucket / window reset)
   const currentMinute = Math.floor(Date.now() / 60000);
+  const secondsIntoMinute = Math.floor((Date.now() % 60000) / 1000);
+  const rateLimitResetSeconds = Math.max(1, 60 - secondsIntoMinute);
+
   if (record.lastRequestMinute !== currentMinute) {
     record.lastRequestMinute = currentMinute;
     record.requestsThisMinute = 0;
@@ -125,23 +218,41 @@ export function validateApiKey(apiKeyInput: string | null): {
     return {
       valid: false,
       record,
-      error: `Rate limit exceeded (${record.rateLimitPerMinute} req/min). Try again in a few seconds.`,
+      error: `Rate limit of ${record.rateLimitPerMinute} req/min exceeded for ${record.plan} plan. Retry in ${rateLimitResetSeconds}s.`,
+      errorCode: "RATE_LIMIT_EXCEEDED",
       statusCode: 429,
+      rateLimitResetSeconds,
     };
   }
 
-  // Credits Check
-  if (record.creditsRemaining <= 0) {
+  // 2. Free Plan Lifetime Items Check: Max 5 items allowed
+  if (record.plan === "free" && record.itemsProcessed >= record.maxItems) {
     return {
       valid: false,
       record,
-      error: "Insufficient credits balance. Please top up your OpenOCR account.",
+      error: `Free plan limit reached (${record.itemsProcessed} of ${record.maxItems} items processed). Please upgrade to the Pro plan ($9/mo) for unlimited items.`,
+      errorCode: "FREE_TIER_LIMIT_REACHED",
       statusCode: 402,
     };
   }
 
   record.requestsThisMinute += 1;
-  return { valid: true, record };
+  return { valid: true, record, rateLimitResetSeconds };
+}
+
+export function enforcePageLimits(
+  record: ApiKeyRecord,
+  actualPages: number
+): { allowed: boolean; error?: string; errorCode?: string; statusCode?: number } {
+  if (record.plan === "free" && actualPages > record.maxPagesPerItem) {
+    return {
+      allowed: false,
+      error: `Free plan is limited to ${record.maxPagesPerItem} pages max per document (document has ${actualPages} pages). Please upgrade to Pro plan to process full documents.`,
+      errorCode: "FREE_TIER_PAGE_LIMIT",
+      statusCode: 402,
+    };
+  }
+  return { allowed: true };
 }
 
 export function deductCredits(
@@ -152,6 +263,8 @@ export function deductCredits(
   charged: number;
   remaining: number;
   costUsd: number;
+  itemsProcessed: number;
+  maxItems: number;
 } {
   const cleanKey = key.startsWith("Bearer ") ? key.slice(7).trim() : key.trim();
   const record = API_KEY_STORE.get(cleanKey);
@@ -160,9 +273,10 @@ export function deductCredits(
   const costUsd = charged * (record?.costPerCreditUsd || DEFAULT_COST_PER_PAGE_USD);
 
   if (!record) {
-    return { success: true, charged, remaining: 9999, costUsd };
+    return { success: true, charged, remaining: 9999, costUsd, itemsProcessed: 1, maxItems: 5 };
   }
 
+  record.itemsProcessed += 1;
   record.creditsRemaining = Math.max(0, record.creditsRemaining - charged);
   record.creditsUsed += charged;
 
@@ -171,6 +285,8 @@ export function deductCredits(
     charged,
     remaining: record.creditsRemaining,
     costUsd,
+    itemsProcessed: record.itemsProcessed,
+    maxItems: record.maxItems,
   };
 }
 

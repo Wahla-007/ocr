@@ -3,34 +3,47 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 body {
-  background-color: #020617;
-  color: #f8fafc;
+  background-color: #fafafa;
+  color: #09090b;
   min-height: 100vh;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Sleek Scrollbar */
+html.dark body {
+  background-color: #09090b;
+  color: #f4f4f5;
+}
+
+/* Minimalist Clean Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #a1a1aa;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
 .scrollbar-none::-webkit-scrollbar {

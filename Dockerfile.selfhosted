@@ -1,0 +1,58 @@
+# OpenOCR Standalone Self-Hosted Appliance
+# Pure CPU, Zero-Cloud Dependencies, Air-Gapped Capable
+# Multi-stage lightweight build
+
+FROM python:3.11-slim AS base
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    OPENOCR_SELF_HOSTED=true \
+    ONNXRUNTIME_EXECUTION_PROVIDERS="CPUExecutionProvider" \
+    PORT=8000
+
+# Install essential native libraries for PyMuPDF and OpenCV headless
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy core engine, schemas, and provider packages
+COPY providers/ /app/providers/
+COPY apps/api/ /app/apps/api/
+COPY apps/worker/ /app/apps/worker/
+COPY prompts/ /app/prompts/
+COPY schemas/ /app/schemas/
+COPY extract_cli.py /app/extract_cli.py
+
+# Install python dependencies for pure local CPU execution
+RUN pip install --no-cache-dir \
+    pymupdf \
+    rapidocr-onnxruntime \
+    pillow \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    pydantic-settings \
+    python-multipart \
+    python-dotenv \
+    httpx
+
+# Install provider modules
+RUN pip install --no-cache-dir -e /app/providers
+RUN pip install --no-cache-dir -e /app/apps/api
+
+# Create runtime directories for data & upload cache
+RUN mkdir -p /app/data /app/temp && chmod -R 777 /app/data /app/temp
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+
+# Launch self-hosted API server with pure local CPU fallback
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
