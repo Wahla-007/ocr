@@ -185,45 +185,85 @@ class LightweightSpatialInvoiceExtractor:
         boxes.sort(key=lambda b: (b.y0, b.x0))
 
         result = {
-            "supplier": None,
-            "address": None,
-            "customer": None,
-            "customer_address": None,
+            # Core Identifiers
             "invoice_number": None,
+            "order_number": None,
             "po_number": None,
             "invoice_date": None,
             "invoice_due_date": None,
+            "billing_period": None,
+            "payment_terms": None,
             "currency": "EUR",
+
+            # Issuer / Supplier Information
+            "supplier": None,
+            "supplier_legal_entity": None,
+            "address": None,
+            "supplier_address": None,
+            "supplier_vat_id": None,
+
+            # Customer & Multi-Party Delivery Information
+            "customer": None,
+            "customer_address": None,
+            "sold_to": None,
+            "bill_to": None,
+            "service_usage_address": None,
+            "customer_vat_id": None,
+
+            # Financial Breakdown
+            "charges": None,
+            "discounts": None,
+            "credits": None,
             "total_untaxed": None,
             "tax_amount": None,
+            "vat_type": None,
             "total_amount": None,
+
+            # Products & Line Items
+            "product": None,
             "lines": [],
+
+            # Payment & Support
+            "payment_instructions": None,
+            "support_url": None,
         }
 
         # Currency detection
         for b in boxes:
-            if "€" in b.text or "EUR" in b.text:
+            t_upper = b.text.upper()
+            if "€" in b.text or "EUR" in t_upper:
                 result["currency"] = "EUR"
                 break
-            elif "$" in b.text or "USD" in b.text:
+            elif "$" in b.text or "USD" in t_upper:
                 result["currency"] = "USD"
                 break
-            elif "£" in b.text or "GBP" in b.text:
+            elif "£" in b.text or "GBP" in t_upper:
                 result["currency"] = "GBP"
                 break
+            elif "₹" in b.text or "INR" in t_upper:
+                result["currency"] = "INR"
+                break
 
-        # 1. INVOICE NUMBER (e.g. FA02/2015/020059, INV/01/2015/074320, FACTU/2015/02/0050)
+        # 1. INVOICE NUMBER (e.g. E05005AE1P, FA02/2015/020059, INV/01/2015/074320, FACTU/2015/02/0050)
         for b in boxes:
-            m = re.search(r"(?i)\b(?:INV|FA|FAQ\d?|FAC|FACTU)[0-9A-Z/_-]*\d+[0-9A-Z/_-]*\b", b.text)
+            # Inline pattern e.g. "Invoice Number: E05005AE1P" or "Facture: FA02/2015/020059"
+            m = re.search(r"(?i)\b(?:invoice\s*number|n[°o%]?\s*de\s*facture|num[eé]ro\s*facture)\s*[:#\s-]*([A-Za-z0-9/_-]*\d+[A-Za-z0-9/_-]*)", b.text)
             if m:
-                cand = m.group(0).strip(" -:#|")
-                if not re.match(r"(?i)^(?:FACTURE|INVOICE|FACTURATION.*)$", cand) and any(c.isdigit() for c in cand):
+                cand = m.group(1).strip(" -:#|")
+                if not re.match(r"(?i)^(?:FACTURE|INVOICE|DATE|MONTANT|FACTURATION.*)$", cand) and any(c.isdigit() for c in cand):
                     result["invoice_number"] = cand
                     break
-            m2 = re.search(r"(?i)\b(?:facture|invoice|n[°o%]?\s*de\s*facture)\s*[:#\s-]*([A-Za-z0-9/_-]*\d+[A-Za-z0-9/_-]*)", b.text)
-            if m2 and not result["invoice_number"]:
-                cand = m2.group(1).strip()
-                if not re.match(r"(?i)^(?:FACTURE|INVOICE|DATE|MONTANT|FACTURATION.*)$", cand) and any(c.isdigit() for c in cand):
+            # Standalone label with value to the right
+            if re.match(r"(?i)^\s*(?:invoice\s*number|facture\s*n[°o%]?|n[°o%]?\s*facture)\s*[:#\s-]*$", b.text):
+                cand = self._find_text_to_right(b, boxes)
+                if cand and any(c.isdigit() for c in cand):
+                    result["invoice_number"] = cand.split()[0]
+                    break
+            # Known prefixed patterns e.g. FA02/2015..., INV/..., FACTU/...
+            m_pre = re.search(r"(?i)\b(?:INV|FA|FAQ\d?|FAC|FACTU)[0-9A-Z/_-]*\d+[0-9A-Z/_-]*\b", b.text)
+            if m_pre and not result["invoice_number"]:
+                cand = m_pre.group(0).strip(" -:#|")
+                if not re.match(r"(?i)^(?:FACTURE|INVOICE|FACTURATION.*)$", cand) and any(c.isdigit() for c in cand):
                     result["invoice_number"] = cand
 
         # 2. DATES & PO NUMBER
@@ -340,7 +380,207 @@ class LightweightSpatialInvoiceExtractor:
         # 5. LINE ITEMS
         self._extract_line_items(boxes, result)
 
+        # 6. ENTERPRISE METADATA (Products, Order Details, VAT IDs, Multi-Party Addresses)
+        self._extract_enterprise_fields(boxes, result)
+
         return result
+
+    def _find_text_to_right(self, label_box: OCRBox, boxes: list[OCRBox], max_dx: float = 650.0) -> str | None:
+        candidates = []
+        for b in boxes:
+            if b == label_box:
+                continue
+            if b.x0 >= label_box.x1 - 15 and b.x0 <= label_box.x1 + max_dx:
+                if abs(b.cy - label_box.cy) <= max(label_box.height, b.height) * 1.2:
+                    candidates.append(b)
+        candidates.sort(key=lambda b: b.x0)
+        if candidates:
+            return " ".join(c.text for c in candidates).strip()
+        return None
+
+    def _extract_enterprise_fields(self, boxes: list[OCRBox], result: dict[str, Any]):
+        # 1. VAT IDs & Tax Registration
+        for b in boxes:
+            t = b.text
+            # Look for VAT IDs e.g. GB976525380, IE8256796U, FR12345678901
+            m_vat = re.search(r"(?i)\b(?:VAT\s*(?:ID|Reg\s*No\.?|Registration\s*No\.?)|TVA|N[°o]\s*TVA)\s*[:#\s-]*([A-Z]{2}[0-9A-Z]{8,12})\b", t)
+            if m_vat:
+                vat_val = m_vat.group(1).strip()
+                if b.y0 > 1400 or b.y0 < 300:
+                    if not result["supplier_vat_id"]:
+                        result["supplier_vat_id"] = vat_val
+                else:
+                    if not result["customer_vat_id"]:
+                        result["customer_vat_id"] = vat_val
+            else:
+                if re.match(r"(?i)^\s*(?:VAT\s*ID|VAT\s*Reg\s*No\.?|TVA)\s*[:#\s-]*$", t):
+                    vat_cand = self._find_text_to_right(b, boxes)
+                    if vat_cand:
+                        m_clean = re.search(r"\b([A-Z]{2}[0-9A-Z]{8,12})\b", vat_cand)
+                        if m_clean:
+                            val = m_clean.group(1)
+                            if b.y0 > 1400:
+                                result["supplier_vat_id"] = val
+                            else:
+                                result["customer_vat_id"] = val
+
+            # VAT Type / Mechanism (e.g. Reverse Charge, Autoliquidation, Exempt)
+            if re.search(r"(?i)\b(reverse\s*charge|autoliquidation|exempte?|exon[eé]r[eé])\b", t):
+                m_type = re.search(r"(?i)\b(reverse\s*charge|autoliquidation|exempte?|exon[eé]r[eé])\b", t)
+                result["vat_type"] = m_type.group(0).title()
+
+        # 2. Order Details: Product, Order Number, Billing Period, Payment Terms
+        for b in boxes:
+            t = b.text
+            # Product
+            m_prod = re.search(r"(?i)^\s*product\s*[:#\s-]+\s*(.+)", t)
+            if m_prod and not result["product"]:
+                result["product"] = m_prod.group(1).strip()
+            elif re.match(r"(?i)^\s*product\s*[:#\s-]*$", t) and not result["product"]:
+                cand = self._find_text_to_right(b, boxes)
+                if cand:
+                    result["product"] = cand
+
+            # Order Number / ID / GUID
+            m_ord = re.search(r"(?i)^\s*order\s*(?:number|no\.?|id|#)\s*[:#\s-]+\s*([0-9a-zA-Z-]+)", t)
+            if m_ord and not result["order_number"]:
+                result["order_number"] = m_ord.group(1).strip()
+            elif re.match(r"(?i)^\s*order\s*(?:number|no\.?|id|#)\s*[:#\s-]*$", t) and not result["order_number"]:
+                cand = self._find_text_to_right(b, boxes)
+                if cand:
+                    result["order_number"] = cand.split()[0] if cand else None
+
+            # Billing Period: e.g. 28/01/2017 - 27/01/2018
+            m_period = re.search(r"(?i)^\s*billing\s*period\s*[:#\s-]+\s*(.+)", t)
+            if m_period and not result["billing_period"]:
+                result["billing_period"] = m_period.group(1).strip()
+            elif re.match(r"(?i)^\s*billing\s*period\s*[:#\s-]*$", t) and not result["billing_period"]:
+                cand = self._find_text_to_right(b, boxes)
+                if cand:
+                    result["billing_period"] = cand
+
+            # Payment Terms: e.g. Net 30, Net 60, 30 days
+            m_terms = re.search(r"(?i)^\s*payment\s*terms?\s*[:#\s-]+\s*(.+)", t)
+            if m_terms and not result["payment_terms"]:
+                result["payment_terms"] = m_terms.group(1).strip()
+            elif re.match(r"(?i)^\s*payment\s*terms?\s*[:#\s-]*$", t) and not result["payment_terms"]:
+                cand = self._find_text_to_right(b, boxes)
+                if cand:
+                    result["payment_terms"] = cand
+
+            # Customer PO Number
+            m_cpo = re.search(r"(?i)^\s*customer\s*po\s*(?:number|no\.?|#)?\s*[:#\s-]+\s*([A-Za-z0-9_-]+)", t)
+            if m_cpo and not result["po_number"]:
+                result["po_number"] = m_cpo.group(1).strip()
+            elif re.match(r"(?i)^\s*customer\s*po\s*(?:number|no\.?|#)?\s*[:#\s-]*$", t) and not result["po_number"]:
+                cand = self._find_text_to_right(b, boxes)
+                if cand:
+                    result["po_number"] = cand.split()[0]
+
+            # Payment Instructions
+            if re.search(r"(?i)\bpayment\s*instructions?\b", t):
+                cand = re.sub(r"(?i)^.*payment\s*instructions?\s*[:#\s-]*", "", t).strip()
+                if not cand:
+                    cand = self._find_text_to_right(b, boxes, max_dx=900)
+                if cand:
+                    result["payment_instructions"] = cand
+
+            # Support URL
+            m_url = re.search(r"(https?://[^\s)]+)", t)
+            if m_url and not result["support_url"]:
+                result["support_url"] = m_url.group(1)
+
+        # 3. Billing Summary (Charges, Discounts, Credits)
+        for b in boxes:
+            t = b.text.lower().strip()
+            if any(t == k or t.startswith(k) for k in ["charges", "gross amount", "frais"]):
+                if result["charges"] is None:
+                    val = self._find_value(b, boxes)
+                    if val is not None:
+                        result["charges"] = val
+                        if result["total_untaxed"] is None:
+                            result["total_untaxed"] = val
+            elif any(t == k or t.startswith(k) for k in ["discounts", "discount", "remise", "rabais"]):
+                if result["discounts"] is None:
+                    val = self._find_value(b, boxes)
+                    if val is not None:
+                        result["discounts"] = val
+            elif any(t == k or t.startswith(k) for k in ["credits", "credit", "avoir"]):
+                if result["credits"] is None:
+                    val = self._find_value(b, boxes)
+                    if val is not None:
+                        result["credits"] = val
+
+        # 4. Multi-party structured addresses (Sold-To, Bill-To, Service Usage Address)
+        sold_to_box = None
+        bill_to_box = None
+        service_box = None
+
+        for b in boxes:
+            t = b.text.lower().strip()
+            if t in ["sold-to", "sold to", "vendu a", "vendu à"]:
+                sold_to_box = b
+            elif t in ["bill-to", "bill to", "facture a", "facturé a", "facture à", "facturé à"]:
+                bill_to_box = b
+            elif t in ["service usage address", "ship-to", "ship to", "adresse de livraison"]:
+                service_box = b
+
+        def _gather_column_lines(header_box: OCRBox) -> str | None:
+            if not header_box:
+                return None
+            col_boxes = []
+            for b in boxes:
+                if b == header_box:
+                    continue
+                if header_box.y1 <= b.y0 <= header_box.y1 + 350 and abs(b.x0 - header_box.x0) < 120:
+                    if any(k in b.text.lower() for k in ["order details", "billing summary", "description", "details"]):
+                        continue
+                    col_boxes.append(b)
+            col_boxes.sort(key=lambda b: b.y0)
+            if col_boxes:
+                return ", ".join(c.text for c in col_boxes)
+            return None
+
+        if sold_to_box:
+            result["sold_to"] = _gather_column_lines(sold_to_box)
+            if not result["customer"] and result["sold_to"]:
+                result["customer"] = result["sold_to"].split(",")[0].strip()
+                result["customer_address"] = result["sold_to"]
+
+        if bill_to_box:
+            result["bill_to"] = _gather_column_lines(bill_to_box)
+            if not result["customer"] and result["bill_to"]:
+                result["customer"] = result["bill_to"].split(",")[0].strip()
+                result["customer_address"] = result["bill_to"]
+
+        if service_box:
+            result["service_usage_address"] = _gather_column_lines(service_box)
+
+        # 5. Supplier / Legal entity in footer / header
+        for b in boxes:
+            t = b.text
+            if "Microsoft Ireland Operations" in t or "Ireland Operations Ltd" in t:
+                result["supplier_legal_entity"] = t.strip()
+                result["supplier"] = result["supplier"] or "Microsoft"
+                result["supplier_address"] = result["supplier_address"] or t.strip()
+                result["address"] = result["address"] or t.strip()
+            elif re.search(r"(?i)\b(operations\s*ltd|gmbh|s\.?a\.?r\.?l\.?|corporation|inc\.)\b", t) and (b.y0 > 1600 or b.y0 < 300):
+                if not result["supplier_legal_entity"]:
+                    result["supplier_legal_entity"] = t.strip()
+
+        # 6. Ensure product details are attached to line items if table is a service summary
+        if result["product"] and len(result["lines"]) == 0:
+            price_val = result["charges"] or result["total_untaxed"] or result["total_amount"]
+            result["lines"].append({
+                "description": result["product"],
+                "quantity": 1.0,
+                "uom": "Subscription" if "service" in str(result["product"]).lower() else "Unit",
+                "price": price_val,
+                "sub_total": price_val,
+                "tax": result["vat_type"] or "0.0%",
+                "billing_period": result["billing_period"],
+                "order_number": result["order_number"],
+            })
 
     def _find_value(self, label_box: OCRBox, boxes: list[OCRBox]) -> float | None:
         val = self._find_value_to_right(label_box, boxes)
