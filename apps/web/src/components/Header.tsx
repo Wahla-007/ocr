@@ -22,6 +22,7 @@ interface HeaderProps {
   setApiKey: (key: string) => void;
   creditsBalance: number;
   onGoToUpload?: () => void;
+  onOpenDeveloperModal?: (tab?: "quickstart" | "keys" | "pricing" | "endpoints") => void;
 }
 
 export function Header({
@@ -32,6 +33,7 @@ export function Header({
   setApiKey,
   creditsBalance,
   onGoToUpload,
+  onOpenDeveloperModal,
 }: HeaderProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [tempUrl, setTempUrl] = useState(apiUrl);
@@ -69,20 +71,38 @@ export function Header({
                 <FileText className="w-3.5 h-3.5" />
                 <span>OCR</span>
               </button>
-              <a href="#api" className="hover:text-white transition-colors">
+              <button
+                onClick={() => onOpenDeveloperModal?.("quickstart")}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
                 API Doc
-              </a>
-              <a href="#pricing" className="hover:text-white transition-colors">
-                Pricing
-              </a>
-              <a href="#self-hosted" className="hover:text-white transition-colors">
+              </button>
+              <button
+                onClick={() => onOpenDeveloperModal?.("pricing")}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Pricing ($0.001)
+              </button>
+              <button
+                onClick={() => onOpenDeveloperModal?.("endpoints")}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
                 Self-hosted
-              </a>
+              </button>
             </nav>
           </div>
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-3">
+            {/* Developer API Quick Action */}
+            <button
+              onClick={() => onOpenDeveloperModal?.("quickstart")}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors cursor-pointer"
+            >
+              <Key className="w-3 h-3" />
+              <span>API ($0.001)</span>
+            </button>
+
             {/* Live Backend Connection Indicator */}
             <div
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
@@ -102,13 +122,14 @@ export function Header({
             </div>
 
             {/* Credit Ledger Pill */}
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-900 border border-slate-800 text-slate-300"
-              title="Calculated from append-only usage ledger"
+            <button
+              onClick={() => onOpenDeveloperModal?.("keys")}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors cursor-pointer"
+              title="Click to view API usage, credits, and pricing"
             >
               <span className="text-emerald-400 font-bold">{creditsBalance}</span>
               <span className="text-slate-500">credits</span>
-            </div>
+            </button>
 
             {/* Settings Icon */}
             <button

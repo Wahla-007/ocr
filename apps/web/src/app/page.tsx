@@ -6,6 +6,7 @@ import { DropZone } from "../components/DropZone";
 import { PipelineStepper } from "../components/PipelineStepper";
 import { DocumentViewer } from "../components/DocumentViewer";
 import { ResultsPanel } from "../components/ResultsPanel";
+import { DeveloperModal } from "../components/DeveloperModal";
 import {
   ExtractionResult,
   PipelineProgress,
@@ -22,7 +23,9 @@ export default function PlaygroundPage() {
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [apiKey, setApiKey] = useState(DEFAULT_API_KEY);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
-  const [creditsBalance, setCreditsBalance] = useState(100);
+  const [creditsBalance, setCreditsBalance] = useState(10000);
+  const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
+  const [developerModalInitialTab, setDeveloperModalInitialTab] = useState<"quickstart" | "keys" | "pricing" | "endpoints">("quickstart");
 
   // Active Document & Extraction State (null initially: upload-only first screen)
   const [activeFileName, setActiveFileName] = useState<string>("");
@@ -139,6 +142,10 @@ export default function PlaygroundPage() {
         onGoToUpload={() => {
           setResult(null);
           setActiveFileName("");
+        }}
+        onOpenDeveloperModal={(tab) => {
+          if (tab) setDeveloperModalInitialTab(tab);
+          setIsDeveloperModalOpen(true);
         }}
       />
 
@@ -285,10 +292,9 @@ export default function PlaygroundPage() {
                 Product
               </p>
               <ul className="space-y-1.5">
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Products</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Playground</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Self-hosted</a></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("quickstart"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">API Playground</button></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("pricing"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Pricing ($0.001)</button></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("endpoints"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Self-hosted</button></li>
               </ul>
             </div>
             <div className="space-y-2.5">
@@ -296,10 +302,10 @@ export default function PlaygroundPage() {
                 Developers
               </p>
               <ul className="space-y-1.5">
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Quickstart</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Streaming</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Rate limits</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Errors</a></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("quickstart"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Quickstart Guide</button></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("endpoints"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">API Endpoints</button></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("keys"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">API Keys & Balance</button></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("pricing"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Cost Calculator</button></li>
               </ul>
             </div>
             <div className="space-y-2.5">
@@ -309,7 +315,7 @@ export default function PlaygroundPage() {
               <ul className="space-y-1.5">
                 <li><a href="#" className="hover:text-slate-300 transition-colors">Contact us</a></li>
                 <li><a href="#" className="hover:text-slate-300 transition-colors">Support</a></li>
-                <li><a href="#" className="hover:text-slate-300 transition-colors">Create an account</a></li>
+                <li><button onClick={() => { setDeveloperModalInitialTab("keys"); setIsDeveloperModalOpen(true); }} className="hover:text-slate-300 transition-colors text-left cursor-pointer">Create API Key</button></li>
               </ul>
             </div>
             <div className="space-y-2.5">
@@ -327,7 +333,7 @@ export default function PlaygroundPage() {
           </div>
 
           <div className="pt-6 border-t border-slate-900/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
-            <p>&copy; 2026 Deepsearch AI &bull; Prices Include GST</p>
+            <p>&copy; 2026 OpenOCR &bull; Commercial Document Intelligence at $0.001 / page</p>
             <div className="flex items-center gap-4 text-slate-600">
               <span>Universal Two-Stage Pipeline</span>
               <span>Docling 1.0</span>
@@ -335,6 +341,16 @@ export default function PlaygroundPage() {
           </div>
         </div>
       </footer>
+
+      {/* Developer API & Pricing Modal */}
+      <DeveloperModal
+        isOpen={isDeveloperModalOpen}
+        onClose={() => setIsDeveloperModalOpen(false)}
+        apiKey={apiKey}
+        setApiKey={setApiKey}
+        creditsBalance={creditsBalance}
+        setCreditsBalance={setCreditsBalance}
+      />
     </div>
   );
 }
