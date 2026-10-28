@@ -14,7 +14,8 @@ import { Button } from "../components/ui/Button";
 import { Sliders, ShieldCheck, ArrowRight, Layers, Sparkles, Check } from "lucide-react";
 
 export default function PlaygroundPage() {
-  const [activeFileName, setActiveFileName] = useState<string>("commercial_invoice_sample.pdf");
+  const [activeSampleId, setActiveSampleId] = useState<string>("clean-invoice");
+  const [activeFileName, setActiveFileName] = useState<string>("NS-1042_Northstar_Studio.pdf");
   const [result, setResult] = useState<ExtractionResult | null>(SAMPLE_DOCUMENTS[0].result as any);
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export default function PlaygroundPage() {
   const [itemsProcessed, setItemsProcessed] = useState(1);
 
   const handleFileSelected = async (file: File) => {
+    setActiveSampleId("");
     setActiveFileName(file.name);
     setIsProcessing(true);
     setSelectedFieldKey(null);
@@ -57,7 +59,8 @@ export default function PlaygroundPage() {
   };
 
   const handleSampleSelected = (sample: any) => {
-    setActiveFileName(sample.title);
+    setActiveSampleId(sample.id);
+    setActiveFileName(sample.fileName || sample.title);
     setResult(sample.result);
     setUploadedPreviewUrl(null);
     setSelectedFieldKey(null);
@@ -111,6 +114,7 @@ export default function PlaygroundPage() {
           isProcessing={isProcessing}
           outputFormat={outputFormat}
           setOutputFormat={setOutputFormat}
+          activeSampleId={activeSampleId}
         />
 
         {/* Split View: Left Light Table Document Viewer / Right Structured Results */}

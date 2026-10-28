@@ -12,6 +12,7 @@ interface DropZoneProps {
   isProcessing: boolean;
   outputFormat: "json" | "markdown" | "text";
   setOutputFormat: (format: "json" | "markdown" | "text") => void;
+  activeSampleId?: string;
 }
 
 export function DropZone({
@@ -20,6 +21,7 @@ export function DropZone({
   isProcessing,
   outputFormat,
   setOutputFormat,
+  activeSampleId,
 }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,19 +125,32 @@ export function DropZone({
           <span className="text-[11px] text-[var(--ink-muted)]">Zero selection required</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {SAMPLE_DOCUMENTS.map((sample) => (
-            <button
-              key={sample.id}
-              type="button"
-              disabled={isProcessing}
-              onClick={() => onSampleSelected && onSampleSelected(sample)}
-              className="px-2.5 py-1.5 rounded-sm border border-[var(--line-strong)] bg-[var(--surface-base)] hover:border-[var(--signal)] hover:bg-[var(--surface-raised)] transition-colors text-left font-mono text-xs text-[var(--ink-primary)] flex flex-col justify-between disabled:opacity-40"
-            >
-              <span className="font-semibold truncate">{sample.title}</span>
-              <span className="text-[10px] text-[var(--ink-muted)] capitalize">{sample.docType.replace("_", " ")}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {SAMPLE_DOCUMENTS.map((sample) => {
+            const isActive = activeSampleId === sample.id;
+            return (
+              <button
+                key={sample.id}
+                type="button"
+                disabled={isProcessing}
+                onClick={() => onSampleSelected && onSampleSelected(sample)}
+                className={`px-2.5 py-1.5 rounded-sm border transition-all text-left font-mono text-xs flex flex-col justify-between disabled:opacity-40 cursor-pointer ${
+                  isActive
+                    ? "border-[var(--signal)] bg-[var(--signal-subtle)] text-[var(--signal)] font-bold shadow-subtle ring-1 ring-[var(--signal)]"
+                    : "border-[var(--line-strong)] bg-[var(--surface-base)] text-[var(--ink-primary)] hover:border-[var(--signal)] hover:bg-[var(--surface-raised)]"
+                }`}
+              >
+                <span className="font-semibold truncate">{sample.title}</span>
+                <span
+                  className={`text-[10px] capitalize ${
+                    isActive ? "text-[var(--signal)]/80" : "text-[var(--ink-muted)]"
+                  }`}
+                >
+                  {sample.docType.replace("_", " ")}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
