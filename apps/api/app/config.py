@@ -82,7 +82,17 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_HOST: str = "0.0.0.0"
     API_SECRET_KEY: str = "change-me-to-a-secure-random-secret-in-production-32-chars-min"
+    AUTH_PASSWORD_PEPPER: str = ""
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    NEXT_PUBLIC_APP_URL: str = "http://localhost:3000"
+
+    # Billing & Safepay Gateway Settings
+    BILLING_ENABLED: bool = True
+    PAYMENT_PROVIDER: str = "safepay"  # 'safepay' | 'payfast'
+    SAFEPAY_ENV: str = "sandbox"  # 'sandbox' | 'production'
+    SAFEPAY_API_KEY: str = "sec_sandbox_test_key_openocr"
+    SAFEPAY_V1_SECRET: str = "sec_v1_sandbox_openocr"
+    SAFEPAY_WEBHOOK_SECRET: str = "whsec_sandbox_openocr_test_secret_12345"
 
     POSTGRES_USER: str = "openocr"
     POSTGRES_PASSWORD: str = "openocr_secure_pass"

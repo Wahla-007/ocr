@@ -8,7 +8,12 @@ from app.main import app
 from httpx import ASGITransport, AsyncClient
 from worker.tasks import process_document_job
 
-SAMPLE_PDF_PATH = Path("tests/samples/clean_invoice.pdf")
+_candidates = [
+    Path("tests/samples/clean_invoice.pdf"),
+    Path(__file__).resolve().parents[3] / "tests" / "samples" / "clean_invoice.pdf",
+    Path("../../tests/samples/clean_invoice.pdf"),
+]
+SAMPLE_PDF_PATH = next((p for p in _candidates if p.exists()), Path("tests/samples/clean_invoice.pdf"))
 if SAMPLE_PDF_PATH.exists():
     with open(SAMPLE_PDF_PATH, "rb") as _f:
         SAMPLE_PDF_BYTES = _f.read()

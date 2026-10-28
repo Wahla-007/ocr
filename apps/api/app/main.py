@@ -8,7 +8,8 @@ from app.api.v1.health import router as health_router
 from app.config import settings
 from app.errors import APIError, api_error_handler
 from app.logging import logger
-from fastapi import FastAPI, Request
+from app.middleware.security import CSRFProtectionMiddleware, SecurityHeadersMiddleware
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -22,7 +23,30 @@ app = FastAPI(
 
 app.add_exception_handler(APIError, api_error_handler)
 
-# CORS middleware
+
+@app.exception_handler(HTTPException)
+async def generic_http_exception_handler(request: Request, exc: HTTPException):
+    request_id = getattr(request.state, "request_id", "unknown")
+    code = "HTTP_ERROR"
+    message = str(exc.detail)
+    if isinstance(exc.detail, dict):
+        code = exc.detail.get("code", "HTTP_ERROR")
+        message = exc.detail.get("message", str(exc.detail))
+    headers = exc.headers or {}
+    headers["X-Request-ID"] = request_id
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": code, "message": message, "request_id": request_id}},
+        headers=headers,
+    )
+
+# 1. Security Headers (CSP, HSTS, X-Content-Type-Options, Frame-Options)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 2. CSRF Defense Middleware
+app.add_middleware(CSRFProtectionMiddleware)
+
+# 3. CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
