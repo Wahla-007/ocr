@@ -1,260 +1,181 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  FileText,
-  Key,
-  Database,
-  ExternalLink,
-  Settings,
-  X,
   Sun,
   Moon,
-  Zap,
-  CheckCircle2,
-  Server,
+  User as UserIcon,
+  LogOut,
+  CreditCard,
+  Key,
   Layers,
+  FileText,
+  ShieldCheck,
+  Server,
+  BookOpen,
 } from "lucide-react";
-import { DEFAULT_API_KEY, DEFAULT_API_URL } from "../lib/api";
-import { useTheme } from "../lib/theme";
+import { authApi, AuthUser } from "@/lib/auth";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 
 interface HeaderProps {
-  isBackendConnected: boolean;
-  apiUrl: string;
-  setApiUrl: (url: string) => void;
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  creditsBalance: number;
+  creditsBalance?: number;
   itemsProcessed?: number;
   maxItems?: number;
   plan?: string;
-  onGoToUpload?: () => void;
-  onOpenDeveloperModal?: (tab?: "quickstart" | "keys" | "pricing" | "endpoints") => void;
-  onOpenUpgradeModal?: () => void;
 }
 
 export function Header({
-  isBackendConnected,
-  apiUrl,
-  setApiUrl,
-  apiKey,
-  setApiKey,
-  creditsBalance,
+  creditsBalance = 10,
   itemsProcessed = 0,
   maxItems = 5,
   plan = "free",
-  onGoToUpload,
-  onOpenDeveloperModal,
-  onOpenUpgradeModal,
 }: HeaderProps) {
-  const { theme, toggleTheme } = useTheme();
-  const [showSettings, setShowSettings] = useState(false);
-  const [tempUrl, setTempUrl] = useState(apiUrl);
-  const [tempKey, setTempKey] = useState(apiKey);
+  const pathname = usePathname();
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isDark, setIsDark] = useState(false);
 
-  const handleSave = () => {
-    setApiUrl(tempUrl);
-    setApiKey(tempKey);
-    setShowSettings(false);
+  useEffect(() => {
+    // Check initial theme from DOM or system
+    const darkActive = document.documentElement.classList.contains("dark");
+    setIsDark(darkActive);
+
+    authApi.getCurrentUser().then(setCurrentUser).catch(() => setCurrentUser(null));
+  }, [pathname]);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
   };
 
-  const isFreePlan = plan === "free" || !plan.includes("pro");
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      setCurrentUser(null);
+      router.push("/login");
+    } catch {
+      setCurrentUser(null);
+      router.push("/login");
+    }
+  };
+
+  const navLinks = [
+    { href: "/", label: "Light Table" },
+    { href: "/api-platform", label: "Field Manual" },
+    { href: "/pricing", label: "Rate Card" },
+    { href: "/self-hosted", label: "Blueprint" },
+  ];
 
   return (
-    <>
-      <header className="sticky top-0 z-40 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md px-4 sm:px-6 py-2.5 transition-colors">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo & Navigation */}
-          <div className="flex items-center gap-6 sm:gap-8">
-            <button
-              onClick={onGoToUpload}
-              className="flex items-center gap-2.5 text-left hover:opacity-80 transition-opacity cursor-pointer group"
-            >
-              <div className="h-6 w-6 rounded-md bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center font-mono font-bold text-xs">
-                //
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm tracking-tight text-zinc-900 dark:text-white font-sans">
-                  OpenOCR
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900">
-                  v1.2-research
-                </span>
-              </div>
-            </button>
-
-            <nav className="hidden md:flex items-center gap-5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-              <button
-                onClick={onGoToUpload}
-                className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer text-zinc-900 dark:text-white font-semibold flex items-center gap-1.5"
-              >
-                <Layers className="w-3.5 h-3.5 text-zinc-500" />
-                <span>Playground</span>
-              </button>
-              <button
-                onClick={() => onOpenDeveloperModal?.("quickstart")}
-                className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-              >
-                API Reference
-              </button>
-              <button
-                onClick={() => onOpenDeveloperModal?.("endpoints")}
-                className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Server className="w-3 h-3 text-zinc-400" />
-                <span>Self-Hosted</span>
-              </button>
-              <button
-                onClick={() => onOpenDeveloperModal?.("pricing")}
-                className="hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-              >
-                Pricing
-              </button>
-            </nav>
-          </div>
-
-          {/* Right Action Bar */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Plan / Free Meter Indicator */}
-            {isFreePlan ? (
-              <button
-                onClick={onOpenUpgradeModal}
-                className="flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors cursor-pointer"
-                title="Free trial limit: 5 items total, 2 pages per document. Click to upgrade."
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span className="text-zinc-700 dark:text-zinc-300">
-                  Free: <strong className="text-zinc-900 dark:text-white">{itemsProcessed}/{maxItems}</strong>
-                </span>
-                <span className="text-[10px] font-sans font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-full">
-                  Upgrade
-                </span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="font-semibold uppercase text-[11px]">Pro Plan</span>
-              </div>
-            )}
-
-            {/* Backend Status Dot */}
-            <div
-              className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-mono border ${
-                isBackendConnected
-                  ? "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                  : "border-amber-300 dark:border-amber-800/40 text-amber-600 dark:text-amber-400"
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isBackendConnected ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
-                }`}
-              />
-              <span>{isBackendConnected ? "CPU Online" : "Connecting"}</span>
+    <header className="sticky top-0 z-40 w-full border-b border-[var(--line-strong)] bg-[var(--surface-base)]/95 backdrop-blur-[4px] px-4 sm:px-8 py-2.5 transition-colors select-none">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        {/* Brand Logo & Tag */}
+        <div className="flex items-center gap-6 sm:gap-8">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 text-left hover:opacity-85 transition-opacity cursor-pointer group"
+            title="OpenOCR Home"
+          >
+            <div className="h-6 w-6 rounded-sm bg-[var(--ink-primary)] text-[var(--surface-base)] flex items-center justify-center font-mono font-bold text-xs shadow-subtle">
+              //
             </div>
+            <div className="flex items-center gap-2">
+              <span className="font-serif font-bold text-base tracking-tight text-[var(--ink-primary)]">
+                OpenOCR
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm border border-[var(--line-hairline)] text-[var(--ink-muted)] bg-[var(--surface-subtle)]">
+                v1.2
+              </span>
+            </div>
+          </Link>
 
-            {/* Dark / Light Mode Switcher */}
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-              title={`Switch to ${theme === "dark" ? "Light" : "Dark"} mode`}
-              aria-label="Toggle Theme"
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-
-            {/* Developer Settings Icon */}
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-              title="Configure API Key and URL"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-
-            {/* Upgrade CTA Button */}
-            {isFreePlan && (
-              <button
-                onClick={onOpenUpgradeModal}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Go Pro ($9)</span>
-              </button>
-            )}
-          </div>
+          {/* Primary Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3 py-1.5 rounded-sm text-xs font-mono tracking-tight transition-colors ${
+                    active
+                      ? "text-[var(--signal)] font-bold bg-[var(--signal-subtle)] border border-[var(--signal)]"
+                      : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)] border border-transparent"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-      </header>
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5 text-zinc-900 dark:text-zinc-100">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-zinc-500" />
-                <h3 className="font-semibold text-sm">API Configuration</h3>
-              </div>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        {/* Right Session Controls & Theme Toggle */}
+        <div className="flex items-center gap-3">
+          {/* Theme Toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="p-1.5 rounded-sm border border-[var(--line-hairline)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)]"
+            title={isDark ? "Switch to Paper Light Theme" : "Switch to Deep Ink Dark Theme"}
+            aria-label="Toggle visual theme"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
 
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="block font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  API Endpoint Base URL
-                </label>
-                <input
-                  type="text"
-                  value={tempUrl}
-                  onChange={(e) => setTempUrl(e.target.value)}
-                  placeholder={DEFAULT_API_URL}
-                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-500 font-mono text-xs"
-                />
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  Default: Same-origin Next.js API or local FastAPI server
-                </p>
+          {/* User Session Desk */}
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <Link href="/billing">
+                <Button variant="outline" size="xs" leftIcon={<CreditCard className="w-3.5 h-3.5" />}>
+                  <span className="font-mono tabular-nums">{creditsBalance}</span> Credits
+                </Button>
+              </Link>
+
+              <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-[var(--surface-subtle)] border border-[var(--line-hairline)] rounded-sm text-xs font-mono">
+                <UserIcon className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+                <span className="max-w-[120px] truncate text-[var(--ink-primary)]">
+                  {currentUser.email}
+                </span>
+                <Badge variant={currentUser.plan === "pro" ? "signal" : "outline"} className="text-[10px]">
+                  {currentUser.plan.toUpperCase()}
+                </Badge>
               </div>
 
-              <div>
-                <label className="block font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Active API Key
-                </label>
-                <input
-                  type="text"
-                  value={tempKey}
-                  onChange={(e) => setTempKey(e.target.value)}
-                  placeholder={DEFAULT_API_KEY}
-                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-500 font-mono text-xs"
-                />
-                <div className="flex items-center justify-between text-[11px] text-zinc-500 mt-1.5">
-                  <span>Free Trial: `ocr_free_trial12345`</span>
-                  <span>Pro: `ocr_live_pro123456789`</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-200 dark:border-zinc-800">
               <button
-                onClick={() => setShowSettings(false)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                type="button"
+                onClick={handleLogout}
+                className="p-1.5 rounded-sm text-[var(--ink-muted)] hover:text-[var(--semantic-error)] hover:bg-[var(--semantic-error-subtle)] transition-colors focus-visible:outline-none"
+                title="Sign out of OpenOCR session"
+                aria-label="Sign out"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 transition-colors"
-              >
-                Save Changes
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/login">
+                <Button variant="subtle" size="sm">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button variant="primary" size="sm">
+                  Register
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
-      )}
-    </>
+      </div>
+    </header>
   );
 }

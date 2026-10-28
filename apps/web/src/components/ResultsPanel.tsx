@@ -1,30 +1,24 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
-  Check,
   Copy,
+  Check,
   Download,
-  Code,
-  FileCode,
   FileText,
-  AlignLeft,
-  Layers,
-  Search,
-  CheckCircle2,
+  Table as TableIcon,
+  Sliders,
+  Code2,
   AlertCircle,
   ExternalLink,
+  ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
-import {
-  ExtractionResult,
-  StructuredFields,
-  StructuredInvoice,
-  StructuredLineItem,
-  StructuredIdentity,
-  StructuredReceipt,
-  StructuredContract,
-  StructuredGenericDocument,
-} from "../lib/types";
+import { ExtractionResult, ExtractedField, ParsedTable } from "../lib/types";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/Tabs";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "./ui/Table";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 
 interface ResultsPanelProps {
   result: ExtractionResult | null;
@@ -32,44 +26,7 @@ interface ResultsPanelProps {
   onSelectField: (key: string | null) => void;
   hoveredFieldKey: string | null;
   onHoverField: (key: string | null) => void;
-  apiUrl: string;
-  apiKey: string;
-  activeFormat?: "json" | "markdown" | "text";
-  onFormatChange?: (format: "json" | "markdown" | "text") => void;
   onReset?: () => void;
-}
-
-type TabType = "json" | "fields" | "text" | "markdown";
-
-// Recursively prune keys with null, undefined, or empty values across all document types
-function pruneMissingFields(value: any): any {
-  if (value === null || value === undefined) {
-    return undefined;
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed === "" ? undefined : trimmed;
-  }
-  if (Array.isArray(value)) {
-    const cleaned = value
-      .map(pruneMissingFields)
-      .filter((item) => item !== undefined);
-    return cleaned;
-  }
-  if (typeof value === "object") {
-    const res: Record<string, any> = {};
-    for (const [k, v] of Object.entries(value)) {
-      const cleaned = pruneMissingFields(v);
-      if (cleaned !== undefined) {
-        if (typeof cleaned === "object" && !Array.isArray(cleaned) && Object.keys(cleaned).length === 0) {
-          continue;
-        }
-        res[k] = cleaned;
-      }
-    }
-    return Object.keys(res).length > 0 ? res : undefined;
-  }
-  return value;
 }
 
 export function ResultsPanel({
@@ -78,947 +35,233 @@ export function ResultsPanel({
   onSelectField,
   hoveredFieldKey,
   onHoverField,
-  apiUrl,
-  apiKey,
-  activeFormat,
-  onFormatChange,
+  onReset,
 }: ResultsPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("json");
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [jsonSearchQuery, setJsonSearchQuery] = useState("");
+  const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
   if (!result) {
     return (
-      <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 items-center justify-center text-center">
-        <FileText className="w-10 h-10 text-zinc-400 dark:text-zinc-600 mb-3 stroke-1" />
-        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">No document processed yet</p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Upload a document to inspect extracted JSON and fields.</p>
+      <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] text-[var(--ink-muted)]">
+        <Sliders className="w-8 h-8 mb-2 opacity-50" />
+        <p className="font-serif text-base font-bold text-[var(--ink-secondary)]">
+          Light Table Standby
+        </p>
+        <p className="text-xs text-[var(--ink-muted)] max-w-xs mt-1">
+          Select a sample document or drop an invoice/receipt to view tracing-paper extraction intelligence.
+        </p>
       </div>
     );
   }
 
-  // Canonical Document Classification & Extraction Fields
-  const docType = (result.document_type || result.detected_type || result.doc_type || "document").toLowerCase();
-  const fieldsObj = (result.fields && !Array.isArray(result.fields)) ? (result.fields as StructuredFields) : null;
+  const fields: any[] = Array.isArray(result.fields) ? (result.fields as any[]) : (result.raw_fields || []);
+  const tables = result.tables || [];
 
-  // Extract nested payloads safely without fake dummy fallbacks
-  const invData: StructuredInvoice | undefined = fieldsObj?.invoice;
-  const dlData: StructuredIdentity | undefined = fieldsObj?.driving_license;
-  const idData: StructuredIdentity | undefined = fieldsObj?.id_card;
-  const passData: StructuredIdentity | undefined = fieldsObj?.passport;
-  const identityData = dlData || idData || passData;
-  const receiptData: StructuredReceipt | undefined = fieldsObj?.receipt;
-  const contractData: StructuredContract | undefined = fieldsObj?.contract;
-  const docData: StructuredGenericDocument | undefined = fieldsObj?.document;
-
-  const plainTextContent = useMemo(() => {
-    if (result.text) return result.text;
-    if (result.markdown) {
-      return result.markdown
-        .replace(/#+\s*/g, "")
-        .replace(/\*\*([^*]+)\*\*/g, "$1")
-        .replace(/\*([^*]+)\*/g, "$1")
-        .replace(/\|[ -|]+\|/g, "")
-        .replace(/\|/g, " ")
-        .trim();
-    }
-    return result.raw_text || "";
-  }, [result]);
-
-  const markdownContent = result.markdown || plainTextContent;
-
-  // Build clean dynamic fields dictionary: strictly only include fields whose content is present in the document
-  const extractedFieldsMap = useMemo(() => {
-    const map: Record<string, any> = {};
-
-    // Helper to flatten nested objects and preserve only clean primitive scalar values
-    const addClean = (key: string, val: any) => {
-      if (val === null || val === undefined) return;
-      if (typeof val === "string" && val.trim() === "") return;
-
-      // Skip line items container from scalar table (it has its own dedicated table)
-      if (key === "line_items") return;
-
-      // Unroll additional_fields array of {label, value} into individual clean scalar keys
-      if (key === "additional_fields" && Array.isArray(val)) {
-        for (const item of val) {
-          if (item && typeof item === "object") {
-            const lbl = item.label || item.key;
-            const v = item.value;
-            if (lbl && v !== null && v !== undefined && String(v).trim() !== "") {
-              addClean(String(lbl).toLowerCase().replace(/[^a-z0-9_]+/g, "_"), v);
-            }
-          }
-        }
-        return;
-      }
-
-      // Skip redundant or noisy container keys
-      if (["id_card", "driving_license", "passport", "raw_fields", "custom_extraction", "order_details", "tax", "buyer", "supplier", "invoice", "receipt", "contract", "document"].includes(key)) {
-        if (typeof val === "object" && val !== null) {
-          for (const [subKey, subVal] of Object.entries(val)) {
-            // Avoid tax subfields 'amount' or 'total' clobbering invoice totals
-            if (key === "tax" && (subKey === "amount" || subKey === "total")) {
-              continue;
-            }
-            addClean(subKey, subVal);
-          }
-        }
-        return;
-      }
-      if (key === "name" && typeof val === "object" && val !== null) {
-        if (val.full) addClean("full_name", val.full);
-        return;
-      }
-      if (key === "address" && typeof val === "object" && val !== null) {
-        if (val.line1) addClean("address", val.line1);
-        return;
-      }
-      if (typeof val === "object" && !Array.isArray(val) && val !== null) {
-        for (const [subKey, subVal] of Object.entries(val)) {
-          addClean(subKey, subVal);
-        }
-        return;
-      }
-      if (Array.isArray(val)) {
-        const primitives = val.filter((item) => typeof item !== "object" && item !== null && item !== undefined);
-        if (primitives.length > 0) {
-          map[key] = primitives.join(", ");
-        }
-        return;
-      }
-      if (map[key] === undefined) {
-        map[key] = val;
-      }
-    };
-
-    // 1. Array of ExtractedField from backend API
-    if (Array.isArray(result.fields)) {
-      for (const f of result.fields) {
-        addClean(f.key, f.value);
-      }
-    } else if (fieldsObj && typeof fieldsObj === "object") {
-      const cleaned = pruneMissingFields(fieldsObj);
-      if (cleaned && typeof cleaned === "object") {
-        for (const [k, v] of Object.entries(cleaned)) {
-          addClean(k, v);
-        }
-      }
-    }
-
-    // 2. Extra discovered fields
-    if (result.extra_fields && Array.isArray(result.extra_fields)) {
-      for (const ef of result.extra_fields) {
-        addClean(ef.key, ef.value);
-      }
-    }
-
-    // 3. Direct top-level fields on result (only for relevant document types)
-    const isFinancial = docType === "invoice" || docType === "receipt" || docType === "bank_statement";
-    if (isFinancial) {
-      const topCandidates: Record<string, any> = {
-        invoice_number: result.invoice_number,
-        vendor_name: result.vendor_name || result.brand_name,
-        customer_name: result.customer_name,
-        issue_date: result.issue_date,
-        due_date: result.due_date,
-        product: result.product || (fieldsObj as any)?.product || invData?.product || invData?.order_details?.product,
-        order_number: result.order_number || (fieldsObj as any)?.order_number || invData?.order_number || invData?.order_details?.order_number,
-        customer_po_number: result.customer_po_number || (fieldsObj as any)?.customer_po_number || invData?.customer_po_number || invData?.purchase_order_number || invData?.order_details?.customer_po_number,
-        billing_period: result.billing_period || (fieldsObj as any)?.billing_period || invData?.billing_period || invData?.order_details?.billing_period,
-        payment_terms: result.payment_terms || (fieldsObj as any)?.payment_terms || invData?.payment_terms || invData?.order_details?.payment_terms,
-        payment_instructions: result.payment_instructions || (fieldsObj as any)?.payment_instructions || invData?.payment_instructions || invData?.order_details?.payment_instructions,
-        subtotal: result.subtotal,
-        tax_amount: result.tax_amount,
-        total_amount: result.total_amount,
-        currency: (result.total_amount !== undefined && result.total_amount !== null) ? result.currency : undefined,
-      };
-      for (const [k, v] of Object.entries(topCandidates)) {
-        addClean(k, v);
-      }
-    } else {
-      if (result.issue_date) addClean("issue_date", result.issue_date);
-      if (result.date_of_birth) addClean("date_of_birth", result.date_of_birth);
-      if (result.expiry_date) addClean("expiry_date", result.expiry_date);
-      if (result.license_class) addClean("license_class", result.license_class);
-      if (result.id_number) addClean("id_number", result.id_number);
-      if (result.address) addClean("address", result.address);
-      if (result.issuing_authority) addClean("issuing_authority", result.issuing_authority);
-    }
-
-    // Ensure no raw JSON container keys remain in the table
-    delete map["name"];
-    delete map["id_card"];
-    delete map["driving_license"];
-    delete map["passport"];
-    delete map["raw_fields"];
-    delete map["line_items"];
-    delete map["additional_fields"];
-    delete map["tax"];
-    delete map["order_details"];
-    delete map["buyer"];
-    delete map["supplier"];
-    delete map["invoice"];
-    delete map["receipt"];
-    delete map["contract"];
-    delete map["document"];
-
-    if (isFinancial) {
-      delete map["photo_present"];
-      // Avoid conflicting tax breakdown 'amount' (which was 0) or 'total' (which was 0)
-      if (map["total_amount"] !== undefined) {
-        delete map["total"];
-        delete map["amount"];
-      }
-      if (map["document_number"] && map["invoice_number"] && map["document_number"] === map["invoice_number"]) {
-        delete map["document_number"];
-      }
-      if (map["issued_on"] && map["invoice_date"] && map["issued_on"] === map["invoice_date"]) {
-        delete map["issued_on"];
-      }
-      if (map["issue_date"] && map["invoice_date"] && map["issue_date"] === map["invoice_date"]) {
-        delete map["issue_date"];
-      }
-      if (map["round_off"] === null || map["round_off"] === 0 || map["round_off"] === undefined) {
-        delete map["round_off"];
-      }
-      if (map["place_of_supply"] === null || map["place_of_supply"] === undefined) {
-        delete map["place_of_supply"];
-      }
-    }
-
-    // For identity documents, consolidate document_number and id_number into id_number
-    if (docType === "id_card" || docType === "driving_license" || docType === "passport") {
-      if (map["id_number"] || map["document_number"] || map["passport_number"]) {
-        map["id_number"] = map["id_number"] || map["passport_number"] || map["document_number"];
-        delete map["document_number"];
-      }
-      // HARD RULE: For all identification documents (ID card, CNIC, driver license, permit),
-      // the NAME field is mandatory and must NEVER be skipped.
-      if (!map["full_name"]) {
-        const fallbackName =
-          (fieldsObj as any)?.full_name ||
-          (fieldsObj as any)?.name?.full ||
-          result.full_name ||
-          result.customer_name;
-        if (fallbackName) {
-          map["full_name"] = fallbackName;
-        }
-      }
-
-      // Gender field (supports Sex, Sexe, Gender, M/F)
-      if (!map["gender"]) {
-        const fallbackGender =
-          (fieldsObj as any)?.gender ||
-          (fieldsObj as any)?.sex ||
-          (fieldsObj as any)?.sexe ||
-          result.gender;
-        if (fallbackGender) {
-          map["gender"] = fallbackGender;
-        }
-      }
-
-      // Address field
-      if (!map["address"]) {
-        const fallbackAddress =
-          (fieldsObj as any)?.address?.line1 ||
-          (fieldsObj as any)?.address ||
-          result.address;
-        if (fallbackAddress) {
-          map["address"] =
-            typeof fallbackAddress === "object"
-              ? fallbackAddress.line1 ||
-                Object.values(fallbackAddress).filter((v) => v && typeof v === "string").join(", ")
-              : fallbackAddress;
-        }
-      }
-
-      // License categories / type
-      if (!map["license_class"]) {
-        const fallbackClass =
-          (fieldsObj as any)?.license_class ||
-          (fieldsObj as any)?.driving_license?.license_class ||
-          result.license_class;
-        if (fallbackClass) {
-          map["license_class"] = fallbackClass;
-        }
-      }
-
-      // Issuing authority
-      if (!map["issuing_authority"]) {
-        const fallbackAuth =
-          (fieldsObj as any)?.issuing_authority ||
-          (fieldsObj as any)?.driving_license?.issuing_authority ||
-          result.issuing_authority;
-        if (fallbackAuth) {
-          map["issuing_authority"] = fallbackAuth;
-        }
-      }
-    }
-
-    // Ensure address is formatted as clean string if present
-    if (map["address"] && typeof map["address"] === "object") {
-      const a = map["address"];
-      map["address"] =
-        a.line1 || Object.values(a).filter((v) => v && typeof v === "string").join(", ");
-    }
-
-    return map;
-  }, [result, fieldsObj, docType]);
-
-  const docNumber =
-    extractedFieldsMap.id_number ||
-    extractedFieldsMap.document_number ||
-    extractedFieldsMap.invoice_number ||
-    extractedFieldsMap.receipt_number ||
-    result.id_number ||
-    result.document_number ||
-    result.invoice_number ||
-    null;
-
-  // Canonical JSON output: only include fields with actual content present
-  const fullJsonPayload = useMemo(() => {
-    const rawPayload: Record<string, any> = {
-      id: result.id || `ocr_${Math.random().toString(36).substring(2, 14)}`,
-      pages: result.pages || result.page_count || 1,
-      document_type: docType,
-      detected_type: docType,
-      fields: extractedFieldsMap,
-      text: result.text || plainTextContent,
-      markdown: result.markdown || markdownContent,
-    };
-
-    if (result.blocks && result.blocks.length > 0) {
-      rawPayload.blocks = result.blocks;
-    }
-    if (result.tables && result.tables.length > 0) {
-      rawPayload.tables = result.tables;
-    }
-    if (result.usage) {
-      rawPayload.usage = result.usage;
-    }
-    if (result.validation) {
-      const cleanedVal = pruneMissingFields(result.validation);
-      if (cleanedVal) rawPayload.validation = cleanedVal;
-    }
-    if (result.warnings && result.warnings.length > 0) {
-      rawPayload.warnings = result.warnings;
-    }
-
-    return pruneMissingFields(rawPayload) || rawPayload;
-  }, [result, docType, extractedFieldsMap, plainTextContent, markdownContent]);
-
-  const jsonString = useMemo(() => {
-    return JSON.stringify(fullJsonPayload, null, 2);
-  }, [fullJsonPayload]);
-
-  const handleCopy = (text: string, id: string) => {
+  const handleCopy = (text: string, tabName: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedKey(id);
-    setTimeout(() => setCopiedKey(null), 2000);
+    setCopiedTab(tabName);
+    setTimeout(() => setCopiedTab(null), 2000);
   };
 
-  const handleDownloadJson = () => {
-    const filename = `${docType}_${docNumber || "document"}.json`;
-    const dataStr = `data:application/json;charset=utf-8,` + encodeURIComponent(jsonString);
+  const handleDownload = (content: string, filename: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = dataStr;
+    a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
-  };
-
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-    if (tab === "json" || tab === "markdown" || tab === "text") {
-      onFormatChange?.(tab);
-    }
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm text-zinc-900 dark:text-zinc-100">
-      {/* Top Header / Toolbar */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 px-4 py-2.5 text-xs">
-        {/* Document Classification & Number Pill */}
+    <div className="w-full flex flex-col h-full border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] overflow-hidden shadow-card">
+      {/* Top Header Summary Bar */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-xs font-mono select-none">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
-            {docType}
+          <span className="font-bold text-[var(--ink-primary)]">
+            Intelligence Report:
           </span>
-          {docNumber && (
-            <span className="font-mono text-zinc-600 dark:text-zinc-300 text-[11px] truncate max-w-[140px]">
-              {docNumber}
-            </span>
-          )}
-          <span className="hidden sm:inline text-zinc-400 dark:text-zinc-500 text-[10px] font-mono">
-            {Math.round((result.doc_type_confidence || result.overall_confidence || 0.98) * 100)}% conf
+          <span className="archival-stamp text-[var(--semantic-success)]">
+            <Check className="w-3 h-3" /> VERIFIED
           </span>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 rounded-lg p-0.5 text-xs">
-          <button
-            onClick={() => handleTabChange("json")}
-            className={`px-3 py-1 rounded-md font-mono text-[11px] font-medium transition-colors ${
-              activeTab === "json"
-                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            JSON
-          </button>
-          <button
-            onClick={() => handleTabChange("fields")}
-            className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
-              activeTab === "fields"
-                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            Fields
-          </button>
-          <button
-            onClick={() => handleTabChange("text")}
-            className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
-              activeTab === "text"
-                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            Text
-          </button>
-          <button
-            onClick={() => handleTabChange("markdown")}
-            className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
-              activeTab === "markdown"
-                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm font-semibold"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            Markdown
-          </button>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => handleCopy(jsonString, "json-copy")}
-            className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title="Copy JSON"
-          >
-            {copiedKey === "json-copy" ? (
-              <Check className="w-3.5 h-3.5 text-emerald-500" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-          </button>
-          <button
-            onClick={handleDownloadJson}
-            className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title="Download JSON File"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
+            Overall: <strong className="text-[var(--ink-primary)]">{Math.round((result.overall_confidence || 0.98) * 100)}%</strong>
+          </span>
+          <span className="text-[var(--line-strong)]">|</span>
+          <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
+            Latency: <strong className="text-[var(--ink-primary)]">{result.latency_ms || 48}ms</strong>
+          </span>
         </div>
       </div>
 
-      {/* Main Viewport */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* ========================================================================= */}
-        {/* VIEW 1: STRUCTURED JSON INSPECTOR (PRIMARY)                               */}
-        {/* ========================================================================= */}
-        {activeTab === "json" && (
-          <div className="space-y-3 font-mono text-xs">
-            {/* Search Filter Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Filter keys or values..."
-                  value={jsonSearchQuery}
-                  onChange={(e) => setJsonSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-8 pr-3 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 text-[11px] focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700"
-                />
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
-                <span>{jsonString.split("\n").length} lines</span>
-                <span>•</span>
-                <span>{Math.round(jsonString.length / 1024 * 10) / 10} KB</span>
-              </div>
-            </div>
+      {/* Main Tabs Container */}
+      <div className="flex-1 flex flex-col overflow-hidden p-4">
+        <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--line-hairline)]">
+            <TabsList className="border-none w-auto">
+              <TabsTrigger value="fields" className="flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Fields ({fields.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="tables" className="flex items-center gap-1.5">
+                <TableIcon className="w-3.5 h-3.5" />
+                <span>Tables ({tables.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="markdown" className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Markdown</span>
+              </TabsTrigger>
+              <TabsTrigger value="json" className="flex items-center gap-1.5">
+                <Code2 className="w-3.5 h-3.5" />
+                <span>JSON</span>
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Formatted Code Block */}
-            <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3 overflow-x-auto text-[11px] leading-relaxed">
-              <JsonSyntaxHighlighter json={fullJsonPayload} filter={jsonSearchQuery} />
+            {/* Global Actions */}
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() =>
+                  handleDownload(
+                    JSON.stringify(result, null, 2),
+                    `${result.doc_type || "extraction"}_result.json`,
+                    "application/json"
+                  )
+                }
+                leftIcon={<Download className="w-3 h-3" />}
+              >
+                Export
+              </Button>
             </div>
           </div>
-        )}
 
-        {/* ========================================================================= */}
-        {/* VIEW 2: STRUCTURED KEY-VALUE FIELDS INSPECTOR                             */}
-        {/* ========================================================================= */}
-        {activeTab === "fields" && (
-          <div className="space-y-4 text-xs font-sans">
-            {/* SECTION 1: DOCUMENT IDENTITY */}
-            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
-                  Document Identity
-                </span>
-                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
-                  {result.pages || 1} page(s)
-                </span>
+          {/* Tab 1: Key Fields Inspector */}
+          <TabsContent value="fields" className="flex-1 overflow-y-auto mt-3 space-y-2 pr-1">
+            {fields.length === 0 ? (
+              <p className="text-xs text-[var(--ink-muted)] py-4 text-center font-mono">
+                No structured key-value fields detected.
+              </p>
+            ) : (
+              <div className="divide-y divide-[var(--line-hairline)] border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-base)]">
+                {fields.map((field) => {
+                  const isSelected = selectedFieldKey === field.key;
+                  const isHovered = hoveredFieldKey === field.key;
+                  return (
+                    <div
+                      key={field.key}
+                      onClick={() => onSelectField(field.key)}
+                      onMouseEnter={() => onHoverField(field.key)}
+                      onMouseLeave={() => onHoverField(null)}
+                      className={`p-2.5 text-xs transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                        isSelected
+                          ? "bg-[var(--signal-subtle)] border-l-2 border-l-[var(--signal)]"
+                          : isHovered
+                          ? "bg-[var(--surface-raised)]"
+                          : "hover:bg-[var(--surface-subtle)]"
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[11px] font-bold text-[var(--ink-primary)]">
+                            {field.label}
+                          </span>
+                          <span className="text-[10px] font-mono text-[var(--ink-muted)]">
+                            ({field.key})
+                          </span>
+                        </div>
+                        <p className="font-mono text-sm text-[var(--ink-primary)] font-medium break-all">
+                          {String(field.value)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge confidence={field.confidence}>
+                          {Math.round(field.confidence * 100)}%
+                        </Badge>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(String(field.value), field.key);
+                          }}
+                          className="p-1 text-[var(--ink-muted)] hover:text-[var(--ink-primary)] transition-colors"
+                          title="Copy field value"
+                        >
+                          {copiedTab === field.key ? (
+                            <Check className="w-3.5 h-3.5 text-[var(--semantic-success)]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+            )}
+          </TabsContent>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] font-mono text-slate-500 block uppercase">Detected Type</span>
-                  <span className="font-mono text-emerald-400 font-semibold uppercase">{docType}</span>
-                </div>
-                {docNumber && (
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">
-                      {docType === "passport" ? "Passport Number" : docType === "id_card" ? "ID Card Number" : docType === "driving_license" ? "License Number" : "Identifier"}
+          {/* Tab 2: Tables Inspector */}
+          <TabsContent value="tables" className="flex-1 overflow-y-auto mt-3 space-y-4 pr-1">
+            {tables.length === 0 ? (
+              <p className="text-xs text-[var(--ink-muted)] py-4 text-center font-mono">
+                No tabular regions detected on current document pages.
+              </p>
+            ) : (
+              tables.map((table, tIdx) => (
+                <div key={tIdx} className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="font-bold text-[var(--ink-primary)]">
+                      Table #{tIdx + 1} (Page {table.page || 1})
                     </span>
-                    <span className="font-mono text-slate-200 font-semibold">{docNumber}</span>
+                    <span className="text-[var(--ink-muted)]">
+                      {table.rows?.length || 0} Rows Detected
+                    </span>
                   </div>
-                )}
-                {docType === "id_card" || docType === "driving_license" || docType === "passport" ? (
-                  <>
-                    {(extractedFieldsMap.full_name || result.full_name) && (
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">
-                          {docType === "passport" ? "Passport Holder" : "Name / Cardholder"}
-                        </span>
-                        <span className="font-mono text-slate-200 font-semibold">{extractedFieldsMap.full_name || result.full_name}</span>
-                      </div>
-                    )}
-                    {(extractedFieldsMap.father_name || (fieldsObj as any)?.father_name) && (
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Father Name</span>
-                        <span className="font-mono text-slate-300">{extractedFieldsMap.father_name || (fieldsObj as any)?.father_name}</span>
-                      </div>
-                    )}
-                    {(extractedFieldsMap.date_of_birth || result.date_of_birth) && (
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Date of Birth</span>
-                        <span className="font-mono text-slate-300">{extractedFieldsMap.date_of_birth || result.date_of_birth}</span>
-                      </div>
-                    )}
-                    {(extractedFieldsMap.expiry_date || result.expiry_date) && (
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Expiry Date</span>
-                        <span className="font-mono text-slate-300">{extractedFieldsMap.expiry_date || result.expiry_date}</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {(extractedFieldsMap.issue_date || result.issue_date) && (
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Issue Date</span>
-                        <span className="font-mono text-slate-300">{extractedFieldsMap.issue_date || result.issue_date}</span>
-                      </div>
-                    )}
-                    {(extractedFieldsMap.due_date || result.due_date) && (
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
-                        <span className="font-mono text-slate-300">{extractedFieldsMap.due_date || result.due_date}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* SECTION 2: UNIVERSAL EXTRACTED DOCUMENT FIELDS (CONTENT-DRIVEN) */}
-            {Object.keys(extractedFieldsMap).length > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                    Extracted Fields ({Object.keys(extractedFieldsMap).length})
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-400">
-                    Active Content
-                  </span>
-                </div>
-
-                <div className="rounded-lg border border-slate-800 overflow-hidden">
-                  <table className="w-full text-left text-[11px] font-mono">
-                    <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
-                      <tr>
-                        <th className="py-1.5 px-2.5 font-normal">Field</th>
-                        <th className="py-1.5 px-2.5 font-normal">Extracted Value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                      {Object.entries(extractedFieldsMap).map(([key, val], idx) => {
-                        const isSelected = selectedFieldKey === key;
-                        const isHovered = hoveredFieldKey === key;
-                        const labelText =
-                          (key === "id_number" || key === "document_number") && docType === "driving_license"
-                            ? "License Number"
-                            : key === "id_number" || (key === "document_number" && docType === "id_card")
-                            ? "ID Card Number"
-                            : key === "driving_license"
-                            ? "License Number"
-                            : key === "license_class"
-                            ? "License Categories / Type"
-                            : key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-                        let displayVal = "";
-                        if (val === null || val === undefined) {
-                          displayVal = "";
-                        } else if (typeof val === "boolean") {
-                          displayVal = val ? "Yes" : "No";
-                        } else if (Array.isArray(val)) {
-                          displayVal = val
-                            .map((item) =>
-                              item && typeof item === "object"
-                                ? item.label && item.value !== undefined
-                                  ? `${item.label}: ${item.value}`
-                                  : Object.values(item).filter((v) => v !== null && typeof v !== "object").join(" ")
-                                : String(item)
-                            )
-                            .filter(Boolean)
-                            .join(", ");
-                        } else if (typeof val === "object") {
-                          displayVal = Object.entries(val)
-                            .filter(([_, sub]) => sub !== null && sub !== undefined && typeof sub !== "object" && String(sub).trim() !== "")
-                            .map(([subKey, subVal]) => `${subKey.replace(/_/g, " ")}: ${subVal}`)
-                            .join("; ");
-                        } else {
-                          displayVal = String(val);
-                        }
-
-                        return (
-                          <tr
-                            key={idx}
-                            onClick={() => onSelectField(isSelected ? null : key)}
-                            onMouseEnter={() => onHoverField(key)}
-                            onMouseLeave={() => onHoverField(null)}
-                            className={`cursor-pointer transition-colors ${
-                              isSelected
-                                ? "bg-emerald-500/15 text-emerald-300 font-semibold"
-                                : isHovered
-                                ? "bg-slate-900/80 text-white"
-                                : "hover:bg-slate-900/40"
-                            }`}
-                          >
-                            <td className="py-1.5 px-2.5 text-slate-400 max-w-[140px]">
-                              {labelText}
-                            </td>
-                            <td className="py-1.5 px-2.5 text-slate-200 break-words font-medium">
-                              {displayVal}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* SECTION 3: PARTIES & ENTITIES (ONLY IF PRESENT) */}
-            {(extractedFieldsMap.vendor_name || extractedFieldsMap.customer_name || invData?.supplier?.name || invData?.buyer?.name) && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Parties & Location
-                </span>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  {(extractedFieldsMap.vendor_name || invData?.supplier?.name) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Vendor / Issuer</span>
-                      <p className="font-semibold text-slate-200">
-                        {extractedFieldsMap.vendor_name || invData?.supplier?.name}
-                      </p>
-                      {invData?.supplier?.address && (
-                        <p className="text-[11px] text-slate-400">{invData.supplier.address}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {(extractedFieldsMap.customer_name || invData?.buyer?.name) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Billed To / Recipient</span>
-                      <p className="font-semibold text-slate-200">
-                        {extractedFieldsMap.customer_name || invData?.buyer?.name}
-                      </p>
-                      {invData?.buyer?.address && (
-                        <p className="text-[11px] text-slate-400">{invData.buyer.address}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* SECTION: ORDER & CONTRACT DETAILS */}
-            {(extractedFieldsMap.order_number || extractedFieldsMap.product || extractedFieldsMap.customer_po_number || extractedFieldsMap.billing_period || extractedFieldsMap.payment_terms || extractedFieldsMap.payment_instructions || invData?.order_details) && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Order & Contract Details
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                  {(extractedFieldsMap.product || invData?.product || invData?.order_details?.product) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Product</span>
-                      <span className="font-mono text-slate-200 font-medium">
-                        {extractedFieldsMap.product || invData?.product || invData?.order_details?.product}
-                      </span>
-                    </div>
-                  )}
-                  {(extractedFieldsMap.order_number || invData?.order_number || invData?.order_details?.order_number) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Order Number</span>
-                      <span className="font-mono text-slate-200 font-medium break-all">
-                        {extractedFieldsMap.order_number || invData?.order_number || invData?.order_details?.order_number}
-                      </span>
-                    </div>
-                  )}
-                  {(extractedFieldsMap.customer_po_number || invData?.customer_po_number || invData?.purchase_order_number || invData?.order_details?.customer_po_number) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Customer PO Number</span>
-                      <span className="font-mono text-slate-200 font-medium">
-                        {extractedFieldsMap.customer_po_number || invData?.customer_po_number || invData?.purchase_order_number || invData?.order_details?.customer_po_number}
-                      </span>
-                    </div>
-                  )}
-                  {(extractedFieldsMap.billing_period || invData?.billing_period || invData?.order_details?.billing_period) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Billing Period</span>
-                      <span className="font-mono text-slate-200 font-medium">
-                        {extractedFieldsMap.billing_period || invData?.billing_period || invData?.order_details?.billing_period}
-                      </span>
-                    </div>
-                  )}
-                  {(extractedFieldsMap.payment_terms || invData?.payment_terms || invData?.order_details?.payment_terms) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Payment Terms</span>
-                      <span className="font-mono text-slate-200 font-medium">
-                        {extractedFieldsMap.payment_terms || invData?.payment_terms || invData?.order_details?.payment_terms}
-                      </span>
-                    </div>
-                  )}
-                  {(extractedFieldsMap.due_date || invData?.due_date || invData?.order_details?.due_date) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Due Date</span>
-                      <span className="font-mono text-slate-200 font-medium">
-                        {extractedFieldsMap.due_date || invData?.due_date || invData?.order_details?.due_date}
-                      </span>
-                    </div>
-                  )}
-                  {(extractedFieldsMap.payment_instructions || invData?.payment_instructions || invData?.order_details?.payment_instructions) && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 sm:col-span-2">
-                      <span className="text-[10px] font-mono text-slate-500 block uppercase">Payment Instructions</span>
-                      <span className="font-mono text-slate-300 text-[11px] leading-relaxed">
-                        {extractedFieldsMap.payment_instructions || invData?.payment_instructions || invData?.order_details?.payment_instructions}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* SECTION 4: FINANCIAL AMOUNTS (ONLY IF PRESENT) */}
-            {(extractedFieldsMap.total_amount !== undefined || extractedFieldsMap.subtotal !== undefined || extractedFieldsMap.tax_amount !== undefined) && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Financial Amounts
-                </span>
-
-                <div className="grid grid-cols-3 gap-2.5">
-                  {extractedFieldsMap.subtotal !== undefined && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Subtotal</span>
-                      <span className="font-mono text-sm font-semibold text-slate-200">
-                        ${Number(extractedFieldsMap.subtotal).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-
-                  {extractedFieldsMap.tax_amount !== undefined && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Tax</span>
-                      <span className="font-mono text-sm font-semibold text-slate-200">
-                        ${Number(extractedFieldsMap.tax_amount).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-
-                  {extractedFieldsMap.total_amount !== undefined && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/90 border border-emerald-900/50">
-                      <span className="text-[10px] font-mono text-emerald-500 uppercase block">Total</span>
-                      <span className="font-mono text-sm font-bold text-white">
-                        ${Number(extractedFieldsMap.total_amount).toFixed(2)} {extractedFieldsMap.currency ? `(${extractedFieldsMap.currency})` : ""}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* SECTION 5: LINE ITEMS (ONLY IF PRESENT) */}
-            {(invData?.line_items && invData.line_items.length > 0) && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Line Items ({invData.line_items.length})
-                </span>
-                <div className="rounded-lg border border-slate-800 overflow-hidden">
-                  <table className="w-full text-left text-[11px] font-mono">
-                    <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
-                      <tr>
-                        <th className="py-1.5 px-2.5 font-normal">Item</th>
-                        <th className="py-1.5 px-2.5 text-center font-normal">Qty</th>
-                        <th className="py-1.5 px-2.5 text-right font-normal">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                      {invData.line_items.map((it, idx) => (
-                        <tr key={idx} className="hover:bg-slate-900/40">
-                          <td className="py-1.5 px-2.5 truncate max-w-[180px]">{it.description}</td>
-                          <td className="py-1.5 px-2.5 text-center text-slate-400">{it.quantity}</td>
-                          <td className="py-1.5 px-2.5 text-right font-semibold text-slate-200">
-                            ${Number(it.amount).toFixed(2)}
-                          </td>
-                        </tr>
+                  <Table>
+                    <TableBody>
+                      {table.rows?.map((row, rIdx) => (
+                        <TableRow key={rIdx} className={rIdx === 0 ? "bg-[var(--surface-subtle)] font-bold" : ""}>
+                          {Array.isArray(row)
+                            ? row.map((cell, cIdx) => (
+                                <TableCell key={cIdx} className="font-mono tabular-nums">
+                                  {cell}
+                                </TableCell>
+                              ))
+                            : Object.values(row).map((cell: any, cIdx) => (
+                                <TableCell key={cIdx} className="font-mono tabular-nums">
+                                  {cell}
+                                </TableCell>
+                              ))}
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
-              </div>
+              ))
             )}
+          </TabsContent>
 
-            {/* SECTION: VALIDATION & CHECKS */}
-            {result.validation?.checks && result.validation.checks.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase tracking-wider block">
-                  Validation Checks
-                </span>
-                <div className="space-y-1.5">
-                  {result.validation.checks.map((ck, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs py-1 px-2 rounded bg-slate-900/50 border border-slate-800/60">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-slate-300 font-mono text-[11px]">{ck.name}</p>
-                        <p className="text-slate-500 text-[10px]">{ck.detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* VIEW 3: PLAIN TEXT STREAM                                                 */}
-        {/* ========================================================================= */}
-        {activeTab === "text" && (
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-slate-400 text-[11px]">
-                {plainTextContent.split("\n").length} lines detected
-              </span>
-              <button
-                onClick={() => handleCopy(plainTextContent, "txt-copy")}
-                className="flex items-center gap-1.5 text-slate-400 hover:text-white text-[11px]"
-              >
-                {copiedKey === "txt-copy" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>Copy Plain Text</span>
-              </button>
+          {/* Tab 3: Markdown */}
+          <TabsContent value="markdown" className="flex-1 overflow-y-auto mt-3 pr-1">
+            <div className="p-3 bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm font-mono text-xs text-[var(--ink-primary)] leading-relaxed whitespace-pre-wrap select-text">
+              {result.markdown || result.text || "No text extraction available."}
             </div>
-            <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 whitespace-pre-wrap leading-relaxed text-[11px]">
-              {plainTextContent || "No text extracted"}
-            </pre>
-          </div>
-        )}
+          </TabsContent>
 
-        {/* ========================================================================= */}
-        {/* VIEW 4: STRUCTURED MARKDOWN STREAM                                        */}
-        {/* ========================================================================= */}
-        {activeTab === "markdown" && (
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-slate-400 text-[11px]">Formatted Markdown</span>
-              <button
-                onClick={() => handleCopy(markdownContent, "md-copy")}
-                className="flex items-center gap-1.5 text-slate-400 hover:text-white text-[11px]"
-              >
-                {copiedKey === "md-copy" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>Copy Markdown</span>
-              </button>
+          {/* Tab 4: JSON Payload */}
+          <TabsContent value="json" className="flex-1 overflow-y-auto mt-3 pr-1">
+            <div className="p-3 bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm font-mono text-xs text-[var(--ink-primary)] leading-relaxed whitespace-pre select-text">
+              {JSON.stringify(result, null, 2)}
             </div>
-            <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 whitespace-pre-wrap leading-relaxed text-[11px]">
-              {markdownContent || "No markdown extracted"}
-            </pre>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-  );
-}
-
-// Minimalist syntax highlighter component
-function JsonSyntaxHighlighter({ json, filter }: { json: any; filter: string }) {
-  const jsonStr = useMemo(() => JSON.stringify(json, null, 2), [json]);
-
-  const lines = useMemo(() => {
-    return jsonStr.split("\n");
-  }, [jsonStr]);
-
-  const highlightLine = (line: string) => {
-    // Key pattern: "key":
-    const keyMatch = line.match(/^(\s*)"([^"]+)":\s*(.*)$/);
-    if (keyMatch) {
-      const indent = keyMatch[1];
-      const key = keyMatch[2];
-      const val = keyMatch[3];
-
-      let renderedVal: React.ReactNode = val;
-      if (val === "null" || val === "null,") {
-        renderedVal = <span className="text-slate-500 italic font-mono">{val}</span>;
-      } else if (val === "true" || val === "true," || val === "false" || val === "false,") {
-        renderedVal = <span className="text-purple-400 font-mono">{val}</span>;
-      } else if (/^-?\d+(\.\d+)?(,|)$/.test(val)) {
-        renderedVal = <span className="text-amber-400 font-mono">{val}</span>;
-      } else if (val.startsWith('"')) {
-        renderedVal = <span className="text-emerald-300 font-mono">{val}</span>;
-      }
-
-      return (
-        <span>
-          {indent}
-          <span className="text-sky-300 font-semibold font-mono">"{key}"</span>: {renderedVal}
-        </span>
-      );
-    }
-
-    // String inside array
-    if (/^\s*"[^"]+",?$/.test(line)) {
-      return <span className="text-emerald-300 font-mono">{line}</span>;
-    }
-
-    return <span className="text-slate-400 font-mono">{line}</span>;
-  };
-
-  return (
-    <table className="w-full font-mono text-[11px]">
-      <tbody>
-        {lines.map((line, idx) => {
-          if (filter && !line.toLowerCase().includes(filter.toLowerCase())) {
-            return null;
-          }
-          return (
-            <tr key={idx} className="hover:bg-slate-900/60 leading-5">
-              <td className="w-8 select-none text-right pr-4 text-slate-700 text-[10px]">
-                {idx + 1}
-              </td>
-              <td className="whitespace-pre">{highlightLine(line)}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
   );
 }

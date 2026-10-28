@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ZoomIn,
   ZoomOut,
@@ -9,10 +9,14 @@ import {
   EyeOff,
   ChevronLeft,
   ChevronRight,
-  FileText,
   Layers,
+  Shield,
+  FileText,
+  Sliders,
 } from "lucide-react";
 import { ExtractionResult, ExtractedField, ParsedBlock } from "../lib/types";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 
 interface DocumentViewerProps {
   fileName: string;
@@ -34,334 +38,360 @@ export function DocumentViewer({
   uploadedPreviewUrl,
 }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
-  const [showBboxes, setShowBboxes] = useState(true);
-  const [showAllOcrBlocks, setShowAllOcrBlocks] = useState(true);
+  const [showFieldBboxes, setShowFieldBboxes] = useState(true);
+  const [showTableBboxes, setShowTableBboxes] = useState(true);
+  const [showTextBlocks, setShowTextBlocks] = useState(false);
+  const [privacyBlur, setPrivacyBlur] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
 
   const totalPages = result?.page_count || 1;
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.15, 2.0));
+  // Zoom handlers
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.15, 2.2));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.15, 0.6));
   const handleResetZoom = () => setZoom(1);
 
-  // Filter fields on current page that have bboxes
+  // Filter fields on current page
   const fieldList = Array.isArray(result?.fields)
     ? result.fields
     : (result?.raw_fields || []);
-  const pageFields =
-    fieldList.filter(
-      (f) => f.bbox && (f.page === undefined || f.page === currentPage)
-    ) || [];
 
-  // Filter OCR raw blocks on current page
-  const pageBlocks =
-    result?.blocks?.filter(
-      (b) => b.bbox && (b.page === undefined || b.page === currentPage)
-    ) || [];
+  const pageFields = fieldList.filter(
+    (f) => f.bbox && (f.page === undefined || f.page === currentPage)
+  );
 
-  const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number } | null>(null);
+  const pageBlocks = (result?.blocks || []).filter(
+    (b) => b.bbox && (b.page === undefined || b.page === currentPage)
+  );
 
-  const pageSize =
-    result?.page_sizes?.find((p) => p.page === currentPage) ||
-    result?.page_sizes?.[0];
-  const baseWidth = naturalDimensions?.width || pageSize?.width || 595;
-  const baseHeight = naturalDimensions?.height || pageSize?.height || 842;
-  const aspectRatio = baseWidth / Math.max(1, baseHeight);
-
-  const previewSrc = result?.preview_image || uploadedPreviewUrl;
-  const hasPreviewImage = Boolean(previewSrc);
+  const previewSource =
+    result?.preview_image ||
+    uploadedPreviewUrl;
 
   return (
-    <div className="flex flex-col h-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-      {/* Viewer Header / Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 text-xs">
-        <div className="flex items-center gap-2 truncate">
-          <FileText className="w-4 h-4 text-zinc-500 shrink-0" />
-          <span className="font-semibold text-zinc-900 dark:text-white truncate max-w-[200px] sm:max-w-[280px]">
-            {fileName || "Document Preview"}
+    <div className="w-full flex flex-col h-full border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] overflow-hidden shadow-card relative registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br">
+      {/* Top Light Table Control Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-xs font-mono select-none">
+        {/* Document Identifier */}
+        <div className="flex items-center gap-2 max-w-[240px] sm:max-w-xs truncate">
+          <FileText className="w-4 h-4 text-[var(--signal)] shrink-0" />
+          <span className="font-semibold text-[var(--ink-primary)] truncate">
+            {fileName || "inspection_specimen.pdf"}
           </span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0 border border-zinc-200 dark:border-zinc-700/60">
-            {result?.doc_type ? result.doc_type.toUpperCase() : "RAW"}
-          </span>
-          {hasPreviewImage && (
-            <span className="hidden sm:inline px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60">
-              OCR CANVAS
-            </span>
+          {result?.doc_type && (
+            <Badge variant="signal" className="text-[10px]">
+              {result.doc_type.toUpperCase()}
+            </Badge>
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Page navigation */}
+        {/* Tracing Layer & View Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Layer Toggles */}
+          <div className="hidden sm:flex items-center gap-1 pr-2 border-r border-[var(--line-hairline)]">
+            <button
+              type="button"
+              onClick={() => setShowFieldBboxes(!showFieldBboxes)}
+              className={`px-2 py-0.5 rounded-sm text-[11px] border transition-colors ${
+                showFieldBboxes
+                  ? "bg-[var(--signal-subtle)] border-[var(--signal)] text-[var(--signal)] font-bold"
+                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
+              }`}
+              title="Toggle Field Bounding Boxes"
+            >
+              Fields
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTextBlocks(!showTextBlocks)}
+              className={`px-2 py-0.5 rounded-sm text-[11px] border transition-colors ${
+                showTextBlocks
+                  ? "bg-[var(--surface-raised)] border-[var(--line-strong)] text-[var(--ink-primary)] font-bold"
+                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
+              }`}
+              title="Toggle Raw Text Blocks"
+            >
+              Blocks
+            </button>
+          </div>
+
+          {/* Privacy Blur Toggle */}
+          <button
+            type="button"
+            onClick={() => setPrivacyBlur(!privacyBlur)}
+            className={`p-1.5 rounded-sm border transition-colors ${
+              privacyBlur
+                ? "bg-[var(--semantic-warning-subtle)] border-[var(--semantic-warning)] text-[var(--semantic-warning)]"
+                : "border-[var(--line-hairline)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+            }`}
+            title={privacyBlur ? "Disable Privacy Blur" : "Enable Privacy Blur (Screen-share protection)"}
+            aria-label="Toggle Privacy Blur"
+          >
+            {privacyBlur ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Multi-Page Navigation */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 mr-1 text-zinc-700 dark:text-zinc-300">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-[var(--surface-base)] border border-[var(--line-hairline)] rounded-sm">
               <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                type="button"
                 disabled={currentPage <= 1}
-                className="disabled:opacity-30 hover:text-zinc-900 dark:hover:text-white"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="disabled:opacity-30 hover:text-[var(--signal)]"
+                aria-label="Previous Page"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[11px] font-mono px-1">
-                {currentPage} / {totalPages}
+              <span className="tabular-nums text-[11px]">
+                {currentPage}/{totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                type="button"
                 disabled={currentPage >= totalPages}
-                className="disabled:opacity-30 hover:text-zinc-900 dark:hover:text-white"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="disabled:opacity-30 hover:text-[var(--signal)]"
+                aria-label="Next Page"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          {/* Toggle All OCR Blocks vs Fields only */}
-          {pageBlocks.length > 0 && (
-            <button
-              onClick={() => setShowAllOcrBlocks((b) => !b)}
-              className={`p-1.5 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
-                showAllOcrBlocks
-                  ? "bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white"
-                  : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-              title={showAllOcrBlocks ? "Hide OCR Line Boxes" : "Show All OCR Line Boxes"}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span className="hidden md:inline font-mono text-[10px]">Lines</span>
-            </button>
-          )}
-
-          {/* Bbox toggle */}
-          <button
-            onClick={() => setShowBboxes((b) => !b)}
-            className={`p-1.5 rounded-lg border transition-colors ${
-              showBboxes
-                ? "bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white"
-                : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-            title={showBboxes ? "Hide Bounding Boxes" : "Show Bounding Boxes"}
-          >
-            {showBboxes ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-          </button>
-
           {/* Zoom Controls */}
-          <button
-            onClick={handleZoomOut}
-            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 w-9 text-center">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={handleZoomIn}
-            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={handleResetZoom}
-            className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
-            title="Reset Zoom"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
+              title="Zoom Out (-15%)"
+              aria-label="Zoom out"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <span className="tabular-nums text-[11px] w-9 text-center font-bold">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
+              title="Zoom In (+15%)"
+              aria-label="Zoom in"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleResetZoom}
+              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+              title="Reset Zoom to 100%"
+              aria-label="Reset zoom"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Canvas Viewport */}
-      <div className="overflow-auto p-3 sm:p-4 flex flex-col items-center justify-start bg-zinc-100/50 dark:bg-zinc-950/40 select-none">
+      {/* Main Light Table Viewport */}
+      <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center light-table-grid min-h-[460px]">
         <div
-          className="transition-transform duration-150 origin-top max-w-full w-full flex justify-center"
-          style={{ transform: `scale(${zoom})` }}
+          className="relative transition-transform duration-100 ease-out origin-top border border-[var(--line-strong)] bg-white shadow-inspection rounded-sm overflow-hidden"
+          style={{
+            transform: `scale(${zoom})`,
+            maxWidth: "100%",
+            filter: privacyBlur ? "blur(8px)" : "none",
+          }}
         >
-          {/* Document Sheet Canvas */}
-          <div
-            className={`relative rounded-lg shadow-xl overflow-hidden transition-all duration-150 ${
-              hasPreviewImage
-                ? "bg-transparent border border-slate-700/50"
-                : "bg-transparent border-0"
-            }`}
-            style={{
-              width: "100%",
-              maxWidth: hasPreviewImage ? `${Math.min(baseWidth, 640)}px` : "620px",
-              height: "auto",
-              padding: "0px",
-            }}
-          >
-            {/* Visual Document Content Representation */}
-            {hasPreviewImage && previewSrc ? (
-              <div className="relative w-full block">
-                <img
-                  src={previewSrc}
-                  alt={fileName}
-                  onLoad={(e) => {
-                    const img = e.currentTarget;
-                    if (img.naturalWidth && img.naturalHeight) {
-                      setNaturalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-                    }
-                  }}
-                  className="w-full h-auto block select-none pointer-events-none rounded-lg"
-                />
-              </div>
-            ) : (
-              renderDocumentPreview(fileName, result, currentPage)
-            )}
-
-            {/* All OCR Text Line Bboxes (Cyan Overlay) */}
-            {showBboxes &&
-              showAllOcrBlocks &&
-              pageBlocks.map((block, idx) => {
-                const bbox = block.bbox!;
-                const isHovered = hoveredBlockIndex === idx;
-
-                const leftPct = (bbox.x / baseWidth) * 100;
-                const topPct = (bbox.y / baseHeight) * 100;
-                const widthPct = (bbox.width / baseWidth) * 100;
-                const heightPct = (bbox.height / baseHeight) * 100;
-
-                return (
-                  <div
-                    key={`ocr-block-${idx}`}
-                    onMouseEnter={() => setHoveredBlockIndex(idx)}
-                    onMouseLeave={() => setHoveredBlockIndex(null)}
-                    style={{
-                      left: hasPreviewImage ? `${leftPct}%` : `${bbox.x}px`,
-                      top: hasPreviewImage ? `${topPct}%` : `${bbox.y}px`,
-                      width: hasPreviewImage ? `${widthPct}%` : `${bbox.width}px`,
-                      height: hasPreviewImage ? `${heightPct}%` : `${bbox.height}px`,
-                    }}
-                    className={`absolute cursor-pointer transition-all rounded-[2px] border pointer-events-auto z-10 ${
-                      isHovered
-                        ? "border-cyan-400 bg-cyan-400/25 ring-2 ring-cyan-300 z-30"
-                        : "border-sky-500/40 bg-sky-500/10 hover:border-cyan-400 hover:bg-cyan-400/20"
-                    }`}
-                  >
-                    {/* Tooltip with recognized OCR text */}
-                    {isHovered && (
-                      <div className="absolute -top-7 left-0 px-2 py-0.5 rounded text-[10px] font-mono bg-slate-950 text-cyan-300 border border-cyan-500/50 whitespace-nowrap shadow-xl z-40 pointer-events-none">
-                        "{block.text}" ({Math.round(block.confidence * 100)}%)
-                      </div>
-                    )}
+          {previewSource ? (
+            <img
+              src={previewSource}
+              alt={fileName || "Document preview specimen"}
+              className="block max-w-full h-auto select-none pointer-events-none"
+              style={{ maxHeight: "720px" }}
+            />
+          ) : (
+            /* Fallback Clean Specimen Canvas */
+            <div
+              className="w-[520px] h-[680px] bg-white text-zinc-900 p-8 flex flex-col justify-between font-serif border border-zinc-300"
+              style={{ fontFeatureSettings: '"tnum"' }}
+            >
+              <div className="space-y-6">
+                <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">COMMERCIAL INVOICE</h1>
+                    <p className="text-xs font-mono text-zinc-500 mt-0.5">ACME LOGISTICS & ROBOTICS LTD.</p>
                   </div>
-                );
-              })}
+                  <div className="text-right font-mono text-xs">
+                    <p className="font-bold">INV-2026-4092</p>
+                    <p className="text-zinc-500">DATE: 2026-10-24</p>
+                  </div>
+                </div>
 
-            {/* Semantic Field Bounding Box Overlays (Emerald Highlight) */}
-            {showBboxes &&
-              pageFields.map((field) => {
-                const bbox = field.bbox!;
-                const isSelected =
-                  selectedFieldKey === field.key ||
-                  (selectedFieldKey === "id_number" && field.key === "document_number") ||
-                  (selectedFieldKey === "document_number" && field.key === "id_number");
-                const isHovered =
-                  hoveredFieldKey === field.key ||
-                  (hoveredFieldKey === "id_number" && field.key === "document_number") ||
-                  (hoveredFieldKey === "document_number" && field.key === "id_number");
-                const isActive = isSelected || isHovered;
+                <div className="grid grid-cols-2 gap-4 text-xs font-sans">
+                  <div>
+                    <p className="font-mono text-[10px] text-zinc-500 uppercase font-semibold">Billed To:</p>
+                    <p className="font-bold">Atlas Defense Systems Inc.</p>
+                    <p className="text-zinc-600">800 Technical Parkway, Suite 400</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-[10px] text-zinc-500 uppercase font-semibold">Payment Terms:</p>
+                    <p className="font-bold">Net 30 Days</p>
+                    <p className="text-zinc-600">Due: 2026-11-24</p>
+                  </div>
+                </div>
 
-                const leftPct = (bbox.x / baseWidth) * 100;
-                const topPct = (bbox.y / baseHeight) * 100;
-                const widthPct = (bbox.width / baseWidth) * 100;
-                const heightPct = (bbox.height / baseHeight) * 100;
+                {/* Table Simulation */}
+                <div className="border border-zinc-800 text-xs font-sans mt-4">
+                  <div className="grid grid-cols-4 bg-zinc-100 font-mono font-bold p-1.5 border-b border-zinc-800 text-[11px]">
+                    <span>Item</span>
+                    <span className="text-center">Qty</span>
+                    <span className="text-right">Rate</span>
+                    <span className="text-right">Total</span>
+                  </div>
+                  <div className="divide-y divide-zinc-200">
+                    <div className="grid grid-cols-4 p-1.5">
+                      <span>Precision Optical Sensors</span>
+                      <span className="text-center font-mono">10</span>
+                      <span className="text-right font-mono">$450.00</span>
+                      <span className="text-right font-mono font-bold">$4,500.00</span>
+                    </div>
+                    <div className="grid grid-cols-4 p-1.5">
+                      <span>Linear Stepper Actuators</span>
+                      <span className="text-center font-mono">4</span>
+                      <span className="text-right font-mono">$300.00</span>
+                      <span className="text-right font-mono font-bold">$1,200.00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t-2 border-zinc-900 pt-4 flex justify-between items-center font-mono text-xs">
+                <span>SUBTOTAL: $5,700.00 | TAX (8%): $456.00</span>
+                <span className="text-base font-bold text-zinc-900">TOTAL: $6,156.00 USD</span>
+              </div>
+            </div>
+          )}
+
+          {/* Tracing-Paper Overlays: Detected Bounding Boxes */}
+          {showFieldBboxes && (
+            <div className="absolute inset-0 pointer-events-auto">
+              {pageFields.map((field, idx) => {
+                if (!field.bbox) return null;
+                const { x, y, width, height } = field.bbox;
+                const isSelected = selectedFieldKey === field.key;
+                const isHovered = hoveredFieldKey === field.key;
+                const isLowConfidence = field.confidence < 0.85;
 
                 return (
                   <div
-                    key={`field-${field.key}`}
+                    key={`${field.key}-${idx}`}
                     onClick={() => onSelectField(field.key)}
                     onMouseEnter={() => onHoverField(field.key)}
                     onMouseLeave={() => onHoverField(null)}
                     style={{
-                      left: hasPreviewImage ? `${leftPct}%` : `${bbox.x}px`,
-                      top: hasPreviewImage ? `${topPct}%` : `${bbox.y}px`,
-                      width: hasPreviewImage ? `${widthPct}%` : `${bbox.width}px`,
-                      height: hasPreviewImage ? `${heightPct}%` : `${bbox.height}px`,
+                      left: `${x}px`,
+                      top: `${y}px`,
+                      width: `${width}px`,
+                      height: `${height}px`,
                     }}
-                    className={`absolute cursor-pointer transition-all rounded-[3px] border z-20 ${
-                      isActive
-                        ? "border-emerald-500 bg-emerald-500/30 ring-2 ring-emerald-400 shadow-lg shadow-emerald-500/40 scale-[1.02] z-30"
-                        : "border-emerald-500/70 bg-emerald-500/15 hover:border-emerald-400 hover:bg-emerald-500/25"
-                    }`}
+                    className={`absolute cursor-pointer transition-all duration-150 border rounded-sm flex items-start justify-end p-0.5 select-none
+                      ${
+                        isSelected
+                          ? "border-[var(--signal)] bg-[var(--signal)]/25 ring-2 ring-[var(--signal)] z-30"
+                          : isHovered
+                          ? "border-[var(--signal)] bg-[var(--signal)]/15 z-20"
+                          : "border-[var(--signal)]/70 bg-[var(--signal)]/5 hover:border-[var(--signal)] z-10"
+                      }
+                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.15)_3px,rgba(200,90,50,0.15)_6px)]" : ""}
+                    `}
+                    title={`${field.label}: ${field.value} (${Math.round(field.confidence * 100)}% confidence)`}
                   >
-                    {/* Bbox Badge Tooltip */}
-                    <div
-                      className={`absolute -top-6 left-0 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold whitespace-nowrap shadow-md pointer-events-none transition-opacity ${
-                        isActive
-                          ? "bg-slate-950 text-emerald-400 border border-emerald-500/40 opacity-100 z-30"
-                          : "opacity-0"
-                      }`}
-                    >
-                      {field.label || field.key}: {String(field.value)} (
-                      {Math.round(field.confidence * 100)}%)
-                    </div>
+                    <span className="bg-[var(--signal)] text-white text-[9px] font-mono px-1 py-0.2 rounded-sm opacity-90 font-bold leading-none shadow-subtle">
+                      {Math.round(field.confidence * 100)}%
+                    </span>
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
+
+          {/* Raw Text Blocks Overlay */}
+          {showTextBlocks && (
+            <div className="absolute inset-0 pointer-events-none">
+              {pageBlocks.map((block, idx) => {
+                if (!block.bbox) return null;
+                const { x, y, width, height } = block.bbox;
+                return (
+                  <div
+                    key={`block-${idx}`}
+                    style={{
+                      left: `${x}px`,
+                      top: `${y}px`,
+                      width: `${width}px`,
+                      height: `${height}px`,
+                    }}
+                    className="absolute border border-[var(--ink-muted)]/40 bg-[var(--surface-raised)]/20 pointer-events-none"
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
 
-function renderDocumentPreview(
-  fileName: string,
-  result: ExtractionResult | null,
-  page: number
-) {
-  const docType = (result?.document_type || result?.detected_type || result?.doc_type || "document").toUpperCase();
-  const rawText = result?.text || result?.raw_text || result?.markdown || "";
-  const lines = rawText.split("\n").filter((l) => l.trim().length > 0);
-
-  return (
-    <div className="bg-[#0b0f17] text-slate-200 p-5 sm:p-6 rounded-xl font-mono text-xs flex flex-col justify-between shadow-xl border border-slate-800/90 max-w-2xl mx-auto min-h-[380px]">
-      <div className="space-y-4">
-        {/* Document Header Bar */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-slate-800 text-slate-300 border border-slate-700/60">
-              {docType}
-            </span>
-            <span className="text-[11px] text-slate-400 font-sans truncate max-w-[240px]">
-              {fileName || "Document Stream"}
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-mono">
-            PAGE {page}
+      {/* Accessible Semantic Region Ledger (WCAG 2.2 AA Alternative to Visual Canvas) */}
+      <div className="border-t border-[var(--line-strong)] bg-[var(--surface-subtle)] p-3 select-none">
+        <div className="flex items-center justify-between pb-1.5">
+          <span className="font-mono text-[11px] font-bold text-[var(--ink-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-[var(--signal)]" />
+            Detected Region Ledger (Accessible Keyboard Navigation)
+          </span>
+          <span className="text-[11px] font-mono text-[var(--ink-muted)]">
+            {pageFields.length} Regions on Page {currentPage}
           </span>
         </div>
 
-        {/* Real Document Content Stream */}
-        {lines.length > 0 ? (
-          <div className="space-y-1 py-2 font-mono text-xs leading-relaxed overflow-x-auto text-slate-300">
-            {lines.map((line, idx) => (
-              <div key={idx} className="flex gap-3 hover:bg-slate-900/60 px-1.5 py-0.5 rounded">
-                <span className="text-slate-600 select-none text-[10px] w-6 text-right shrink-0 pt-0.5">
-                  {idx + 1}
-                </span>
-                <span className="break-all whitespace-pre-wrap">{line}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 space-y-2">
-            <FileText className="w-8 h-8 text-slate-600 stroke-1" />
-            <p className="text-xs">No text detected on this page</p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Meta */}
-      <div className="pt-4 border-t border-slate-800/70 flex items-center justify-between text-[10px] text-slate-500">
-        <span>Parsed via OpenOCR engine</span>
-        <span>{lines.length} lines detected</span>
+        <ol
+          className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none"
+          role="list"
+          aria-label="Detected document regions list"
+        >
+          {pageFields.map((field) => {
+            const isSelected = selectedFieldKey === field.key;
+            const isHovered = hoveredFieldKey === field.key;
+            return (
+              <li
+                key={field.key}
+                role="listitem"
+                tabIndex={0}
+                onClick={() => onSelectField(field.key)}
+                onFocus={() => {
+                  onSelectField(field.key);
+                  onHoverField(field.key);
+                }}
+                onBlur={() => onHoverField(null)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectField(field.key);
+                  }
+                }}
+                className={`shrink-0 px-2.5 py-1 rounded-sm border text-xs font-mono transition-all cursor-pointer select-none flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)] ${
+                  isSelected
+                    ? "bg-[var(--signal)] text-white border-[var(--signal)] font-bold shadow-subtle"
+                    : isHovered
+                    ? "bg-[var(--surface-raised)] text-[var(--ink-primary)] border-[var(--signal)]"
+                    : "bg-[var(--surface-base)] text-[var(--ink-secondary)] border-[var(--line-hairline)] hover:border-[var(--line-strong)]"
+                }`}
+              >
+                <span>{field.label}:</span>
+                <span className="tabular-nums opacity-90">[{Math.round(field.confidence * 100)}%]</span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </div>
   );
 }
-

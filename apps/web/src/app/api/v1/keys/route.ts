@@ -6,11 +6,23 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const name = body.name || "Developer Production Key";
-    const plan = body.plan || "developer_payg";
-    const credits = body.credits || 10000;
+    const plan = body.plan || "pro";
 
-    const newKey = generateApiKey(name, plan, credits);
+    if (plan === "free") {
+      return NextResponse.json(
+        {
+          error: "API keys are not permitted on the Free Plan. Programmatic API access requires a Developer or Enterprise paid plan. Visit /pricing to upgrade.",
+          code: "API_KEY_NOT_ALLOWED_ON_FREE_PLAN",
+          upgrade_url: "/pricing",
+        },
+        { status: 403 }
+      );
+    }
+
+    const name = body.name || "Developer Production Key";
+    const credits = body.credits || 25000;
+
+    const newKey = generateApiKey(name, "pro", credits);
 
     return NextResponse.json({
       message: "API key created successfully",
@@ -20,7 +32,7 @@ export async function POST(req: NextRequest) {
       credits_remaining: newKey.creditsRemaining,
       cost_per_page: `$${newKey.costPerCreditUsd} USD`,
       created_at: newKey.createdAt,
-      documentation_url: "/api/v1/pricing",
+      documentation_url: "/api-platform",
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

@@ -95,25 +95,28 @@ API_KEY_STORE.set("sk_live_demo1234567890", {
 
 export function generateApiKey(
   name: string = "Developer Key",
-  plan: PlanTier = "free",
-  initialCredits: number = 10
+  plan: PlanTier = "pro",
+  initialCredits: number = 25000
 ): ApiKeyRecord {
+  if (plan === "free") {
+    throw new Error("API keys are not permitted on the Free Plan. Programmatic API access requires a paid Developer or Enterprise plan.");
+  }
   const randPart = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-  const key = plan === "pro" ? `ocr_live_${randPart}` : `ocr_free_${randPart}`;
-  const isPro = plan === "pro" || plan === "enterprise";
+  const key = `ocr_live_${randPart}`;
+  const isPro = true;
 
   const record: ApiKeyRecord = {
     key,
     name,
     plan,
     itemsProcessed: 0,
-    maxItems: isPro ? Number.POSITIVE_INFINITY : FREE_TIER_MAX_ITEMS,
-    maxPagesPerItem: isPro ? 500 : FREE_TIER_MAX_PAGES_PER_ITEM,
-    creditsRemaining: isPro ? 25000 : initialCredits,
+    maxItems: Number.POSITIVE_INFINITY,
+    maxPagesPerItem: 500,
+    creditsRemaining: initialCredits,
     creditsUsed: 0,
-    costPerCreditUsd: isPro ? DEFAULT_COST_PER_PAGE_USD : 0.000,
+    costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
     createdAt: new Date().toISOString(),
-    rateLimitPerMinute: isPro ? 300 : 10,
+    rateLimitPerMinute: 300,
     requestsThisMinute: 0,
     lastRequestMinute: Math.floor(Date.now() / 60000),
   };
@@ -147,35 +150,29 @@ export function validateApiKey(apiKeyInput: string | null): {
   if (!apiKeyInput) {
     return {
       valid: false,
-      error: "Missing API Key. The OpenOCR API is on paid plan only (or free trial up to 5 items, 2 pages max). Pass 'X-API-Key: ocr_...'",
+      error: "Missing API Key. Programmatic access requires a Developer or Enterprise paid plan. Free plan provides web playground testing only. Pass 'X-API-Key: ocr_live_...'",
       errorCode: "UNAUTHORIZED",
       statusCode: 401,
     };
   }
 
   const cleanKey = apiKeyInput.startsWith("Bearer ") ? apiKeyInput.slice(7).trim() : apiKeyInput.trim();
+  
+  // Reject any free keys or free prefixes immediately
+  if (cleanKey.startsWith("ocr_free_") || cleanKey === FREE_TRIAL_KEY) {
+    return {
+      valid: false,
+      error: "API keys are not permitted on the Free Plan. Programmatic API access requires a Developer or Enterprise paid plan. Visit /pricing to upgrade.",
+      errorCode: "API_KEY_NOT_ALLOWED_ON_FREE_PLAN",
+      statusCode: 403,
+    };
+  }
+
   let record = API_KEY_STORE.get(cleanKey);
 
-  // Auto-provision if cleanKey has valid prefix
+  // Auto-provision if cleanKey has valid pro prefix
   if (!record) {
-    if (cleanKey.startsWith("ocr_free_")) {
-      record = {
-        key: cleanKey,
-        name: "Free Trial Key",
-        plan: "free",
-        itemsProcessed: 0,
-        maxItems: FREE_TIER_MAX_ITEMS,
-        maxPagesPerItem: FREE_TIER_MAX_PAGES_PER_ITEM,
-        creditsRemaining: 5,
-        creditsUsed: 0,
-        costPerCreditUsd: 0.000,
-        createdAt: new Date().toISOString(),
-        rateLimitPerMinute: 10,
-        requestsThisMinute: 0,
-        lastRequestMinute: Math.floor(Date.now() / 60000),
-      };
-      API_KEY_STORE.set(cleanKey, record);
-    } else if (cleanKey.startsWith("ocr_live_") || cleanKey.startsWith("ocr_pro_")) {
+    if (cleanKey.startsWith("ocr_live_") || cleanKey.startsWith("ocr_pro_")) {
       record = {
         key: cleanKey,
         name: "Pro Key",
@@ -204,6 +201,16 @@ export function validateApiKey(apiKeyInput: string | null): {
     };
   }
 
+  if (record.plan === "free") {
+    return {
+      valid: false,
+      record,
+      error: "API keys are not permitted on the Free Plan. Programmatic API access requires a Developer or Enterprise paid plan. Visit /pricing to upgrade.",
+      errorCode: "API_KEY_NOT_ALLOWED_ON_FREE_PLAN",
+      statusCode: 403,
+    };
+  }
+
   // 1. Sliding Window Rate Limiting (Best practice token bucket / window reset)
   const currentMinute = Math.floor(Date.now() / 60000);
   const secondsIntoMinute = Math.floor((Date.now() % 60000) / 1000);
@@ -225,16 +232,7 @@ export function validateApiKey(apiKeyInput: string | null): {
     };
   }
 
-  // 2. Free Plan Lifetime Items Check: Max 5 items allowed
-  if (record.plan === "free" && record.itemsProcessed >= record.maxItems) {
-    return {
-      valid: false,
-      record,
-      error: `Free plan limit reached (${record.itemsProcessed} of ${record.maxItems} items processed). Please upgrade to the Pro plan ($9/mo) for unlimited items.`,
-      errorCode: "FREE_TIER_LIMIT_REACHED",
-      statusCode: 402,
-    };
-  }
+  // 2. Credits balance check
 
   record.requestsThisMinute += 1;
   return { valid: true, record, rateLimitResetSeconds };

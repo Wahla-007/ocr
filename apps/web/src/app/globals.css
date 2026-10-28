@@ -2,54 +2,190 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   THE ARCHIVIST'S LIGHT TABLE: CSS Design Tokens & Primitives
+   Specification: docs/design/BRIEF.md
+   ========================================================================== */
+
 :root {
   color-scheme: light dark;
+
+  /* LIGHT THEME: Warm Archival Paper */
+  --surface-base: #FBF9F5;
+  --surface-subtle: #F4EFEB;
+  --surface-raised: #EDE7E1;
+  --surface-sunken: #E5DFD7;
+  --surface-overlay: rgba(251, 249, 245, 0.94);
+
+  --ink-primary: #1E1E1E;
+  --ink-secondary: #4A4844;
+  --ink-muted: #73706B;
+
+  --line-hairline: #E2DDD5;
+  --line-strong: #C4BEB4;
+
+  --signal: #C85A32;
+  --signal-hover: #B24E2A;
+  --signal-subtle: #F8EDE7;
+  --signal-contrast: #FFFFFF;
+
+  --semantic-success: #1B7F4B;
+  --semantic-success-subtle: #EDF7F1;
+  --semantic-warning: #946200;
+  --semantic-warning-subtle: #FDF7E7;
+  --semantic-error: #B42318;
+  --semantic-error-subtle: #FEF3F2;
+  --semantic-info: #1D5E99;
+  --semantic-info-subtle: #EEF5FC;
+
+  --focus-ring: #C85A32;
+  --focus-ring-offset: #FBF9F5;
+
+  /* Typography Scales */
+  --font-display-2xl: clamp(2.25rem, 4vw + 1rem, 3.5rem);
+  --font-display-xl: clamp(1.75rem, 3vw + 0.5rem, 2.5rem);
+  --font-heading-lg: clamp(1.35rem, 2vw + 0.5rem, 1.75rem);
+  --font-heading-md: 1.25rem;
+  --font-ui-base: 0.9375rem;
+  --font-ui-sm: 0.8125rem;
+  --font-ui-xs: 0.6875rem;
+
+  /* Font Fallbacks */
+  --font-serif: "Newsreader", "Fraunces", Georgia, Cambria, serif;
+  --font-sans: "Plus Jakarta Sans", "General Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-arabic: "Noto Naskh Arabic", "Gulzar", serif;
 }
 
+html.dark, [data-theme="dark"] {
+  /* DARK THEME: Deep Technical Drafting Ink */
+  --surface-base: #111113;
+  --surface-subtle: #17171A;
+  --surface-raised: #1F1F24;
+  --surface-sunken: #0C0C0E;
+  --surface-overlay: rgba(17, 17, 19, 0.92);
+
+  --ink-primary: #EDEDEC;
+  --ink-secondary: #A3A19D;
+  --ink-muted: #73716C;
+
+  --line-hairline: #27272D;
+  --line-strong: #3F3E46;
+
+  --signal: #E07148;
+  --signal-hover: #EB8159;
+  --signal-subtle: #2B1811;
+  --signal-contrast: #111113;
+
+  --semantic-success: #32B36D;
+  --semantic-success-subtle: #0E291B;
+  --semantic-warning: #E0A020;
+  --semantic-warning-subtle: #2E2105;
+  --semantic-error: #F04438;
+  --semantic-error-subtle: #331110;
+  --semantic-info: #388BFD;
+  --semantic-info-subtle: #0B223D;
+
+  --focus-ring: #E07148;
+  --focus-ring-offset: #111113;
+}
+
+/* Base Body Styles */
 body {
-  background-color: #fafafa;
-  color: #09090b;
-  min-height: 100vh;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  background-color: var(--surface-base);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-ui-base);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
-html.dark body {
-  background-color: #09090b;
-  color: #f4f4f5;
+/* Tabular Numerals for Metrics, Currencies, and Counts */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Minimalist Clean Scrollbars */
+/* WCAG 2.2 AA Focus Indicators */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Drafting Surface Grid Pattern */
+.light-table-grid {
+  background-image: 
+    linear-gradient(to right, var(--line-hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-hairline) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Registration Crosshair Marks */
+.registration-mark {
+  position: relative;
+}
+.registration-mark::before,
+.registration-mark::after {
+  content: "";
+  position: absolute;
+  background-color: var(--line-strong);
+  pointer-events: none;
+}
+.registration-mark-tl::before { top: 0; left: 0; width: 8px; height: 1px; }
+.registration-mark-tl::after  { top: 0; left: 0; width: 1px; height: 8px; }
+.registration-mark-tr::before { top: 0; right: 0; width: 8px; height: 1px; }
+.registration-mark-tr::after  { top: 0; right: 0; width: 1px; height: 8px; }
+.registration-mark-bl::before { bottom: 0; left: 0; width: 8px; height: 1px; }
+.registration-mark-bl::after  { bottom: 0; left: 0; width: 1px; height: 8px; }
+.registration-mark-br::before { bottom: 0; right: 0; width: 8px; height: 1px; }
+.registration-mark-br::after  { bottom: 0; right: 0; width: 1px; height: 8px; }
+
+/* Archival Stamp Look */
+.archival-stamp {
+  border: 1.5px solid currentColor;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Subtle Minimalist Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--surface-subtle);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
-  border-radius: 9999px;
+  background: var(--line-strong);
+  border-radius: 2px;
 }
-
-html.dark ::-webkit-scrollbar-thumb {
-  background: #27272a;
-}
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa;
+  background: var(--ink-muted);
 }
 
-html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+/* RTL / Urdu Document Reading Support */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-arabic), var(--font-sans);
+  line-height: 1.8;
 }
 
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

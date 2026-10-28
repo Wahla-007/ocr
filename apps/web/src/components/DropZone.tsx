@@ -1,30 +1,23 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import {
-  UploadCloud,
-  FileText,
-  Zap,
-  Clock,
-  Loader2,
-  FileCode,
-  FileSpreadsheet,
-} from "lucide-react";
+import { UploadCloud, FileText, Check, Clock, Loader2, Sparkles, Sliders } from "lucide-react";
+import { SAMPLE_DOCUMENTS } from "../lib/samples";
+import { Button } from "./ui/Button";
+import { Badge } from "./ui/Badge";
 
 interface DropZoneProps {
   onFileSelected: (file: File) => void;
+  onSampleSelected?: (sampleDoc: any) => void;
   isProcessing: boolean;
-  waitMode: boolean;
-  setWaitMode: (wait: boolean) => void;
   outputFormat: "json" | "markdown" | "text";
   setOutputFormat: (format: "json" | "markdown" | "text") => void;
 }
 
 export function DropZone({
   onFileSelected,
+  onSampleSelected,
   isProcessing,
-  waitMode,
-  setWaitMode,
   outputFormat,
   setOutputFormat,
 }: DropZoneProps) {
@@ -59,147 +52,90 @@ export function DropZone({
 
   return (
     <div className="w-full space-y-4">
-      {/* Drop Target Box */}
-      <label
-        htmlFor="openocr-file-upload-input"
+      {/* Primary Drafting Drop Desk */}
+      <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative group cursor-pointer rounded-2xl border-2 border-dashed transition-all p-8 sm:p-12 text-center block ${
-          isDragOver
-            ? "border-zinc-900 dark:border-zinc-200 bg-zinc-100/70 dark:bg-zinc-800/60 scale-[1.005]"
-            : "border-zinc-300 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900/60 shadow-sm"
-        } ${isProcessing ? "opacity-75 pointer-events-none" : ""}`}
+        onClick={() => !isProcessing && fileInputRef.current?.click()}
+        className={`relative w-full border-2 border-dashed rounded-sm p-6 sm:p-8 text-center transition-all cursor-pointer select-none bg-[var(--surface-base)] registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br
+          ${
+            isDragOver
+              ? "border-[var(--signal)] bg-[var(--signal-subtle)]"
+              : "border-[var(--line-strong)] hover:border-[var(--signal)] hover:bg-[var(--surface-subtle)]"
+          }
+          ${isProcessing ? "pointer-events-none opacity-60" : ""}
+        `}
       >
         <input
-          id="openocr-file-upload-input"
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff"
           onChange={handleFileInput}
           className="hidden"
           disabled={isProcessing}
         />
 
-        {isProcessing ? (
-          <div className="flex flex-col items-center justify-center space-y-3 py-4">
-            <div className="h-10 w-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-100">
-              <Loader2 className="w-5 h-5 animate-spin" />
-            </div>
-            <div className="space-y-1">
-              <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
-                Analyzing Document...
-              </span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Executing pure CPU ONNX model & extracting spatial layout
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center space-y-3.5">
-            <div className="h-11 w-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 flex items-center justify-center text-zinc-700 dark:text-zinc-300 group-hover:scale-105 transition-transform">
-              <UploadCloud className="w-5 h-5" />
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-center gap-1.5 text-sm">
-                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  Drop your document here
-                </span>
-                <span className="text-zinc-400">or</span>
-                <span className="font-semibold text-zinc-900 dark:text-white underline underline-offset-4 hover:text-zinc-600">
-                  browse files
-                </span>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto">
-                Invoices, receipts, identity documents, bills, and reports. PDF, PNG, JPG, or WEBP.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 font-mono">
-                PDF
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 font-mono">
-                PNG
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 font-mono">
-                JPG
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 font-mono">
-                WEBP
-              </span>
-            </div>
-          </div>
+        {/* Scan line active effect */}
+        {isProcessing && (
+          <div className="absolute inset-x-0 h-0.5 bg-[var(--signal)] animate-scan-line shadow-[0_0_8px_var(--signal)]" />
         )}
-      </label>
 
-      {/* Control Bar: Format Selector & Execution Mode */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
-        <div className="text-[11px] text-zinc-400 dark:text-zinc-500">
-          <span>Free Tier: Max 2 pages/doc · 5 documents lifetime</span>
+        <div className="flex flex-col items-center justify-center space-y-2">
+          <div className="w-10 h-10 rounded-sm bg-[var(--surface-raised)] border border-[var(--line-strong)] text-[var(--ink-primary)] flex items-center justify-center mb-1 shadow-subtle">
+            {isProcessing ? (
+              <Loader2 className="w-5 h-5 animate-spin text-[var(--signal)]" />
+            ) : (
+              <UploadCloud className="w-5 h-5 text-[var(--signal)]" />
+            )}
+          </div>
+
+          <div className="space-y-0.5">
+            <h3 className="font-serif text-base font-bold text-[var(--ink-primary)]">
+              {isProcessing ? "Scanning Document under Light Table..." : "Lay Document on Light Table"}
+            </h3>
+            <p className="text-xs text-[var(--ink-secondary)]">
+              Drop document file or <span className="text-[var(--signal)] underline font-medium">browse local files</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2 text-[11px] font-mono text-[var(--ink-muted)]">
+            <span>PDF</span>
+            <span>•</span>
+            <span>PNG</span>
+            <span>•</span>
+            <span>JPG</span>
+            <span>•</span>
+            <span>WEBP</span>
+            <span>•</span>
+            <span>TIFF</span>
+            <span>(Max 500 pages)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Archival Sample Documents */}
+      <div className="p-3 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-2">
+        <div className="flex items-center justify-between text-xs font-mono">
+          <span className="font-bold text-[var(--ink-secondary)] uppercase tracking-wider">
+            Specimen Archive (Immediate Inspection):
+          </span>
+          <span className="text-[11px] text-[var(--ink-muted)]">Zero selection required</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Format Selector: Plain Text, Markdown, JSON */}
-          <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {SAMPLE_DOCUMENTS.map((sample) => (
             <button
-              onClick={() => setOutputFormat("json")}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                outputFormat === "json"
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold"
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
+              key={sample.id}
+              type="button"
+              disabled={isProcessing}
+              onClick={() => onSampleSelected && onSampleSelected(sample)}
+              className="px-2.5 py-1.5 rounded-sm border border-[var(--line-strong)] bg-[var(--surface-base)] hover:border-[var(--signal)] hover:bg-[var(--surface-raised)] transition-colors text-left font-mono text-xs text-[var(--ink-primary)] flex flex-col justify-between disabled:opacity-40"
             >
-              JSON
+              <span className="font-semibold truncate">{sample.title}</span>
+              <span className="text-[10px] text-[var(--ink-muted)] capitalize">{sample.docType.replace("_", " ")}</span>
             </button>
-            <button
-              onClick={() => setOutputFormat("markdown")}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                outputFormat === "markdown"
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold"
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              Markdown
-            </button>
-            <button
-              onClick={() => setOutputFormat("text")}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                outputFormat === "text"
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold"
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              Text
-            </button>
-          </div>
-
-          {/* Sync vs Async Mode Toggle */}
-          <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5">
-            <button
-              onClick={() => setWaitMode(true)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
-                waitMode
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold"
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              <Zap className="w-3 h-3" />
-              <span>Sync</span>
-            </button>
-            <button
-              onClick={() => setWaitMode(false)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
-                !waitMode
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold"
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              <Clock className="w-3 h-3" />
-              <span>Async</span>
-            </button>
-          </div>
+          ))}
         </div>
       </div>
     </div>
