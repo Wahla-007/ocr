@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   RefreshCw,
   Sparkles,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 
@@ -31,7 +32,7 @@ interface Message {
 // Curated Knowledge Base Answers extracted from /kb/*.md
 const KB_RESPONSES: Record<string, { answer: string; routeKey?: string; sourceDoc: string }> = {
   api_key: {
-    answer: "Programmatic API keys (with 'ocr_live_' prefix) are available on Developer Pro and Enterprise tiers. You can create and manage your keys on the Rate Card page. Keys are displayed once at creation and hashed using Argon2id.",
+    answer: "Programmatic API keys (prefixed with 'ocr_live_') are available on Developer Pro and Enterprise tiers. You can create and manage your keys on the Rate Card page. Keys are displayed once upon generation and hashed with Argon2id.",
     routeKey: "/pricing",
     sourceDoc: "API Quickstart",
   },
@@ -79,7 +80,7 @@ export function ChatWidget() {
     {
       id: "init",
       sender: "bot",
-      text: "Hello, I am the OpenOCR Assistant. I answer questions directly from our verified technical documentation. How can I help you today?",
+      text: "Hello! I am the OpenOCR Assistant. I answer technical questions directly from our verified documentation. How can I help you today?",
       timestamp: "Just now",
     },
   ]);
@@ -89,6 +90,13 @@ export function ChatWidget() {
   const [escalateSubmitted, setEscalateSubmitted] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Listen for custom trigger event from headers or links
+    const handleOpenChat = () => setIsOpen(true);
+    window.addEventListener("open-openocr-chat", handleOpenChat);
+    return () => window.removeEventListener("open-openocr-chat", handleOpenChat);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -132,7 +140,7 @@ export function ChatWidget() {
         const botMsg: Message = {
           id: `bot_${Date.now()}`,
           sender: "bot",
-          text: "I can connect you directly with our engineering support team. Please enter your email and issue details below to open a ticket.",
+          text: "I can connect you directly with our engineering support team. Please enter your email and issue summary below to open a priority ticket.",
           timestamp: "Just now",
           isEscalation: true,
         };
@@ -155,13 +163,13 @@ export function ChatWidget() {
         const botMsg: Message = {
           id: `bot_${Date.now()}`,
           sender: "bot",
-          text: "I don't have a verified answer for that specific query in our knowledge base. Would you like me to connect you with an on-call human engineer?",
+          text: "I don't have a verified answer for that specific question in our knowledge base. Would you like me to connect you with an on-call human engineer?",
           timestamp: "Just now",
           isEscalation: true,
         };
         setMessages((prev) => [...prev, botMsg]);
       }
-    }, 400);
+    }, 350);
   };
 
   const handleEscalationSubmit = (e: React.FormEvent) => {
@@ -174,7 +182,7 @@ export function ChatWidget() {
     const confirmationMsg: Message = {
       id: `bot_esc_${Date.now()}`,
       sender: "bot",
-      text: `Support ticket created: Reference #${ticketRef}. A confirmation and response has been routed to ${escalateEmail}. Priority response SLA active.`,
+      text: `Support ticket created: Reference #${ticketRef}. A confirmation receipt and engineering follow-up has been routed to ${escalateEmail}. Priority response SLA active.`,
       timestamp: "Just now",
     };
 
@@ -185,42 +193,54 @@ export function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
-      {/* Floating Trigger Button */}
+    <div className="fixed bottom-6 right-6 z-[9999] font-sans antialiased">
+      {/* High-Visibility Floating Trigger Button */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--ink-primary)] text-[var(--surface-base)] shadow-2xl hover:opacity-90 transition-all font-mono text-xs font-bold border border-[var(--line-strong)]"
+          className="group flex items-center gap-3 px-4 py-3 rounded-full bg-[#161618] hover:bg-[#1F1F23] text-white border-2 border-[#C85A32] shadow-[0_10px_35px_rgba(200,90,50,0.4)] hover:shadow-[0_14px_45px_rgba(200,90,50,0.55)] transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95"
           aria-label="Open OpenOCR Assistant"
         >
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <MessageSquare className="w-4 h-4 text-[var(--signal)]" />
-          <span>OpenOCR Assistant</span>
+          {/* Pulsing Beacon */}
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          </span>
+
+          <div className="flex items-center gap-2">
+            <Bot className="w-4 h-4 text-[#C85A32]" />
+            <span className="font-mono text-xs font-bold tracking-wide">Assistant</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#C85A32]/25 text-[#C85A32] font-semibold border border-[#C85A32]/35">
+              AI QA
+            </span>
+          </div>
         </button>
       )}
 
       {/* Floating Chat Modal */}
       {isOpen && (
-        <div className="w-96 max-w-[calc(100vw-2rem)] h-[520px] bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-lg shadow-2xl flex flex-col overflow-hidden text-xs transition-all">
+        <div className="w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] bg-[#161618] text-[#FBF9F5] border-2 border-[#C85A32] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-xs transition-all animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
-          <div className="p-3.5 border-b border-[var(--line-hairline)] bg-[var(--surface-sunken)] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-[var(--signal)] text-white flex items-center justify-center font-mono font-bold text-[10px]">
+          <div className="p-4 border-b border-zinc-800 bg-[#1F1F23] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-[#C85A32] text-white flex items-center justify-center font-mono font-bold text-xs shadow-sm">
                 //
               </div>
               <div>
-                <span className="font-mono font-bold text-[var(--ink-primary)] block">OpenOCR Assistant</span>
-                <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-1 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Documentation & Support QA
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono font-bold text-sm text-white">OpenOCR Assistant</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                </div>
+                <span className="text-[10px] text-zinc-400 font-mono block">
+                  Authoritative Documentation &amp; Support QA
                 </span>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
+              className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
               aria-label="Close Assistant"
             >
               <X className="w-4 h-4" />
@@ -228,65 +248,65 @@ export function ChatWidget() {
           </div>
 
           {/* Quick Starter Chips */}
-          <div className="px-3 py-2 bg-[var(--surface-subtle)] border-b border-[var(--line-hairline)] flex items-center gap-1.5 overflow-x-auto select-none no-scrollbar">
+          <div className="px-3 py-2 bg-zinc-900 border-b border-zinc-800 flex items-center gap-1.5 overflow-x-auto select-none no-scrollbar">
             <button
               type="button"
               onClick={() => handleSend("How do I get an API key?")}
-              className="shrink-0 px-2 py-0.5 rounded-full border border-[var(--line-hairline)] bg-[var(--surface-base)] text-[10px] text-[var(--ink-secondary)] hover:text-[var(--signal)] hover:border-[var(--signal)] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-[#C85A32] hover:border-[#C85A32] transition-colors"
             >
               API Keys
             </button>
             <button
               type="button"
               onClick={() => handleSend("How does pricing work?")}
-              className="shrink-0 px-2 py-0.5 rounded-full border border-[var(--line-hairline)] bg-[var(--surface-base)] text-[10px] text-[var(--ink-secondary)] hover:text-[var(--signal)] hover:border-[var(--signal)] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-[#C85A32] hover:border-[#C85A32] transition-colors"
             >
               Pricing
             </button>
             <button
               type="button"
               onClick={() => handleSend("What formats are supported?")}
-              className="shrink-0 px-2 py-0.5 rounded-full border border-[var(--line-hairline)] bg-[var(--surface-base)] text-[10px] text-[var(--ink-secondary)] hover:text-[var(--signal)] hover:border-[var(--signal)] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-[#C85A32] hover:border-[#C85A32] transition-colors"
             >
               Formats
             </button>
             <button
               type="button"
               onClick={() => handleSend("Talk to a human support engineer")}
-              className="shrink-0 px-2 py-0.5 rounded-full border border-[var(--line-hairline)] bg-[var(--surface-base)] text-[10px] text-[var(--signal)] font-bold transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-full border border-[#C85A32]/60 bg-[#C85A32]/10 text-[10px] text-[#C85A32] font-bold hover:bg-[#C85A32]/20 transition-colors"
             >
               Talk to Human
             </button>
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 p-3.5 overflow-y-auto space-y-3.5 leading-relaxed">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 leading-relaxed bg-[#161618]">
             {messages.map((m) => (
               <div
                 key={m.id}
                 className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.sender === "bot" && (
-                  <div className="w-6 h-6 rounded-full bg-[var(--surface-subtle)] border border-[var(--line-hairline)] flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5 text-[var(--signal)]" />
+                  <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-3.5 h-3.5 text-[#C85A32]" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[82%] p-2.5 rounded-sm ${
+                  className={`max-w-[85%] p-3 rounded-lg ${
                     m.sender === "user"
-                      ? "bg-[var(--signal)] text-white"
-                      : "bg-[var(--surface-subtle)] border border-[var(--line-hairline)] text-[var(--ink-primary)]"
+                      ? "bg-[#C85A32] text-white"
+                      : "bg-[#1F1F23] border border-zinc-800 text-zinc-200"
                   }`}
                 >
-                  <p className="text-[11px] whitespace-pre-wrap">{m.text}</p>
+                  <p className="text-xs whitespace-pre-wrap leading-relaxed">{m.text}</p>
                   {m.sourceDoc && (
-                    <div className="mt-1.5 pt-1 border-t border-[var(--line-hairline)] text-[9px] text-[var(--ink-muted)] flex items-center justify-between">
+                    <div className="mt-2 pt-1.5 border-t border-zinc-700/60 text-[10px] text-zinc-400 flex items-center justify-between">
                       <span>Source: {m.sourceDoc}</span>
                       {m.routeKey && (
                         <Link
                           href={m.routeKey}
                           onClick={() => setIsOpen(false)}
-                          className="text-[var(--signal)] hover:underline flex items-center gap-0.5 font-bold"
+                          className="text-[#C85A32] hover:underline flex items-center gap-0.5 font-bold"
                         >
                           <span>Open</span>
                           <ExternalLink className="w-2.5 h-2.5" />
@@ -295,12 +315,13 @@ export function ChatWidget() {
                     </div>
                   )}
                   {m.isEscalation && !showEscalationForm && (
-                    <div className="mt-2">
+                    <div className="mt-2.5 pt-2 border-t border-zinc-700/60">
                       <Button
                         size="xs"
                         variant="outline"
                         onClick={() => setShowEscalationForm(true)}
-                        leftIcon={<LifeBuoy className="w-3 h-3 text-[var(--signal)]" />}
+                        leftIcon={<LifeBuoy className="w-3 h-3 text-[#C85A32]" />}
+                        className="w-full text-xs"
                       >
                         Open Ticket with Support
                       </Button>
@@ -308,8 +329,8 @@ export function ChatWidget() {
                   )}
                 </div>
                 {m.sender === "user" && (
-                  <div className="w-6 h-6 rounded-full bg-[var(--line-hairline)] flex items-center justify-center shrink-0 mt-0.5">
-                    <User className="w-3.5 h-3.5 text-[var(--ink-secondary)]" />
+                  <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="w-3.5 h-3.5 text-zinc-300" />
                   </div>
                 )}
               </div>
@@ -319,41 +340,41 @@ export function ChatWidget() {
             {showEscalationForm && (
               <form
                 onSubmit={handleEscalationSubmit}
-                className="p-3 bg-[var(--surface-sunken)] border border-[var(--signal)]/50 rounded-sm space-y-2.5"
+                className="p-3.5 bg-[#1F1F23] border border-[#C85A32]/60 rounded-lg space-y-3 shadow-lg"
               >
-                <div className="flex items-center justify-between font-mono text-[10px] font-bold text-[var(--signal)] uppercase">
+                <div className="flex items-center justify-between font-mono text-xs font-bold text-[#C85A32] uppercase">
                   <span>Open Engineering Ticket</span>
                   <button
                     type="button"
                     onClick={() => setShowEscalationForm(false)}
-                    className="text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                    className="text-zinc-400 hover:text-white"
                   >
                     Cancel
                   </button>
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-[var(--ink-muted)] block mb-0.5">Contact Email:</label>
+                  <label className="text-[10px] font-mono text-zinc-400 block mb-1">Contact Email:</label>
                   <input
                     type="email"
                     required
                     placeholder="engineer@company.com"
                     value={escalateEmail}
                     onChange={(e) => setEscalateEmail(e.target.value)}
-                    className="w-full px-2 py-1 text-xs font-mono bg-[var(--surface-base)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)]"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-[#C85A32]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-[var(--ink-muted)] block mb-0.5">Issue Summary:</label>
+                  <label className="text-[10px] font-mono text-zinc-400 block mb-1">Issue Summary:</label>
                   <textarea
                     rows={2}
                     placeholder="Briefly describe the question or error..."
                     value={escalateDesc}
                     onChange={(e) => setEscalateDesc(e.target.value)}
-                    className="w-full px-2 py-1 text-xs font-mono bg-[var(--surface-base)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)]"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-[#C85A32]"
                   />
                 </div>
-                <Button type="submit" size="xs" variant="primary" className="w-full">
-                  Submit Escalation
+                <Button type="submit" size="xs" variant="primary" className="w-full font-bold">
+                  Submit Escalation Ticket
                 </Button>
               </form>
             )}
@@ -367,20 +388,20 @@ export function ChatWidget() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-2 border-t border-[var(--line-hairline)] bg-[var(--surface-base)] flex items-center gap-1.5"
+            className="p-3 border-t border-zinc-800 bg-[#1F1F23] flex items-center gap-2"
           >
             <input
               type="text"
               placeholder="Ask a technical question..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 px-3 py-1.5 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
+              className="flex-1 px-3 py-2 text-xs font-mono bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-[#C85A32]"
             />
             <Button
               type="submit"
               size="sm"
               variant="primary"
-              className="px-2.5 py-1.5"
+              className="px-3 py-2"
               aria-label="Send message"
             >
               <Send className="w-3.5 h-3.5" />

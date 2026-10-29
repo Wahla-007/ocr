@@ -72,10 +72,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <head>
-        <StructuredData />
-      </head>
       <body className="antialiased font-sans transition-colors duration-200">
+        <StructuredData />
         <ThemeProvider>
           {children}
           <ChatWidget />

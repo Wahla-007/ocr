@@ -35,6 +35,7 @@ import {
   KeyRound,
   RefreshCw,
   Cpu,
+  Bot,
 } from "lucide-react";
 
 type CodeLang = "curl" | "python" | "typescript" | "go";
@@ -977,7 +978,7 @@ func main() {
     <div className="min-h-screen bg-[var(--surface-base)] text-[var(--ink-primary)] transition-colors">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-8">
         {/* Top Header & Breadcrumb */}
         <div className="border-b border-[var(--line-strong)] pb-6 mb-8">
           <div className="flex items-center gap-2">
@@ -989,15 +990,32 @@ func main() {
           </div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
             <div>
-              <h1 className="text-3xl font-serif font-bold text-[var(--ink-primary)] tracking-tight">
-                OpenOCR Developer Documentation & API Reference
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[var(--ink-primary)] tracking-tight">
+                OpenOCR Developer Documentation &amp; API Reference
               </h1>
               <p className="text-xs sm:text-sm text-[var(--ink-secondary)] mt-1 max-w-3xl">
                 Comprehensive technical guide for zero-selection document intelligence, asynchronous worker queues, direct storage uploads, timing-safe HMAC webhooks, and air-gapped clusters.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-openocr-chat"));
+                  }
+                }}
+                className="inline-flex items-center justify-center font-mono font-bold transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] border border-[var(--signal)] bg-[var(--signal-subtle)] text-[var(--signal)] hover:bg-[var(--signal)] hover:text-white px-3 py-1.5 text-xs h-9 rounded-sm gap-2 shadow-xs cursor-pointer"
+                title="Ask the AI Assistant"
+              >
+                <Bot className="w-4 h-4" />
+                <span>Ask Assistant</span>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+              </button>
               <Link href="/pricing">
                 <Button variant="outline" size="sm" leftIcon={<KeyRound className="w-3.5 h-3.5" />}>
                   Get Live Key
@@ -1012,16 +1030,16 @@ func main() {
           </div>
         </div>
 
-        {/* 3-Column Layout: Sidebar Index (3 cols) | Technical Narrative (5 cols) | Interactive SDK Patch Bay (4 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Sticky Grouped Index & Quick Filter (3 cols) */}
-          <nav className="lg:col-span-3 hidden lg:block sticky top-20 space-y-4 select-none font-mono text-xs border-r border-[var(--line-hairline)] pr-4">
+        {/* 3-Column Layout: Sidebar Index (Fixed 270px) | Technical Narrative (Flex-1 max-w-3xl) | Interactive SDK Patch Bay (Fixed 520px) */}
+        <div className="flex flex-col lg:flex-row gap-8 xl:gap-10 items-start">
+          {/* Left Column: Sticky Grouped Index & Quick Filter */}
+          <nav className="w-64 xl:w-72 shrink-0 hidden lg:block sticky top-20 space-y-4 select-none font-mono text-xs border-r border-[var(--line-hairline)] pr-5">
             {/* Quick Filter Input */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[var(--ink-muted)]" />
               <input
                 type="text"
-                placeholder="Filter docs... (Ctrl+K)"
+                placeholder="Filter documentation... (Ctrl+K)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
@@ -1053,14 +1071,14 @@ func main() {
                         key={s.id}
                         href={`#${s.id}`}
                         onClick={() => setActiveSection(s.id)}
-                        className={`block py-1.5 px-2 rounded-sm transition-colors ${
+                        className={`flex items-start gap-2 py-1.5 px-2.5 rounded-sm transition-colors ${
                           activeSection === s.id
                             ? "bg-[var(--signal-subtle)] text-[var(--signal)] font-bold border-l-2 border-l-[var(--signal)]"
                             : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
                         }`}
                       >
-                        <span className="opacity-60 mr-1.5">{s.number}.</span>
-                        <span className="text-[11px]">{s.title}</span>
+                        <span className="font-mono text-[10px] opacity-75 shrink-0 pt-0.5">{s.number}.</span>
+                        <span className="text-[11px] leading-snug">{s.title}</span>
                       </a>
                     ))}
                   </div>
@@ -1071,14 +1089,14 @@ func main() {
             <div className="pt-4 border-t border-[var(--line-hairline)] space-y-2">
               <Link
                 href="/pricing"
-                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between"
+                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
               >
-                <span>Rate Card & Quotas</span>
+                <span>Rate Card &amp; Quotas</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
               <Link
                 href="/self-hosted"
-                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between"
+                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
               >
                 <span>Self-Hosted Cluster</span>
                 <ArrowRight className="w-3 h-3" />
@@ -1086,8 +1104,8 @@ func main() {
             </div>
           </nav>
 
-          {/* Middle Column: Detailed Technical Specification Narrative (5 cols) */}
-          <div className="lg:col-span-5 space-y-14 text-xs text-[var(--ink-secondary)] leading-relaxed">
+          {/* Middle Column: Detailed Technical Specification Narrative */}
+          <div className="flex-1 min-w-0 max-w-3xl space-y-14 text-xs text-[var(--ink-secondary)] leading-relaxed">
             {/* Section 01: Architecture & Overview */}
             <section id="overview" className="space-y-3 scroll-mt-24">
               <div className="flex items-center gap-2">
@@ -1678,33 +1696,35 @@ func Verify(body []byte, ts int64, sig, secret string) bool {
             </section>
           </div>
 
-          {/* Right Column: The SDK Patch Bay & Live Memory Tester (4 cols) */}
-          <div className="lg:col-span-4 space-y-6 sticky top-20">
+          {/* Right Column: The SDK Patch Bay & Live Memory Tester */}
+          <div className="w-full lg:w-[480px] xl:w-[540px] shrink-0 sticky top-20 self-start space-y-6">
             {/* The SDK Patch Bay */}
             <div className="p-5 border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] shadow-card space-y-4">
-              <div className="flex items-center justify-between border-b border-[var(--line-hairline)] pb-3">
-                <div className="flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-[var(--signal)]" />
-                  <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--line-hairline)] pb-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded bg-[var(--signal-subtle)] text-[var(--signal)] shrink-0">
+                    <Terminal className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
                     <span className="font-mono text-xs font-bold uppercase tracking-wider text-[var(--ink-primary)] block">
                       The SDK Patch Bay
                     </span>
-                    <span className="font-mono text-[10px] text-[var(--signal)]">
+                    <span className="font-mono text-[11px] text-[var(--signal)] font-semibold truncate block">
                       {activeSectionObj.number}. {activeSectionObj.title}
                     </span>
                   </div>
                 </div>
 
                 {/* Language Switcher Tabs */}
-                <div className="flex items-center gap-1 font-mono text-[11px]">
+                <div className="flex items-center gap-1 font-mono text-[11px] bg-[var(--surface-sunken)] p-1 rounded-sm border border-[var(--line-hairline)] shrink-0">
                   {(["curl", "python", "typescript", "go"] as CodeLang[]).map((lang) => (
                     <button
                       key={lang}
                       type="button"
                       onClick={() => setSelectedLang(lang)}
-                      className={`px-2 py-0.5 rounded-sm uppercase font-bold transition-colors ${
+                      className={`px-2 py-0.5 rounded-sm uppercase font-bold text-[10px] tracking-wider transition-colors ${
                         selectedLang === lang
-                          ? "bg-[var(--signal)] text-white"
+                          ? "bg-[var(--signal)] text-white shadow-xs"
                           : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
                       }`}
                     >
@@ -1715,18 +1735,35 @@ func Verify(body []byte, ts int64, sig, secret string) bool {
               </div>
 
               {/* Memory-Only Key Slot */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-mono text-[var(--ink-muted)] uppercase flex items-center justify-between">
-                  <span>Live Key Injector:</span>
-                  <span className="text-[10px] text-emerald-600">Memory only</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Paste your developer key here to customize snippets live"
-                  value={testKey}
-                  onChange={(e) => setTestKey(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
-                />
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between font-mono text-[11px]">
+                  <label htmlFor="docs-key-injector" className="text-[var(--ink-secondary)] font-medium uppercase tracking-wider flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-[var(--signal)]" />
+                    <span>Live Key Injector:</span>
+                  </label>
+                  <span className="text-[10px] text-emerald-600 font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                    Memory only
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    id="docs-key-injector"
+                    type="text"
+                    placeholder="Paste key to inject into code snippets live..."
+                    value={testKey}
+                    onChange={(e) => setTestKey(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
+                  />
+                  {testKey && (
+                    <button
+                      type="button"
+                      onClick={() => setTestKey("")}
+                      className="absolute right-2 top-2 text-[10px] font-mono text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Dynamic Code Snippet based on activeSection and selectedLang */}
@@ -1743,13 +1780,43 @@ func Verify(body []byte, ts int64, sig, secret string) bool {
                 <span className="font-bold text-[var(--ink-secondary)] uppercase tracking-wider">
                   Sample Protocol Response ({activeSectionObj.number})
                 </span>
-                <span className="text-[11px] text-emerald-600 font-bold">200 OK</span>
+                <span className="text-[11px] text-emerald-600 font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  200 OK
+                </span>
               </div>
               <CodeBlock
                 language="json"
                 filename={`${activeSection}_payload.json`}
                 code={getSectionSampleResponse(activeSection)}
               />
+            </div>
+
+            {/* Interactive Technical Assistant Card */}
+            <div className="p-4 rounded-sm border border-[var(--signal)]/30 bg-[var(--surface-subtle)] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--signal)]">
+                  <Bot className="w-4 h-4" />
+                  <span>OpenOCR Assistant</span>
+                </div>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold border border-emerald-500/20">
+                  Online
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--ink-secondary)] leading-relaxed">
+                Have questions about authentication, S3 zero-copy uploads, rate limits, or air-gapped clusters? The assistant answers directly from our verified docs.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-openocr-chat"));
+                  }
+                }}
+                className="w-full py-2 px-3 rounded-sm bg-[#161618] hover:bg-[#1F1F23] border border-[#C85A32] text-[#FBF9F5] text-xs font-mono font-semibold flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
+              >
+                <Bot className="w-3.5 h-3.5 text-[#C85A32]" />
+                <span>Launch Assistant Chat</span>
+              </button>
             </div>
           </div>
         </div>

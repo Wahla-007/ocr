@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Server,
   BookOpen,
+  Bot,
 } from "lucide-react";
 import { authApi, AuthUser } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
@@ -77,7 +78,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--line-strong)] bg-[var(--surface-base)]/95 backdrop-blur-[4px] px-4 sm:px-8 py-2.5 transition-colors select-none">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div className="max-w-[1720px] mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Tag */}
         <div className="flex items-center gap-6 sm:gap-8">
           <Link
@@ -120,7 +121,27 @@ export function Header({
         </div>
 
         {/* Right Session Controls & Theme Toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Assistant Trigger Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-openocr-chat"));
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-sm bg-[var(--signal-subtle)] border border-[var(--signal)]/50 text-[var(--signal)] hover:bg-[var(--signal)] hover:text-white transition-all font-bold group shadow-sm"
+            title="Open AI Assistant QA Chatbot"
+            aria-label="Open Assistant Chatbot"
+          >
+            <Bot className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Assistant</span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+          </button>
+
           {/* Theme Toggle */}
           <button
             type="button"
