@@ -46,10 +46,11 @@ export const Badge: React.FC<BadgeProps> = ({
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] font-mono tracking-tight font-medium select-none ${variantStyles} ${className}`}
       {...props}
     >
-      {children}
-      {formattedConfidence && (
+      {children ? (
+        children
+      ) : formattedConfidence ? (
         <span className="tabular-nums font-bold">[{formattedConfidence}]</span>
-      )}
+      ) : null}
     </span>
   );
 };

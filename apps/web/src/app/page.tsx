@@ -61,7 +61,7 @@ export default function PlaygroundPage() {
   const handleSampleSelected = (sample: any) => {
     setActiveSampleId(sample.id);
     setActiveFileName(sample.fileName || sample.title);
-    setResult(sample.result);
+    setResult(JSON.parse(JSON.stringify(sample.result)));
     setUploadedPreviewUrl(null);
     setSelectedFieldKey(null);
   };

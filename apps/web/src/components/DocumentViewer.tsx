@@ -73,7 +73,7 @@ export function DocumentViewer({
 
   const previewSource = !imgFailed && (result?.preview_image || uploadedPreviewUrl);
 
-  // Polymorphic Specimen Canvas Renderers matching each specimen in the archive
+  // Polymorphic Specimen Canvas Renderers matching each specimen in the archive with pixel-perfect coordinate alignment
   const renderSpecimenCanvas = () => {
     const rawType = (
       result?.doc_type ||
@@ -89,83 +89,88 @@ export function DocumentViewer({
     if (rawType === "receipt") {
       return (
         <div
-          className="w-[520px] h-[680px] bg-[#FAF9F5] text-zinc-900 p-8 flex flex-col justify-between font-mono border border-zinc-300 shadow-sm relative overflow-hidden"
+          className="w-[540px] h-[680px] bg-[#FAF9F5] text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-mono select-none"
           style={{ fontFeatureSettings: '"tnum"' }}
         >
-          {/* Thermal Receipt jagged edge indicator */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-[repeating-linear-gradient(45deg,#FAF9F5,#FAF9F5_5px,#E4E4E7_5px,#E4E4E7_10px)] border-b border-zinc-300" />
+          {/* Jagged thermal tear indicator at top */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-[repeating-linear-gradient(45deg,#FAF9F5,#FAF9F5_4px,#E4E4E7_4px,#E4E4E7_8px)] border-b border-zinc-300" />
 
-          <div className="space-y-4 pt-2">
-            {/* Store Header matching bbox: x:50, y:40, w:320, h:40 */}
-            <div className="text-center pb-2 border-b border-dashed border-zinc-400">
-              <h1 className="text-xl font-bold tracking-wider text-zinc-950 uppercase">SUPERMARKET METRO</h1>
-              <p className="text-[11px] text-zinc-600 mt-0.5">Store #849 — 100 Market St, San Francisco, CA</p>
+          {/* Registration ticks */}
+          <span className="absolute top-3 left-4 text-[10px] text-zinc-400 font-mono">+</span>
+          <span className="absolute top-3 right-4 text-[10px] text-zinc-400 font-mono">+</span>
+
+          {/* Store Header matching bbox: x:50, y:40, w:320, h:40 */}
+          <div style={{ left: 50, top: 40, width: 320, height: 40 }} className="absolute flex flex-col justify-center">
+            <h1 className="font-mono font-bold text-lg tracking-wider text-zinc-950 uppercase leading-none">SUPERMARKET METRO</h1>
+            <p className="font-mono text-[10px] text-zinc-600 mt-1">Store #849 — 100 Market St, San Francisco, CA</p>
+          </div>
+
+          <div style={{ left: 50, top: 92, width: 380 }} className="absolute border-b border-dashed border-zinc-400" />
+
+          {/* Date & Cashier matching bbox: x:50, y:110 and y:145 */}
+          <div style={{ left: 50, top: 110, width: 280, height: 28 }} className="absolute flex items-center font-mono text-xs text-zinc-800">
+            <span>DATE: 2026-10-06 14:32:01 • REG #04</span>
+          </div>
+
+          <div style={{ left: 50, top: 145, width: 190, height: 26 }} className="absolute flex items-center font-mono text-xs text-zinc-800">
+            <span>CASHIER: Alex M. • POS-04</span>
+          </div>
+
+          <div style={{ left: 50, top: 180, width: 380 }} className="absolute border-b border-dashed border-zinc-400" />
+
+          {/* Receipt Line Items */}
+          <div style={{ left: 50, top: 195, width: 380 }} className="absolute text-xs space-y-2 font-mono text-zinc-800">
+            <div className="flex justify-between">
+              <span>Organic Whole Milk 1 Gal</span>
+              <span className="font-bold">$4.99</span>
             </div>
-
-            {/* Date & Cashier matching bbox: x:50, y:110 and y:145 */}
-            <div className="space-y-1 text-xs text-zinc-700 pb-2 border-b border-dashed border-zinc-400">
-              <div className="flex justify-between">
-                <span>DATE: 2026-10-06 14:32:01</span>
-                <span>REG #04</span>
-              </div>
-              <div className="flex justify-between">
-                <span>CASHIER: Alex M.</span>
-                <span>TRANS #84920</span>
-              </div>
+            <div className="flex justify-between">
+              <span>Fresh Sourdough Bread</span>
+              <span className="font-bold">$3.50</span>
             </div>
-
-            {/* Receipt Line Items */}
-            <div className="text-xs space-y-1.5 pt-1 text-zinc-800">
-              <div className="flex justify-between">
-                <span>Organic Whole Milk 1 Gal</span>
-                <span className="font-bold">$4.99</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Fresh Sourdough Bread</span>
-                <span className="font-bold">$3.50</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Dark Roast Coffee Beans</span>
-                <span className="font-bold">$14.99</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Greek Yogurt 32oz</span>
-                <span className="font-bold">$5.49</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Avocados (Bag of 4)</span>
-                <span className="font-bold">$4.29</span>
-              </div>
+            <div className="flex justify-between">
+              <span>Dark Roast Coffee Beans</span>
+              <span className="font-bold">$14.99</span>
             </div>
-
-            {/* Subtotal, Tax, Total matching bbox: x:50, y:440, 475, 520 */}
-            <div className="border-t border-dashed border-zinc-400 pt-3 space-y-1.5 text-xs">
-              <div className="flex justify-between text-zinc-700">
-                <span>SUBTOTAL</span>
-                <span className="font-bold">$33.26</span>
-              </div>
-              <div className="flex justify-between text-zinc-700">
-                <span>SALES TAX (8.5%)</span>
-                <span className="font-bold">$2.83</span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-bold border-t border-zinc-900 pt-2 text-zinc-950">
-                <span>TOTAL PAID</span>
-                <span className="text-base">$36.09 USD</span>
-              </div>
+            <div className="flex justify-between">
+              <span>Greek Yogurt 32oz</span>
+              <span className="font-bold">$5.49</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Avocados (Bag of 4)</span>
+              <span className="font-bold">$4.29</span>
             </div>
           </div>
 
+          <div style={{ left: 50, top: 380, width: 380 }} className="absolute border-b border-dashed border-zinc-400" />
+
+          {/* Subtotal, Tax, Total matching bbox: x:50, y:440, 475, 520 */}
+          <div style={{ left: 50, top: 440, width: 330, height: 30 }} className="absolute flex items-center justify-between font-mono text-xs text-zinc-800">
+            <span>SUBTOTAL</span>
+            <span className="font-bold">$33.26</span>
+          </div>
+
+          <div style={{ left: 50, top: 475, width: 330, height: 30 }} className="absolute flex items-center justify-between font-mono text-xs text-zinc-800">
+            <span>SALES TAX (8.5%)</span>
+            <span className="font-bold">$2.83</span>
+          </div>
+
+          <div style={{ left: 50, top: 520, width: 330, height: 38 }} className="absolute flex items-center justify-between font-mono text-sm font-bold text-zinc-950 border-t-2 border-zinc-900">
+            <span>TOTAL PAID</span>
+            <span className="text-base">$36.09 USD</span>
+          </div>
+
           {/* Payment & Barcode Footer */}
-          <div className="border-t border-dashed border-zinc-400 pt-3 text-center space-y-2">
-            <p className="text-[11px] text-zinc-600">
+          <div style={{ left: 50, top: 575, width: 380 }} className="absolute text-center space-y-1">
+            <p className="text-[10px] text-zinc-600 font-mono">
               METHOD: CREDIT CARD (VISA ****8492) • AUTH: 8492026
             </p>
-            <div className="flex justify-center items-center gap-0.5 h-7 py-1 opacity-80">
+            <div className="flex justify-center items-center gap-0.5 h-6 py-0.5 opacity-80">
               {[3, 1, 4, 1, 2, 5, 2, 1, 4, 2, 3, 1, 5, 2, 3, 1, 2, 4, 1, 3, 2, 4, 1].map((w, i) => (
                 <div key={i} className="h-full bg-zinc-900" style={{ width: `${w * 1.5}px` }} />
               ))}
             </div>
-            <p className="text-[10px] tracking-widest text-zinc-500">REC-849-2026</p>
+            <p className="text-[9px] tracking-widest text-zinc-500 font-mono">REC-849-2026</p>
           </div>
         </div>
       );
@@ -175,92 +180,105 @@ export function DocumentViewer({
     if (rawType === "driving_license" || rawType === "id_card") {
       return (
         <div
-          className="w-[520px] h-[680px] bg-[#F7F6F2] text-zinc-900 p-6 flex flex-col justify-between font-sans border border-zinc-300 shadow-sm relative overflow-hidden"
+          className="w-[540px] h-[680px] bg-[#F7F6F2] text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-sans select-none"
           style={{ fontFeatureSettings: '"tnum"' }}
         >
           {/* Archival Specimen Docket Header */}
-          <div className="border-b border-zinc-300 pb-2 flex justify-between items-center text-[11px] font-mono text-zinc-500">
+          <div style={{ left: 40, top: 20, width: 460 }} className="absolute border-b border-zinc-300 pb-1 flex justify-between items-center text-[10px] font-mono text-zinc-500">
             <span>STATE CREDENTIAL AUDIT SPECIMEN</span>
             <span>STANDARD REAL ID FORMAT</span>
           </div>
 
-          {/* Central Laminated ID Card Simulation */}
-          <div className="my-auto border-2 border-zinc-800 rounded-lg p-5 bg-gradient-to-br from-blue-50/50 via-white to-amber-50/40 shadow-md relative overflow-hidden">
-            {/* Guilloche Security Background Watermark */}
+          {/* Central ID Card Container */}
+          <div style={{ left: 40, top: 50, width: 460, height: 430 }} className="absolute border-2 border-zinc-800 rounded-lg bg-gradient-to-br from-blue-50/60 via-white to-amber-50/50 shadow-md overflow-hidden">
             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:8px_8px]" />
 
             {/* State Top Banner */}
-            <div className="flex justify-between items-start border-b-2 border-blue-900 pb-2 mb-3">
+            <div className="px-5 pt-3 pb-2 border-b-2 border-blue-900 flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-bold font-serif tracking-wider text-blue-950 uppercase leading-none">
+                <h2 className="text-base font-bold font-serif tracking-wider text-blue-950 uppercase leading-none">
                   STATE OF OREGON
                 </h2>
-                <p className="text-[10px] font-mono text-blue-800 tracking-wider uppercase mt-0.5">
+                <p className="text-[9px] font-mono text-blue-800 tracking-wider uppercase mt-0.5">
                   DRIVER LICENSE • CLASS C
                 </p>
               </div>
-              <div className="w-6 h-6 rounded-full border border-amber-500 bg-amber-100 flex items-center justify-center text-[10px] text-amber-800 font-bold">
+              <div className="w-5 h-5 rounded-full border border-amber-500 bg-amber-100 flex items-center justify-center text-[10px] text-amber-800 font-bold">
                 ★
               </div>
             </div>
-
-            {/* Photo & Biometric Quadrant (Right) + Fields (Left) */}
-            <div className="flex gap-4">
-              {/* Fields Column matching bboxes: x:60, y:110, 160, 210, 260, 310 */}
-              <div className="flex-1 space-y-2 text-xs">
-                <div>
-                  <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">1. Name</p>
-                  <p className="text-sm font-bold text-zinc-950">DOE, JANE</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">4d. License Number</p>
-                  <p className="font-mono text-xs font-bold text-blue-900 tracking-wider">DL-98472918</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">3. Date of Birth</p>
-                    <p className="font-mono text-xs font-bold text-zinc-900">1990-05-14</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">16. Sex</p>
-                    <p className="font-mono text-xs font-bold text-zinc-900">F</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">4a. Issue Date</p>
-                    <p className="font-mono text-[11px] text-zinc-700">2020-05-14</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">4b. Expire Date</p>
-                    <p className="font-mono text-[11px] font-bold text-red-700">2030-05-14</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[9px] font-mono text-zinc-500 uppercase font-bold">8. Address</p>
-                  <p className="text-[11px] text-zinc-800">742 Evergreen Terrace, Springfield, OR 97477</p>
-                </div>
-              </div>
-
-              {/* Photo Box */}
-              <div className="w-24 shrink-0 flex flex-col items-center">
-                <div className="w-24 h-28 border border-zinc-400 bg-zinc-200 rounded-sm flex flex-col items-center justify-center text-zinc-400 relative overflow-hidden">
-                  <div className="w-12 h-12 rounded-full bg-zinc-300 mb-1" />
-                  <div className="w-16 h-8 rounded-t-full bg-zinc-300" />
-                  <div className="absolute inset-0 border-2 border-amber-500/30 pointer-events-none" />
-                </div>
-                <span className="text-[8px] font-mono text-zinc-400 uppercase mt-1">BIOMETRIC PHOTO</span>
-              </div>
-            </div>
-
-            {/* Bottom Optical PDF417 Strip */}
-            <div className="mt-3 pt-2 border-t border-zinc-300 flex justify-between items-center text-[9px] font-mono text-zinc-500">
-              <span>USA • DEPT OF MOTOR VEHICLES</span>
-              <span className="tracking-widest">||| ||||||| ||| |||||||| ||||</span>
-            </div>
           </div>
 
-          <div className="border-t border-zinc-300 pt-2 text-[10px] font-mono text-zinc-500 flex justify-between">
+          {/* Fields positioned with EXACT coordinate matching to bboxes */}
+          {/* Name: x:60, y:110, w:320, h:40 */}
+          <div style={{ left: 60, top: 110, width: 320, height: 40 }} className="absolute flex flex-col justify-center">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">1. LN: DOE  2. FN: JANE</span>
+            <span className="text-sm font-bold text-zinc-950 leading-tight">DOE, JANE</span>
+          </div>
+
+          {/* Photo Box: left: 390, top: 110, width: 95, height: 130 */}
+          <div style={{ left: 390, top: 110, width: 95, height: 130 }} className="absolute border border-zinc-400 bg-zinc-200 rounded-sm flex flex-col items-center justify-center text-zinc-400 shadow-inner">
+            <div className="w-10 h-10 rounded-full bg-zinc-300 mb-1" />
+            <div className="w-14 h-7 rounded-t-full bg-zinc-300" />
+            <span className="text-[7px] font-mono text-zinc-500 uppercase mt-1">BIOMETRIC</span>
+          </div>
+
+          {/* License Number: x:60, y:160, w:320, h:40 */}
+          <div style={{ left: 60, top: 160, width: 320, height: 40 }} className="absolute flex flex-col justify-center">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">{rawType === "id_card" ? "4d. IDENTITY NUMBER" : "4d. LICENSE NUMBER"}</span>
+            <span className="font-mono text-sm font-bold text-blue-900 tracking-wider">{rawType === "id_card" ? "ID-98472918" : "DL-98472918"}</span>
+          </div>
+
+          {/* Date of Birth: x:60, y:210, w:300, h:38 */}
+          <div style={{ left: 60, top: 210, width: 300, height: 38 }} className="absolute flex flex-col justify-center">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">3. DATE OF BIRTH</span>
+            <span className="font-mono text-xs font-bold text-zinc-900">1990-05-14</span>
+          </div>
+
+          {/* License Class (for DL) or Expiration (for ID): x:60, y:260, w:300, h:38 */}
+          <div style={{ left: 60, top: 260, width: 300, height: 38 }} className="absolute flex flex-col justify-center">
+            {rawType === "id_card" ? (
+              <>
+                <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">4b. EXPIRATION DATE</span>
+                <span className="font-mono text-xs font-bold text-red-700">2030-05-14</span>
+              </>
+            ) : (
+              <>
+                <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">9. CLASS</span>
+                <span className="font-mono text-xs font-bold text-zinc-900">CLASS C — OPERATOR</span>
+              </>
+            )}
+          </div>
+
+          {/* Expiration (for DL) or Nationality (for ID): x:60, y:310, w:300, h:38 */}
+          <div style={{ left: 60, top: 310, width: 300, height: 38 }} className="absolute flex flex-col justify-center">
+            {rawType === "id_card" ? (
+              <>
+                <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">15. NATIONALITY</span>
+                <span className="font-mono text-xs font-bold text-zinc-900">USA</span>
+              </>
+            ) : (
+              <>
+                <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">4b. EXPIRATION DATE</span>
+                <span className="font-mono text-xs font-bold text-red-700">2030-05-14 • 4a. ISS: 2020-05-14</span>
+              </>
+            )}
+          </div>
+
+          {/* Address */}
+          <div style={{ left: 60, top: 355, width: 420, height: 30 }} className="absolute flex flex-col justify-center">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">8. RESIDENCE ADDRESS</span>
+            <span className="text-xs text-zinc-800">742 Evergreen Terrace, Springfield, OR 97477</span>
+          </div>
+
+          {/* Barcode strip */}
+          <div style={{ left: 60, top: 410, width: 420 }} className="absolute pt-2 border-t border-zinc-300 flex justify-between items-center text-[8px] font-mono text-zinc-500">
+            <span>USA • DEPT OF MOTOR VEHICLES</span>
+            <span className="tracking-widest">||| ||||||| ||| |||||||| |||| |||||| ||||||||</span>
+          </div>
+
+          {/* Footer note */}
+          <div style={{ left: 40, top: 500, width: 460 }} className="absolute border-t border-zinc-300 pt-2 text-[10px] font-mono text-zinc-500 flex justify-between">
             <span>SPECIMEN ID: ocr_dl_98472918</span>
             <span>VERIFIED: REAL ID SECURITY STANDARD</span>
           </div>
@@ -272,57 +290,66 @@ export function DocumentViewer({
     if (rawType === "contract") {
       return (
         <div
-          className="w-[520px] h-[680px] bg-[#FCFBF8] text-zinc-900 p-8 flex flex-col justify-between font-serif border border-zinc-300 shadow-sm relative overflow-hidden"
+          className="w-[540px] h-[680px] bg-[#FCFBF8] text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-serif select-none"
           style={{ fontFeatureSettings: '"tnum"' }}
         >
-          <div className="space-y-4">
-            {/* Title matching bbox: x:50, y:60, w:480, h:36 */}
-            <div className="text-center border-b-2 border-zinc-900 pb-3">
-              <h1 className="text-lg font-bold tracking-wider text-zinc-950 uppercase">
-                CONFIDENTIAL NON-DISCLOSURE AGREEMENT
-              </h1>
-              <p className="text-xs text-zinc-600 italic mt-0.5">
-                Effective Date: October 6, 2026
-              </p>
-            </div>
-
-            {/* Parties matching bboxes: x:70, y:155 and x:70, y:190 */}
-            <div className="text-xs font-sans space-y-2 bg-zinc-50 p-3 border border-zinc-200 rounded-sm">
-              <p className="text-[11px] font-serif text-zinc-600 italic">
-                This Agreement is entered into between:
-              </p>
-              <div>
-                <p className="font-mono text-[10px] text-zinc-500 uppercase font-bold">Disclosing Party (Party A):</p>
-                <p className="font-bold text-zinc-900">Global Dynamics LLC</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-zinc-500 uppercase font-bold">Receiving Party (Party B):</p>
-                <p className="font-bold text-zinc-900">Apex Technologies Inc.</p>
-              </div>
-            </div>
-
-            {/* Scope / Subject matching bbox: x:50, y:270, w:490, h:32 */}
-            <div className="text-xs space-y-2 text-zinc-800 leading-relaxed pt-1">
-              <p>
-                <strong className="font-sans font-bold">1. Scope of Confidential Information:</strong> The receiving party agrees to safeguard all proprietary algorithms, system source code, and commercial specifications.
-              </p>
-              <p>
-                <strong className="font-sans font-bold">2. Obligations:</strong> The Receiving Party shall hold and maintain the Confidential Information in strictest confidence for the sole benefit of the Disclosing Party.
-              </p>
-              <p>
-                <strong className="font-sans font-bold">3. Term:</strong> This Agreement shall remain in effect for a period of five (5) years terminating on October 6, 2031.
-              </p>
-            </div>
+          {/* Archival Specimen Docket Header */}
+          <div style={{ left: 40, top: 20, width: 460 }} className="absolute border-b border-zinc-300 pb-1 flex justify-between items-center text-[10px] font-mono text-zinc-500">
+            <span>LEGAL DOCKET ARCHIVE SPECIMEN</span>
+            <span>AGREEMENT REF: NDA-2026-088</span>
           </div>
 
-          {/* Signatures & Corporate Seal */}
-          <div className="border-t-2 border-zinc-900 pt-4 flex justify-between items-end">
+          {/* Title matching bbox: x:50, y:60, w:440, h:36 */}
+          <div style={{ left: 50, top: 60, width: 440, height: 36 }} className="absolute flex items-center justify-center text-center">
+            <h1 className="text-base font-bold tracking-wider text-zinc-950 uppercase leading-none">
+              CONFIDENTIAL NON-DISCLOSURE AGREEMENT
+            </h1>
+          </div>
+
+          <div style={{ left: 50, top: 102, width: 440 }} className="absolute border-b-2 border-zinc-900" />
+
+          {/* Effective Date matching bbox: x:50, y:120, w:440, h:28 */}
+          <div style={{ left: 50, top: 120, width: 440, height: 28 }} className="absolute flex items-center justify-center font-serif text-xs italic text-zinc-700">
+            <span>Effective Date: October 6, 2026</span>
+          </div>
+
+          {/* Party A matching bbox: x:70, y:155, w:340, h:28 */}
+          <div style={{ left: 70, top: 155, width: 340, height: 28 }} className="absolute flex items-center text-xs font-sans">
+            <span className="font-mono text-[10px] text-zinc-500 uppercase font-bold mr-1.5">Party A (Disclosing):</span>
+            <span className="font-bold text-zinc-900">Global Dynamics LLC</span>
+          </div>
+
+          {/* Party B matching bbox: x:70, y:190, w:350, h:28 */}
+          <div style={{ left: 70, top: 190, width: 350, height: 28 }} className="absolute flex items-center text-xs font-sans">
+            <span className="font-mono text-[10px] text-zinc-500 uppercase font-bold mr-1.5">Party B (Receiving):</span>
+            <span className="font-bold text-zinc-900">Apex Technologies Inc.</span>
+          </div>
+
+          <div style={{ left: 50, top: 228, width: 440 }} className="absolute border-b border-zinc-200" />
+
+          {/* Scope / Subject matching bbox: x:50, y:270, w:440, h:32 */}
+          <div style={{ left: 50, top: 270, width: 440, height: 32 }} className="absolute flex items-center text-xs text-zinc-800 leading-snug">
+            <span><strong className="font-sans font-bold">1. Scope:</strong> Proprietary algorithms and confidential source code.</span>
+          </div>
+
+          {/* Clauses 2 & 3 */}
+          <div style={{ left: 50, top: 315, width: 440 }} className="absolute text-xs space-y-2 text-zinc-700 leading-relaxed">
+            <p>
+              <strong className="font-sans font-bold">2. Non-Disclosure Obligations:</strong> The Receiving Party shall hold and maintain the Confidential Information in strictest confidence for the benefit of the Disclosing Party.
+            </p>
+            <p>
+              <strong className="font-sans font-bold">3. Term:</strong> This Agreement shall remain in effect for five (5) years terminating October 6, 2031.
+            </p>
+          </div>
+
+          {/* Execution Signatures & Stamp */}
+          <div style={{ left: 50, top: 480, width: 440 }} className="absolute border-t-2 border-zinc-900 pt-4 flex justify-between items-end">
             <div className="space-y-1 text-xs font-sans">
-              <div className="w-36 border-b border-zinc-700 pb-1">
-                <span className="font-serif italic text-zinc-600 text-sm">Authorized Signature</span>
+              <div className="w-32 border-b border-zinc-700 pb-1">
+                <span className="font-serif italic text-zinc-600 text-xs">Auth. Officer</span>
               </div>
               <p className="font-bold text-zinc-900">Global Dynamics LLC</p>
-              <p className="text-[10px] font-mono text-zinc-500">Date: 2026-10-06</p>
+              <p className="text-[9px] font-mono text-zinc-500">Date: 2026-10-06</p>
             </div>
 
             <div className="w-16 h-16 rounded-full border-2 border-red-800/80 flex items-center justify-center text-center p-1 text-red-800 text-[8px] font-mono uppercase tracking-tighter rotate-[-12deg]">
@@ -330,11 +357,11 @@ export function DocumentViewer({
             </div>
 
             <div className="space-y-1 text-xs font-sans text-right">
-              <div className="w-36 border-b border-zinc-700 pb-1">
-                <span className="font-serif italic text-zinc-600 text-sm">Authorized Signature</span>
+              <div className="w-32 border-b border-zinc-700 pb-1">
+                <span className="font-serif italic text-zinc-600 text-xs">Auth. Officer</span>
               </div>
               <p className="font-bold text-zinc-900">Apex Technologies Inc.</p>
-              <p className="text-[10px] font-mono text-zinc-500">Date: 2026-10-06</p>
+              <p className="text-[9px] font-mono text-zinc-500">Date: 2026-10-06</p>
             </div>
           </div>
         </div>
@@ -345,86 +372,105 @@ export function DocumentViewer({
     if (rawType === "document") {
       return (
         <div
-          className="w-[520px] h-[680px] bg-white text-zinc-900 p-8 flex flex-col justify-between font-sans border border-zinc-300 shadow-sm relative overflow-hidden"
+          className="w-[540px] h-[680px] bg-white text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-sans select-none"
           style={{ fontFeatureSettings: '"tnum"' }}
         >
-          <div className="space-y-6">
-            <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4">
-              <div>
-                <h1 className="text-xl font-bold tracking-tight font-serif text-zinc-950">
-                  QUARTERLY BUSINESS REVIEW
-                </h1>
-                <p className="text-xs font-mono text-zinc-500 mt-0.5">APEX ANALYTICS GROUP • Q3 2026</p>
-              </div>
-              <div className="text-right font-mono text-xs">
-                <p className="font-bold">PAGE {currentPage} OF 3</p>
-                <p className="text-zinc-500">DOC-2026-001</p>
-              </div>
-            </div>
+          {/* Header Bar */}
+          <div style={{ left: 50, top: 25, width: 440 }} className="absolute flex justify-between items-center border-b border-zinc-300 pb-2 text-[10px] font-mono text-zinc-500">
+            <span>DOC-2026-001 • AUDIT REPORT</span>
+            <span>PAGE {currentPage} OF 3</span>
+          </div>
 
-            {currentPage === 1 && (
-              <div className="space-y-4 text-xs">
-                <div className="bg-zinc-50 p-4 border border-zinc-200 rounded-sm">
-                  <h3 className="font-bold text-zinc-900 mb-1">Executive Summary</h3>
-                  <p className="text-zinc-600 leading-relaxed">
-                    Operational evaluation for the third quarter reveals marked improvements in document throughput and automated processing accuracy.
-                  </p>
+          {currentPage === 1 && (
+            <>
+              {/* Title matching bbox: x:70, y:70, w:400, h:38 */}
+              <div style={{ left: 70, top: 70, width: 400, height: 38 }} className="absolute flex flex-col justify-center">
+                <h1 className="text-lg font-serif font-bold text-zinc-950 leading-tight">QUARTERLY BUSINESS REVIEW — Q3 2026</h1>
+                <p className="text-[10px] font-mono text-zinc-500 mt-0.5">APEX ANALYTICS GROUP • OPERATIONAL POSTURE</p>
+              </div>
+
+              {/* Narrative Box */}
+              <div style={{ left: 70, top: 120, width: 400 }} className="absolute bg-zinc-50 p-3 border border-zinc-200 rounded-sm text-xs text-zinc-600 leading-relaxed">
+                <h3 className="font-bold text-zinc-900 text-xs mb-1">Executive Summary</h3>
+                <p>Operational evaluation for the third quarter reveals marked improvements in document throughput and automated processing accuracy.</p>
+              </div>
+
+              {/* Throughput metric matching bbox: x:70, y:170, w:400, h:32 */}
+              <div style={{ left: 70, top: 170, width: 400, height: 32 }} className="absolute flex items-center justify-between font-mono text-xs font-bold text-zinc-900 border-b border-zinc-300 pb-1">
+                <span>Throughput Growth:</span>
+                <span className="text-sm font-bold text-[#C85A32]">+35% YOY</span>
+              </div>
+
+              <div style={{ left: 70, top: 220, width: 400 }} className="absolute p-4 border border-zinc-800 bg-zinc-900 text-white rounded-sm text-xs">
+                <p className="text-[10px] font-mono text-zinc-400 uppercase">Quarterly Processing Benchmark</p>
+                <p className="text-xl font-bold font-mono text-[#C85A32] mt-0.5">Surpassing Benchmark by 12%</p>
+                <p className="text-[11px] text-zinc-300 mt-1">Audit integrity verified across 4,800 sample batches.</p>
+              </div>
+            </>
+          )}
+
+          {currentPage === 2 && (
+            <>
+              {/* Page 2 Title */}
+              <div style={{ left: 70, top: 45, width: 400 }} className="absolute">
+                <h2 className="text-sm font-bold text-zinc-900">Financial Performance: Target vs Actual</h2>
+                <p className="text-[10px] font-mono text-zinc-500">Q3 2026 CONSOLIDATED BALANCE</p>
+              </div>
+
+              {/* Table at left: 70, top: 90, width: 400, height: 160 */}
+              <div style={{ left: 70, top: 90, width: 400, height: 160 }} className="absolute border border-zinc-800 text-xs">
+                <div className="grid grid-cols-3 bg-zinc-100 font-mono font-bold p-1.5 border-b border-zinc-800 text-[11px]">
+                  <span>Metric</span>
+                  <span className="text-right">Target</span>
+                  <span className="text-right">Actual</span>
                 </div>
-
-                <div className="p-4 border border-zinc-800 bg-zinc-900 text-white rounded-sm">
-                  <p className="text-[10px] font-mono text-zinc-400 uppercase">Throughput Growth</p>
-                  <p className="text-2xl font-bold font-mono text-[var(--signal)] mt-0.5">+35% YOY</p>
-                  <p className="text-[11px] text-zinc-300 mt-1">Surpassing target throughput benchmark by 12%.</p>
-                </div>
-              </div>
-            )}
-
-            {currentPage === 2 && (
-              <div className="space-y-4 text-xs">
-                <h3 className="font-bold text-zinc-900">Financial Performance Target vs Actual</h3>
-                <div className="border border-zinc-800 text-xs">
-                  <div className="grid grid-cols-3 bg-zinc-100 font-mono font-bold p-2 border-b border-zinc-800">
-                    <span>Metric</span>
-                    <span className="text-right">Target</span>
-                    <span className="text-right">Actual</span>
+                <div className="divide-y divide-zinc-200 font-mono text-xs">
+                  {/* Row 1 matching bbox: x:70, y:125, w:400, h:28 */}
+                  <div style={{ height: 28 }} className="grid grid-cols-3 px-1.5 items-center">
+                    <span className="font-sans">Revenue</span>
+                    <span className="text-right">$1.2M</span>
+                    <span className="text-right font-bold text-zinc-900">$1.45M</span>
                   </div>
-                  <div className="divide-y divide-zinc-200 font-mono">
-                    <div className="grid grid-cols-3 p-2">
-                      <span className="font-sans">Revenue</span>
-                      <span className="text-right">$1.2M</span>
-                      <span className="text-right font-bold text-zinc-900">$1.45M</span>
-                    </div>
-                    <div className="grid grid-cols-3 p-2">
-                      <span className="font-sans">Gross Margin</span>
-                      <span className="text-right">75%</span>
-                      <span className="text-right font-bold text-zinc-900">79%</span>
-                    </div>
-                    <div className="grid grid-cols-3 p-2">
-                      <span className="font-sans">Active Accounts</span>
-                      <span className="text-right">1,200</span>
-                      <span className="text-right font-bold text-zinc-900">1,480</span>
-                    </div>
+                  {/* Row 2 matching bbox: x:70, y:155, w:400, h:28 */}
+                  <div style={{ height: 28 }} className="grid grid-cols-3 px-1.5 items-center">
+                    <span className="font-sans">Gross Margin</span>
+                    <span className="text-right">75%</span>
+                    <span className="text-right font-bold text-zinc-900">79%</span>
+                  </div>
+                  <div style={{ height: 28 }} className="grid grid-cols-3 px-1.5 items-center">
+                    <span className="font-sans">Active Accounts</span>
+                    <span className="text-right">1,200</span>
+                    <span className="text-right font-bold text-zinc-900">1,480</span>
                   </div>
                 </div>
               </div>
-            )}
+            </>
+          )}
 
-            {currentPage === 3 && (
-              <div className="space-y-4 text-xs">
-                <h3 className="font-bold text-zinc-900">Compliance & Executive Certification</h3>
+          {currentPage === 3 && (
+            <>
+              {/* Page 3 Compliance */}
+              <div style={{ left: 70, top: 60, width: 400 }} className="absolute space-y-3 text-xs">
+                <h3 className="font-bold text-zinc-900 text-sm">Compliance & Executive Certification</h3>
                 <p className="text-zinc-600 leading-relaxed">
                   The undersigned executive certifies that this Quarterly Business Review report accurately reflects the operational posture and audit controls in place.
                 </p>
-                <div className="mt-8 pt-8 border-t border-zinc-300 space-y-1">
-                  <p className="font-serif italic text-sm text-zinc-700">Chief Operating Officer</p>
-                  <p className="font-bold text-zinc-900">Apex Analytics Group</p>
-                  <p className="font-mono text-[10px] text-zinc-500">Certified: 2026-10-01</p>
-                </div>
               </div>
-            )}
-          </div>
 
-          <div className="border-t-2 border-zinc-900 pt-3 flex justify-between items-center font-mono text-[11px] text-zinc-500">
+              {/* Certified By matching bbox: x:70, y:130, w:400, h:30 */}
+              <div style={{ left: 70, top: 130, width: 400, height: 30 }} className="absolute flex items-center justify-between border-b border-zinc-400 pb-1 text-xs">
+                <span className="font-serif italic text-zinc-700">Chief Operating Officer</span>
+                <span className="font-mono text-[10px] text-zinc-500">Certified: 2026-10-01</span>
+              </div>
+
+              <div style={{ left: 70, top: 175, width: 400 }} className="absolute text-xs text-zinc-800">
+                <p className="font-bold">Apex Analytics Group</p>
+                <p className="text-[10px] font-mono text-zinc-500">Ledger checksum verified: 0x84fa92e1</p>
+              </div>
+            </>
+          )}
+
+          <div style={{ left: 50, top: 620, width: 440 }} className="absolute border-t-2 border-zinc-900 pt-2 flex justify-between items-center font-mono text-[10px] text-zinc-500">
             <span>CONFIDENTIAL & PROPRIETARY</span>
             <span>AUDIT TRAIL VERIFIED</span>
           </div>
@@ -435,72 +481,96 @@ export function DocumentViewer({
     // 5. DEFAULT: NORTHSTAR STUDIO INVOICE (NS-1042)
     return (
       <div
-        className="w-[520px] h-[680px] bg-white text-zinc-900 p-8 flex flex-col justify-between font-serif border border-zinc-300 shadow-sm relative overflow-hidden"
+        className="w-[540px] h-[680px] bg-white text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-serif select-none"
         style={{ fontFeatureSettings: '"tnum"' }}
       >
-        <div className="space-y-6">
-          {/* Header matching bboxes: x:50, y:50, w:200, h:35 and x:380, y:70, w:140, h:28 */}
-          <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-950 font-serif">NORTHSTAR STUDIO</h1>
-              <p className="text-xs font-sans text-zinc-500 mt-0.5">42 Cedar Avenue, Portland, OR 97205</p>
-            </div>
-            <div className="text-right font-mono text-xs">
-              <p className="font-bold text-sm text-zinc-950">NS-1042</p>
-              <p className="text-zinc-500">ISSUE: 2026-10-01</p>
-              <p className="text-zinc-500">DUE: 2026-10-31</p>
-            </div>
-          </div>
+        {/* Header: supplier_name matching bbox: x:50, y:50, w:200, h:35 */}
+        <div style={{ left: 50, top: 50, width: 200, height: 35 }} className="absolute flex flex-col justify-center">
+          <h1 className="font-serif font-bold text-lg leading-none text-zinc-950 tracking-tight">NORTHSTAR STUDIO</h1>
+          <p className="text-[10px] font-sans text-zinc-500 mt-1">42 Cedar Ave, Portland, OR 97205</p>
+        </div>
 
-          {/* Billed To matching bbox: x:50, y:160, w:180, h:28 */}
-          <div className="grid grid-cols-2 gap-4 text-xs font-sans">
-            <div>
-              <p className="font-mono text-[10px] text-zinc-500 uppercase font-semibold">Billed To:</p>
-              <p className="font-bold text-zinc-900">Maple & Finch</p>
-              <p className="text-zinc-600">Portland, Oregon</p>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-[10px] text-zinc-500 uppercase font-semibold">Payment Terms:</p>
-              <p className="font-bold text-zinc-900">Net 30 Days</p>
-              <p className="text-zinc-600">USD Direct Deposit</p>
-            </div>
-          </div>
+        {/* Invoice Number: invoice_number matching bbox: x:380, y:70, w:140, h:28 */}
+        <div style={{ left: 380, top: 70, width: 140, height: 28 }} className="absolute flex items-center justify-end font-mono">
+          <span className="font-bold text-sm text-zinc-950">NS-1042</span>
+        </div>
 
-          {/* Table matching bbox: x:50, y:220, w:480, h:200 */}
-          <div className="border border-zinc-800 text-xs font-sans mt-4">
-            <div className="grid grid-cols-4 bg-zinc-100 font-mono font-bold p-1.5 border-b border-zinc-800 text-[11px]">
-              <span>Description</span>
-              <span className="text-center">Qty</span>
-              <span className="text-right">Rate</span>
-              <span className="text-right">Total</span>
+        {/* Header divider rule */}
+        <div style={{ left: 50, top: 98, width: 470 }} className="absolute border-b-2 border-zinc-900" />
+
+        {/* Issue Date matching bbox: x:380, y:110, w:140, h:24 */}
+        <div style={{ left: 380, top: 110, width: 140, height: 24 }} className="absolute flex items-center justify-end font-mono text-xs text-zinc-800">
+          <span>ISSUE: 2026-10-01</span>
+        </div>
+
+        {/* Due Date matching bbox: x:380, y:140, w:140, h:24 */}
+        <div style={{ left: 380, top: 140, width: 140, height: 24 }} className="absolute flex items-center justify-end font-mono text-xs text-zinc-800">
+          <span>DUE: 2026-10-31</span>
+        </div>
+
+        {/* Billed To label */}
+        <div style={{ left: 50, top: 142 }} className="absolute font-mono text-[10px] text-zinc-500 uppercase font-semibold">
+          BILLED TO:
+        </div>
+
+        {/* Buyer Name: buyer_name matching bbox: x:50, y:160, w:180, h:28 */}
+        <div style={{ left: 50, top: 160, width: 180, height: 28 }} className="absolute flex flex-col justify-center font-sans">
+          <span className="font-bold text-xs text-zinc-900 leading-none">Maple & Finch</span>
+          <span className="text-[11px] text-zinc-600">Portland, Oregon</span>
+        </div>
+
+        {/* Payment Terms on the right */}
+        <div style={{ left: 360, top: 175, width: 160 }} className="absolute flex flex-col items-end text-right font-sans text-xs">
+          <span className="font-mono text-[9px] text-zinc-400 uppercase font-bold">PAYMENT TERMS:</span>
+          <span className="font-bold text-zinc-800">Net 30 Days</span>
+          <span className="text-[10px] text-zinc-500">USD Direct Deposit</span>
+        </div>
+
+        {/* Table matching bbox: x:50, y:220, w:470, h:200 */}
+        <div style={{ left: 50, top: 220, width: 470, height: 200 }} className="absolute border border-zinc-800 text-xs font-sans overflow-hidden">
+          <div className="grid grid-cols-4 bg-zinc-100 font-mono font-bold p-1.5 border-b border-zinc-800 text-[11px]">
+            <span>Description</span>
+            <span className="text-center">Qty</span>
+            <span className="text-right">Rate</span>
+            <span className="text-right">Total</span>
+          </div>
+          <div className="divide-y divide-zinc-200">
+            <div className="grid grid-cols-4 p-2 items-center">
+              <span>Discovery & brand workshop</span>
+              <span className="text-center font-mono">8 hrs</span>
+              <span className="text-right font-mono">$125.00</span>
+              <span className="text-right font-mono font-bold">$1,000.00</span>
             </div>
-            <div className="divide-y divide-zinc-200">
-              <div className="grid grid-cols-4 p-1.5">
-                <span>Discovery & brand workshop</span>
-                <span className="text-center font-mono">8 hrs</span>
-                <span className="text-right font-mono">$125.00</span>
-                <span className="text-right font-mono font-bold">$1,000.00</span>
-              </div>
-              <div className="grid grid-cols-4 p-1.5">
-                <span>Digital design & implementation</span>
-                <span className="text-center font-mono">6 hrs</span>
-                <span className="text-right font-mono">$95.00</span>
-                <span className="text-right font-mono font-bold">$570.00</span>
-              </div>
-              <div className="grid grid-cols-4 p-1.5">
-                <span>Review & studio handoff</span>
-                <span className="text-center font-mono">2 hrs</span>
-                <span className="text-right font-mono">$150.00</span>
-                <span className="text-right font-mono font-bold">$300.00</span>
-              </div>
+            <div className="grid grid-cols-4 p-2 items-center">
+              <span>Digital design & implementation</span>
+              <span className="text-center font-mono">6 hrs</span>
+              <span className="text-right font-mono">$95.00</span>
+              <span className="text-right font-mono font-bold">$570.00</span>
+            </div>
+            <div className="grid grid-cols-4 p-2 items-center">
+              <span>Review & studio handoff</span>
+              <span className="text-center font-mono">2 hrs</span>
+              <span className="text-right font-mono">$150.00</span>
+              <span className="text-right font-mono font-bold">$300.00</span>
             </div>
           </div>
         </div>
 
-        {/* Totals matching bbox: x:360, y:440, w:160, h:45 */}
-        <div className="border-t-2 border-zinc-900 pt-4 flex justify-between items-center font-mono text-xs">
+        {/* Totals section */}
+        <div style={{ left: 50, top: 440, width: 280 }} className="absolute font-mono text-xs text-zinc-600 flex items-center h-[45px]">
           <span>SUBTOTAL: $1,870.00 | TAX (0%): $0.00</span>
-          <span className="text-base font-bold text-zinc-950">TOTAL: $1,870.00 USD</span>
+        </div>
+
+        {/* Total Amount matching bbox: x:360, y:440, w:160, h:45 */}
+        <div style={{ left: 360, top: 440, width: 160, height: 45 }} className="absolute flex flex-col items-end justify-center font-mono">
+          <span className="text-[10px] text-zinc-500 uppercase font-bold">TOTAL DUE</span>
+          <span className="text-base font-bold text-zinc-950">$1,870.00 USD</span>
+        </div>
+
+        {/* Bottom divider and footer */}
+        <div style={{ left: 50, top: 510, width: 470 }} className="absolute border-t border-zinc-300 pt-3 flex justify-between items-center font-mono text-[10px] text-zinc-500">
+          <span>PROJECT: AUTUMN BRAND LAUNCH</span>
+          <span>DOCUMENT CHECKSUM: 0x6D5231</span>
         </div>
       </div>
     );
@@ -538,6 +608,18 @@ export function DocumentViewer({
               title="Toggle Field Bounding Boxes"
             >
               Fields
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTableBboxes(!showTableBboxes)}
+              className={`px-2 py-0.5 rounded-sm text-[11px] border transition-colors ${
+                showTableBboxes
+                  ? "bg-blue-50 border-blue-600 text-blue-700 font-bold"
+                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
+              }`}
+              title="Toggle Table Bounding Boxes"
+            >
+              Tables
             </button>
             <button
               type="button"
@@ -653,7 +735,7 @@ export function DocumentViewer({
             renderSpecimenCanvas()
           )}
 
-          {/* Tracing-Paper Overlays: Detected Bounding Boxes */}
+          {/* Tracing-Paper Overlays: Detected Bounding Boxes (Bold High-Contrast Terracotta) */}
           {showFieldBboxes && (
             <div className="absolute inset-0 pointer-events-auto">
               {pageFields.map((field, idx) => {
@@ -675,20 +757,46 @@ export function DocumentViewer({
                       width: `${width}px`,
                       height: `${height}px`,
                     }}
-                    className={`absolute cursor-pointer transition-all duration-150 border rounded-sm flex items-start justify-end p-0.5 select-none
+                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm flex items-start justify-end p-0.5 select-none
                       ${
                         isSelected
-                          ? "border-[var(--signal)] bg-[var(--signal)]/25 ring-2 ring-[var(--signal)] z-30"
+                          ? "border-2 border-[#B24E2A] bg-[#C85A32]/35 ring-3 ring-[#C85A32] shadow-[0_0_12px_rgba(200,90,50,0.5)] z-30"
                           : isHovered
-                          ? "border-[var(--signal)] bg-[var(--signal)]/15 z-20"
-                          : "border-[var(--signal)]/70 bg-[var(--signal)]/5 hover:border-[var(--signal)] z-10"
+                          ? "border-2 border-[#C85A32] bg-[#C85A32]/25 ring-2 ring-[#C85A32]/60 shadow-[0_0_8px_rgba(200,90,50,0.3)] z-20"
+                          : "border-2 border-[#C85A32] bg-[#C85A32]/12 hover:border-[#B24E2A] hover:bg-[#C85A32]/25 shadow-[0_0_0_1px_rgba(200,90,50,0.2)] z-10"
                       }
-                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.15)_3px,rgba(200,90,50,0.15)_6px)]" : ""}
+                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.2)_3px,rgba(200,90,50,0.2)_6px)]" : ""}
                     `}
                     title={`${field.label}: ${field.value} (${Math.round(field.confidence * 100)}% confidence)`}
                   >
-                    <span className="bg-[var(--signal)] text-white text-[9px] font-mono px-1 py-0.2 rounded-sm opacity-90 font-bold leading-none shadow-subtle">
+                    <span className="bg-[#C85A32] text-white text-[10px] font-mono px-1.5 py-0.5 rounded-sm font-bold leading-none shadow-md">
                       {Math.round(field.confidence * 100)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Table Bounding Boxes Overlay */}
+          {showTableBboxes && (
+            <div className="absolute inset-0 pointer-events-none">
+              {(result?.tables || []).filter(t => t.bbox && (t.page === undefined || t.page === currentPage)).map((table, idx) => {
+                if (!table.bbox) return null;
+                const { x, y, width, height } = table.bbox;
+                return (
+                  <div
+                    key={`tbl-${idx}`}
+                    style={{
+                      left: `${x}px`,
+                      top: `${y}px`,
+                      width: `${width}px`,
+                      height: `${height}px`,
+                    }}
+                    className="absolute border-2 border-dashed border-[#1D5E99] bg-[#1D5E99]/5 rounded-sm pointer-events-none z-10"
+                  >
+                    <span className="bg-[#1D5E99] text-white text-[9px] font-mono px-1 py-0.5 rounded-sm font-bold float-right shadow-sm">
+                      TABLE
                     </span>
                   </div>
                 );
