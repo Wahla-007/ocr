@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       credits_remaining: newKey.creditsRemaining,
       cost_per_page: `$${newKey.costPerCreditUsd} USD`,
       created_at: newKey.createdAt,
-      documentation_url: "/api-platform",
+      documentation_url: "/docs",
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

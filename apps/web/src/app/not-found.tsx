@@ -45,9 +45,9 @@ export default function NotFound() {
                 Return to Light Table
               </Button>
             </Link>
-            <Link href="/api-platform" className="w-full sm:w-auto">
+            <Link href="/docs" className="w-full sm:w-auto">
               <Button variant="outline" size="sm" className="w-full sm:w-auto" leftIcon={<BookOpen className="w-3.5 h-3.5" />}>
-                Open Field Manual
+                Open Documentation
               </Button>
             </Link>
           </div>

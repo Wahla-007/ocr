@@ -69,7 +69,7 @@ export function Header({
 
   const navLinks = [
     { href: "/", label: "Light Table" },
-    { href: "/api-platform", label: "Field Manual" },
+    { href: "/docs", label: "Documentation" },
     { href: "/pricing", label: "Rate Card" },
     { href: "/self-hosted", label: "Blueprint" },
   ];

@@ -1,5 +1,3 @@
-import ApiPlatformPage from "../api-platform/page";
+import DocumentationPage from "../docs/page";
 
-export default function Page() {
-  return <ApiPlatformPage />;
-}
+export default DocumentationPage;

@@ -99,9 +99,9 @@ export default function PlaygroundPage() {
                 View Rate Card
               </Button>
             </Link>
-            <Link href="/api-platform">
+            <Link href="/docs">
               <Button variant="primary" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                API Platform
+                Documentation
               </Button>
             </Link>
           </div>

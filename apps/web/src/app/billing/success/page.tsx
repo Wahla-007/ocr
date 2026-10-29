@@ -123,11 +123,11 @@ function SuccessContent() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
-              href="/api-platform"
+              href="/docs"
               className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs transition-colors flex items-center justify-center gap-2"
             >
               <Zap className="w-4 h-4 text-emerald-600" />
-              <span>Open Developer API Platform</span>
+              <span>Open Developer Documentation</span>
             </Link>
             <Link
               href="/billing"
