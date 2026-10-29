@@ -1,19 +1,12 @@
 """Production-grade Authentication & Session Management Router (OWASP ASVS L2 / NIST SP 800-63B)."""
 
-from datetime import UTC, datetime, timedelta
-import logging
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
-from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import timedelta
 
 from app.config import settings
-from app.db.models import OneTimeToken, Session as DbSession, User, ensure_utc, utc_now
+from app.db.models import OneTimeToken, User, ensure_utc, utc_now
+from app.db.models import Session as DbSession
 from app.db.session import get_db
 from app.logging import logger
-from app.middleware.security import validate_internal_redirect
 from app.schemas.auth import (
     AuthUserResponse,
     ForgotPasswordRequest,
@@ -43,9 +36,12 @@ from app.security.password import (
 from app.security.tokens import (
     generate_secure_token,
     hash_token,
-    verify_token_constant_time,
 )
 from app.services.email import EmailService, mask_email
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -102,7 +98,10 @@ async def get_current_user_and_session(
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "SESSION_IDLE_TIMEOUT", "message": "Session expired due to inactivity."},
+            detail={
+                "code": "SESSION_IDLE_TIMEOUT",
+                "message": "Session expired due to inactivity.",
+            },
         )
 
     # Touch last_seen_at
@@ -137,7 +136,9 @@ async def signup(
     """
     # 1. Honeypot Trap
     if payload.honeypot:
-        logger.warning(f"Bot detected via honeypot signup attempt from IP: {request.client.host if request.client else 'unknown'}")
+        logger.warning(
+            f"Bot detected via honeypot signup attempt from IP: {request.client.host if request.client else 'unknown'}"
+        )
         return SignupResponse()
 
     # 2. Email Normalization
@@ -147,7 +148,7 @@ async def signup(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "INVALID_EMAIL", "message": str(err)},
-        )
+        ) from None
 
     # 3. NIST Password Policy Validation
     try:
@@ -156,7 +157,7 @@ async def signup(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "WEAK_PASSWORD", "message": str(err)},
-        )
+        ) from None
 
     # 4. HaveIBeenPwned k-anonymity breach check
     is_breached = await check_haveibeenpwned_breach(payload.password)
@@ -233,14 +234,11 @@ async def verify_email(
     - Expiration verification (24h)
     """
     token_hash = hash_token(payload.token)
-    stmt = (
-        select(OneTimeToken)
-        .where(
-            OneTimeToken.token_hash == token_hash,
-            OneTimeToken.token_type == "email_verify",
-            OneTimeToken.used_at.is_(None),
-            OneTimeToken.expires_at > utc_now(),
-        )
+    stmt = select(OneTimeToken).where(
+        OneTimeToken.token_hash == token_hash,
+        OneTimeToken.token_type == "email_verify",
+        OneTimeToken.used_at.is_(None),
+        OneTimeToken.expires_at > utc_now(),
     )
     res = await db.execute(stmt)
     token_obj = res.scalar_one_or_none()
@@ -248,7 +246,10 @@ async def verify_email(
     if not token_obj:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_TOKEN", "message": "Verification token is invalid, expired, or already used."},
+            detail={
+                "code": "INVALID_TOKEN",
+                "message": "Verification token is invalid, expired, or already used.",
+            },
         )
 
     # Mark token used
@@ -264,7 +265,9 @@ async def verify_email(
     await db.commit()
 
     logger.info(f"Email verified for user_id={user.id} ({mask_email(user.email)})")
-    return GenericSuccessResponse(message="Email address verified successfully. You may now log in.")
+    return GenericSuccessResponse(
+        message="Email address verified successfully. You may now log in."
+    )
 
 
 @router.post("/resend-verification", response_model=GenericSuccessResponse)
@@ -351,7 +354,7 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_CREDENTIALS", "message": "Invalid email or password."},
-        )
+        ) from None
 
     stmt = select(User).where(User.email == clean_email)
     res = await db.execute(stmt)
@@ -402,7 +405,9 @@ async def login(
         user.failed_login_count += 1
         if user.failed_login_count >= MAX_FAILED_ATTEMPTS:
             user.locked_until = now + LOCKOUT_DURATION
-            logger.warning(f"User {user.id} locked out for 15 minutes after {user.failed_login_count} failures.")
+            logger.warning(
+                f"User {user.id} locked out for 15 minutes after {user.failed_login_count} failures."
+            )
             await EmailService.send_lockout_warning_email(user.email, user.locked_until.isoformat())
 
         await db.commit()
@@ -653,14 +658,11 @@ async def reset_password(
     token_hash = hash_token(payload.token)
     now = utc_now()
 
-    stmt = (
-        select(OneTimeToken)
-        .where(
-            OneTimeToken.token_hash == token_hash,
-            OneTimeToken.token_type == "password_reset",
-            OneTimeToken.used_at.is_(None),
-            OneTimeToken.expires_at > now,
-        )
+    stmt = select(OneTimeToken).where(
+        OneTimeToken.token_hash == token_hash,
+        OneTimeToken.token_type == "password_reset",
+        OneTimeToken.used_at.is_(None),
+        OneTimeToken.expires_at > now,
     )
     res = await db.execute(stmt)
     token_obj = res.scalar_one_or_none()
@@ -668,7 +670,10 @@ async def reset_password(
     if not token_obj:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_RESET_TOKEN", "message": "Password reset link is invalid or has expired."},
+            detail={
+                "code": "INVALID_RESET_TOKEN",
+                "message": "Password reset link is invalid or has expired.",
+            },
         )
 
     # Fetch user
@@ -683,7 +688,7 @@ async def reset_password(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "WEAK_PASSWORD", "message": str(err)},
-        )
+        ) from None
 
     is_breached = await check_haveibeenpwned_breach(payload.new_password)
     if is_breached:

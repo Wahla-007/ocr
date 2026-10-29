@@ -1,22 +1,22 @@
-from datetime import timedelta
 import asyncio
 import hashlib
 import hmac
 import json
-from unittest.mock import patch
 import uuid
-import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import func, select
+from datetime import timedelta
+from unittest.mock import patch
 
+import pytest
 from app.billing.ledger import get_user_credit_balance
 from app.billing.providers.base import CheckoutSessionResult
 from app.config import settings
-from app.db.models import Invoice, Order, UsageLedger, User, utc_now
+from app.db.models import Session as DbSession
+from app.db.models import UsageLedger, User, utc_now
 from app.db.session import get_db
 from app.main import app
 from app.security.tokens import generate_secure_token, hash_token
-from app.db.models import Session as DbSession
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import func, select
 
 
 async def create_user_with_session(email: str, verified: bool = True) -> tuple[User, str]:
@@ -60,9 +60,10 @@ async def test_concurrent_webhooks_prevent_double_credit():
         user, token = await create_user_with_session("concurrency_user@example.com")
         client.cookies.set("openocr_session", token)
 
-
         # 1. Create order for Starter Credit Pack (3,000 credits)
-        with patch("app.billing.providers.safepay.SafepayProvider.create_checkout_session") as mock_chk:
+        with patch(
+            "app.billing.providers.safepay.SafepayProvider.create_checkout_session"
+        ) as mock_chk:
             mock_chk.return_value = CheckoutSessionResult(
                 checkout_url="https://sandbox.api.getsafepay.com/checkout/pay?beacon=tkn_concurrency",
                 provider_ref="trk_concurrency_ref",
@@ -152,7 +153,9 @@ async def test_idor_protection_on_orders_and_invoices():
 
         # User A creates order
         client_a.cookies.set("openocr_session", token_a)
-        with patch("app.billing.providers.safepay.SafepayProvider.create_checkout_session") as mock_chk:
+        with patch(
+            "app.billing.providers.safepay.SafepayProvider.create_checkout_session"
+        ) as mock_chk:
             mock_chk.return_value = CheckoutSessionResult(
                 checkout_url="https://sandbox.api.getsafepay.com/checkout/pay?beacon=tkn_a",
                 provider_ref="trk_order_a",

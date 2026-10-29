@@ -1,11 +1,7 @@
 """Secure cookie management following OWASP session management guidelines."""
 
-from datetime import datetime, timezone
-from typing import Optional
-
-from fastapi import Request, Response
-
 from app.config import settings
+from fastapi import Request, Response
 
 # Session cookie name: use __Host- prefix in production over HTTPS
 COOKIE_NAME_DEV = "openocr_session"
@@ -19,7 +15,7 @@ def get_session_cookie_name(is_secure: bool) -> str:
     return COOKIE_NAME_PROD if is_secure else COOKIE_NAME_DEV
 
 
-def extract_session_token(request: Request) -> Optional[str]:
+def extract_session_token(request: Request) -> str | None:
     """Extracts session token from cookie or fallback Authorization Bearer."""
     # Check production cookie name first, then dev cookie name
     token = request.cookies.get(COOKIE_NAME_PROD) or request.cookies.get(COOKIE_NAME_DEV)

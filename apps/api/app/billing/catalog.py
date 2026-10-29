@@ -1,6 +1,5 @@
 """Server-side Catalog for Plans and Credit Packs (NIST / OWASP Tamper-Proof)."""
 
-from typing import Optional
 from pydantic import BaseModel
 
 
@@ -11,7 +10,7 @@ class CatalogItem(BaseModel):
     price_minor: int  # integer cents/paisas (e.g. 2900 = $29.00 USD, 800000 = 8000.00 PKR)
     currency: str  # 'USD' | 'PKR'
     credits: int
-    interval: Optional[str] = None  # 'month' | 'year' | None
+    interval: str | None = None  # 'month' | 'year' | None
     description: str
     active: bool = True
 
@@ -160,7 +159,7 @@ CATALOG: dict[str, CatalogItem] = {
 }
 
 
-def get_catalog_item(code: str) -> Optional[CatalogItem]:
+def get_catalog_item(code: str) -> CatalogItem | None:
     """Retrieves authoritative plan or pack details by plan code."""
     item = CATALOG.get(code)
     if item and item.active:
@@ -168,7 +167,7 @@ def get_catalog_item(code: str) -> Optional[CatalogItem]:
     return None
 
 
-def list_active_catalog(currency: Optional[str] = None) -> list[CatalogItem]:
+def list_active_catalog(currency: str | None = None) -> list[CatalogItem]:
     """Returns all active catalog items, optionally filtered by currency."""
     items = [item for item in CATALOG.values() if item.active]
     if currency:
@@ -176,7 +175,6 @@ def list_active_catalog(currency: Optional[str] = None) -> list[CatalogItem]:
     return items
 
 
-def get_all_catalog_items(currency: Optional[str] = None) -> list[CatalogItem]:
+def get_all_catalog_items(currency: str | None = None) -> list[CatalogItem]:
     """Alias for list_active_catalog."""
     return list_active_catalog(currency)
-

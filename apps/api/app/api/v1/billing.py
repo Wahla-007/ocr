@@ -1,10 +1,6 @@
 """Billing, Payments, and Safepay Webhook API Endpoints (OWASP ASVS L2 / PCI DSS SAQ-A)."""
 
 import logging
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import get_current_user
 from app.billing.catalog import get_all_catalog_items, get_catalog_item
@@ -12,9 +8,8 @@ from app.billing.ledger import get_user_credit_balance
 from app.billing.providers import get_payment_provider
 from app.billing.service import BillingService
 from app.config import settings
-from app.db.session import get_db
 from app.db.models import User
-
+from app.db.session import get_db
 from app.schemas.billing import (
     AdminRefundRequest,
     BillingStatusResponse,
@@ -26,6 +21,8 @@ from app.schemas.billing import (
     OrderResponse,
     SubscriptionResponse,
 )
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("openocr.billing.api")
 
@@ -34,7 +31,7 @@ router = APIRouter(prefix="/billing", tags=["Billing & Payments"])
 
 @router.get("/status", response_model=BillingStatusResponse)
 async def get_billing_status(
-    user: Optional[User] = Depends(get_current_user),
+    user: User | None = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Returns billing status, credit balance, and active subscription for the authenticated user."""
@@ -103,7 +100,10 @@ async def create_checkout(
     if not settings.BILLING_ENABLED:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": "BILLING_DISABLED", "message": "Billing is disabled in this environment."},
+            detail={
+                "code": "BILLING_DISABLED",
+                "message": "Billing is disabled in this environment.",
+            },
         )
 
     # 1. Require verified email
@@ -121,7 +121,10 @@ async def create_checkout(
     if not catalog_item:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_PLAN", "message": f"Plan '{payload.plan_code}' is invalid or retired."},
+            detail={
+                "code": "INVALID_PLAN",
+                "message": f"Plan '{payload.plan_code}' is invalid or retired.",
+            },
         )
 
     # 3. Create order and get hosted checkout redirect URL
@@ -143,13 +146,16 @@ async def create_checkout(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "CHECKOUT_FAILED", "message": str(e)},
-        )
+        ) from None
     except Exception as e:
         logger.exception(f"Checkout initialization error for user {user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "CHECKOUT_ERROR", "message": "Failed to initialize payment gateway session."},
-        )
+            detail={
+                "code": "CHECKOUT_ERROR",
+                "message": "Failed to initialize payment gateway session.",
+            },
+        ) from None
 
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
@@ -180,10 +186,10 @@ async def get_order_status(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "ORDER_NOT_FOUND", "message": "Order not found."},
-        )
+        ) from None
 
 
-@router.get("/subscription", response_model=Optional[SubscriptionResponse])
+@router.get("/subscription", response_model=SubscriptionResponse | None)
 async def get_subscription(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -223,8 +229,11 @@ async def cancel_subscription(
     except KeyError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "NO_ACTIVE_SUBSCRIPTION", "message": "No active subscription found to cancel."},
-        )
+            detail={
+                "code": "NO_ACTIVE_SUBSCRIPTION",
+                "message": "No active subscription found to cancel.",
+            },
+        ) from None
 
 
 @router.post("/subscription/resume", response_model=SubscriptionResponse)
@@ -247,8 +256,11 @@ async def resume_subscription(
     except KeyError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "NO_ACTIVE_SUBSCRIPTION", "message": "No active subscription found to resume."},
-        )
+            detail={
+                "code": "NO_ACTIVE_SUBSCRIPTION",
+                "message": "No active subscription found to resume.",
+            },
+        ) from None
 
 
 @router.get("/invoices", response_model=list[InvoiceResponse])
@@ -278,7 +290,7 @@ async def list_invoices(
 async def safepay_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    x_sfpy_signature: Optional[str] = Header(None, alias="X-SFPY-SIGNATURE"),
+    x_sfpy_signature: str | None = Header(None, alias="X-SFPY-SIGNATURE"),
 ):
     """
     Authoritative inbound Safepay webhook endpoint.
@@ -303,7 +315,10 @@ async def safepay_webhook(
         logger.warning("Safepay webhook signature verification failed.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_SIGNATURE", "message": "Webhook signature verification failed."},
+            detail={
+                "code": "INVALID_SIGNATURE",
+                "message": "Webhook signature verification failed.",
+            },
         )
 
     # 2. Parse event payload
@@ -314,7 +329,7 @@ async def safepay_webhook(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "MALFORMED_PAYLOAD", "message": "Unable to parse webhook payload."},
-        )
+        ) from None
 
     # 3. Process event with deduplication and DB row lock
     success = await BillingService.process_webhook_event(db=db, event=event, raw_body=raw_body)
@@ -347,4 +362,4 @@ async def admin_refund(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "REFUND_ERROR", "message": str(e)},
-        )
+        ) from None

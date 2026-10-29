@@ -8,10 +8,8 @@ Verifies:
 5. High-speed latency (<200ms per page on pure CPU).
 """
 
-import sys
-import os
-import json
 import asyncio
+import sys
 import time
 from pathlib import Path
 
@@ -20,6 +18,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 import pymupdf
+
 from extract_cli import extract_file
 
 
@@ -28,7 +27,7 @@ def create_sample_pdf(num_pages: int = 1) -> Path:
     doc = pymupdf.open()
     for i in range(num_pages):
         page = doc.new_page(width=595, height=842)
-        page.insert_text((50, 60), f"TAX INVOICE - PAGE {i+1}", fontsize=16)
+        page.insert_text((50, 60), f"TAX INVOICE - PAGE {i + 1}", fontsize=16)
         page.insert_text((50, 100), "Vendor: Acme Global Services Ltd", fontsize=11)
         page.insert_text((50, 120), "Invoice Number: INV-987654", fontsize=11)
         page.insert_text((50, 140), "Customer: Test Client Corp", fontsize=11)
@@ -75,7 +74,9 @@ async def test_pure_cpu_standalone_invoice_extraction():
         blocks = result.get("blocks", [])
         assert len(blocks) > 0, "OCR bounding blocks should be populated"
 
-        print(f"[PASS] Pure CPU standalone extraction completed in {elapsed_ms:.1f}ms with correct invoice fields.")
+        print(
+            f"[PASS] Pure CPU standalone extraction completed in {elapsed_ms:.1f}ms with correct invoice fields."
+        )
     finally:
         if pdf_path.exists():
             pdf_path.unlink()
@@ -101,6 +102,7 @@ async def test_engine_page_limit_rejection():
 async def test_self_hosted_healthcheck():
     """Verify local self-hosted configuration properties."""
     from apps.worker.worker.pipeline.normalize import normalize_document
+
     pdf_path = create_sample_pdf(1)
     try:
         data = pdf_path.read_bytes()
@@ -116,6 +118,7 @@ async def test_self_hosted_healthcheck():
 
 
 if __name__ == "__main__":
+
     async def run_all():
         print("Starting OpenOCR Self-Hosted Standalone Test Suite...")
         await test_pure_cpu_standalone_invoice_extraction()

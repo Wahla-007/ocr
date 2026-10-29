@@ -7,13 +7,13 @@ Evaluates:
 - Robustness across multiple invoice layouts from D:\\invoice_dataset
 """
 
-import os
-import sys
-import re
-import time
-import json
 import base64
 import csv
+import json
+import os
+import re
+import sys
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -24,11 +24,16 @@ sys.path.insert(0, str(ROOT_DIR))
 
 import httpx
 import numpy as np
+from dotenv import load_dotenv
 from PIL import Image
 from rapidocr_onnxruntime import RapidOCR
-from providers.extractors.invoice_spatial import LightweightSpatialInvoiceExtractor, parse_numeric, parse_flexible_date
 
-from dotenv import load_dotenv
+from providers.extractors.invoice_spatial import (
+    LightweightSpatialInvoiceExtractor,
+    parse_flexible_date,
+    parse_numeric,
+)
+
 load_dotenv()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -62,7 +67,7 @@ def parse_ground_truth(tsv_path: Path, xml_path: Path) -> dict[str, Any]:
                     lbl = r["label"]
                     if lbl != "O" and not lbl.startswith("LINE/"):
                         fields.setdefault(lbl, []).append(r["text"])
-            
+
             if "TOTAL_AMOUNT" in fields:
                 gt["total_amount"] = parse_numeric(" ".join(fields["TOTAL_AMOUNT"]))
             if "TOTAL_UNTAXED" in fields:
@@ -105,26 +110,38 @@ def parse_ground_truth(tsv_path: Path, xml_path: Path) -> dict[str, Any]:
                     gt["invoice_due_date"] = elem.text
                 elif not gt["address"] and elem.tag == "address":
                     gt["address"] = elem.text
-                elif not tsv_path.exists() and gt["total_untaxed"] is None and elem.tag == "total_untaxed":
+                elif (
+                    not tsv_path.exists()
+                    and gt["total_untaxed"] is None
+                    and elem.tag == "total_untaxed"
+                ):
                     gt["total_untaxed"] = parse_numeric(elem.text)
-                elif not tsv_path.exists() and gt["tax_amount"] is None and elem.tag == "tax_amount":
+                elif (
+                    not tsv_path.exists() and gt["tax_amount"] is None and elem.tag == "tax_amount"
+                ):
                     gt["tax_amount"] = parse_numeric(elem.text)
                 elif elem.tag == "currency_id":
                     gt["currency"] = elem.text
                 elif elem.tag == "lines" and not gt["lines"]:
                     for l in elem.findall("line"):
-                        gt["lines"].append({
-                            "description": l.findtext("description"),
-                            "quantity": parse_numeric(l.findtext("quantity")),
-                            "uom": l.findtext("uom"),
-                            "price": parse_numeric(l.findtext("price")),
-                            "tax": l.findtext("tax"),
-                            "sub_total": parse_numeric(l.findtext("sub_total")),
-                        })
+                        gt["lines"].append(
+                            {
+                                "description": l.findtext("description"),
+                                "quantity": parse_numeric(l.findtext("quantity")),
+                                "uom": l.findtext("uom"),
+                                "price": parse_numeric(l.findtext("price")),
+                                "tax": l.findtext("tax"),
+                                "sub_total": parse_numeric(l.findtext("sub_total")),
+                            }
+                        )
         except Exception as e:
             sys.stderr.write(f"XML parse error for {xml_path}: {e}\n")
 
-    if gt["total_amount"] is None and gt["total_untaxed"] is not None and gt["tax_amount"] is not None:
+    if (
+        gt["total_amount"] is None
+        and gt["total_untaxed"] is not None
+        and gt["tax_amount"] is not None
+    ):
         gt["total_amount"] = round(gt["total_untaxed"] + gt["tax_amount"], 2)
 
     return gt
@@ -163,16 +180,10 @@ def run_gemini_vision(image_path: Path) -> tuple[dict[str, Any], float]:
 Return JSON only."""
 
     payload = {
-        "contents": [{
-            "parts": [
-                {"text": prompt},
-                {"inline_data": {"mime_type": "image/jpeg", "data": b64}}
-            ]
-        }],
-        "generationConfig": {
-            "temperature": 0.0,
-            "responseMimeType": "application/json"
-        }
+        "contents": [
+            {"parts": [{"text": prompt}, {"inline_data": {"mime_type": "image/jpeg", "data": b64}}]}
+        ],
+        "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"},
     }
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
@@ -185,7 +196,9 @@ Return JSON only."""
         return data, lat
 
 
-def run_openocr_model(image_path: Path, ocr_engine: RapidOCR, extractor: LightweightSpatialInvoiceExtractor) -> tuple[dict[str, Any], float]:
+def run_openocr_model(
+    image_path: Path, ocr_engine: RapidOCR, extractor: LightweightSpatialInvoiceExtractor
+) -> tuple[dict[str, Any], float]:
     """Runs OpenOCR Lightweight Local Model."""
     t0 = time.perf_counter()
     img = Image.open(image_path).convert("RGB")
@@ -264,7 +277,13 @@ def run_benchmark(sample_limit_per_model: int = 5):
     print("=" * 70)
 
     dataset_root = Path("d:/invoice_dataset")
-    models = sorted([f.name for f in dataset_root.iterdir() if f.is_dir() and f.name.startswith("invoice_dataset_model_")])
+    models = sorted(
+        [
+            f.name
+            for f in dataset_root.iterdir()
+            if f.is_dir() and f.name.startswith("invoice_dataset_model_")
+        ]
+    )
     print(f"Discovered {len(models)} model subfolders in D:\\invoice_dataset: {models}")
 
     ocr_engine = RapidOCR()
@@ -376,7 +395,11 @@ def run_benchmark(sample_limit_per_model: int = 5):
         "total_documents": len(targets),
         "openocr_avg_latency_ms": round(sum(openocr_latencies) / max(1, len(openocr_latencies)), 1),
         "gemini_avg_latency_ms": round(sum(gemini_latencies) / max(1, len(gemini_latencies)), 1),
-        "speedup_factor": round((sum(gemini_latencies) / max(1, len(gemini_latencies))) / max(1.0, (sum(openocr_latencies) / max(1, len(openocr_latencies)))), 2),
+        "speedup_factor": round(
+            (sum(gemini_latencies) / max(1, len(gemini_latencies)))
+            / max(1.0, (sum(openocr_latencies) / max(1, len(openocr_latencies)))),
+            2,
+        ),
         "field_accuracies": {},
     }
 
@@ -400,12 +423,16 @@ def run_benchmark(sample_limit_per_model: int = 5):
     print("=" * 70)
     print(f"Total Documents: {summary['total_documents']}")
     print(f"OpenOCR Model Avg Latency: {summary['openocr_avg_latency_ms']} ms")
-    print(f"Gemini API Avg Latency:    {summary['gemini_avg_latency_ms']} ms ({summary['speedup_factor']}x slower than OpenOCR)")
+    print(
+        f"Gemini API Avg Latency:    {summary['gemini_avg_latency_ms']} ms ({summary['speedup_factor']}x slower than OpenOCR)"
+    )
     print("\nField Recognition Accuracy Comparison:")
     print(f"{'Field':<20} | {'OpenOCR Model':<16} | {'Gemini API':<14} | {'Samples':<8}")
     print("-" * 65)
     for f_key, data in summary["field_accuracies"].items():
-        print(f"{f_key:<20} | {data['openocr_accuracy_pct']:>13.1f} % | {data['gemini_accuracy_pct']:>11.1f} % | {data['eval_count']:>8}")
+        print(
+            f"{f_key:<20} | {data['openocr_accuracy_pct']:>13.1f} % | {data['gemini_accuracy_pct']:>11.1f} % | {data['eval_count']:>8}"
+        )
 
     print(f"\nFull benchmark report saved to: {report_path}")
     return summary

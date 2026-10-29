@@ -2,12 +2,10 @@
 
 import logging
 import uuid
-from typing import Optional
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import UsageLedger, utc_now
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("openocr.billing.ledger")
 

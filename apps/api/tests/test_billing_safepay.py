@@ -3,8 +3,8 @@
 import hashlib
 import hmac
 import json
-import pytest
 
+import pytest
 from app.billing.providers.safepay import SafepayProvider
 
 
@@ -56,7 +56,9 @@ def test_safepay_signature_verification_tampered_payload(safepay):
         hashlib.sha512,
     ).hexdigest()
 
-    tampered_payload = b'{"event":"payment.completed","data":{"tracker":"track_123","amount":999999}}'
+    tampered_payload = (
+        b'{"event":"payment.completed","data":{"tracker":"track_123","amount":999999}}'
+    )
     assert safepay.verify_webhook_signature(tampered_payload, valid_sig) is False
 
 

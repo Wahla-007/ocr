@@ -44,7 +44,9 @@ class MockLLMProvider(LLMProvider):
             or "VICROADS" in upper
         ):
             return ClassificationResult(
-                doc_type="driving_license", confidence=0.99, reasoning="Driver's license format detected"
+                doc_type="driving_license",
+                confidence=0.99,
+                reasoning="Driver's license format detected",
             )
         elif "INVOICE" in upper or "INV-" in upper:
             return ClassificationResult(
@@ -86,7 +88,7 @@ class MockLLMProvider(LLMProvider):
             colon_idx = line.find(":")
             if colon_idx > 0 and colon_idx < len(line) - 1:
                 k = line[:colon_idx].strip()
-                v = line[colon_idx + 1:].strip()
+                v = line[colon_idx + 1 :].strip()
                 if (
                     1 <= len(k.split()) <= 6
                     and len(k) < 45
@@ -97,7 +99,9 @@ class MockLLMProvider(LLMProvider):
                     slug = re.sub(r"[^a-z0-9_]+", "_", k.lower()).strip("_")
                     if slug and slug not in seen:
                         seen.add(slug)
-                        discovered.append(ExtractedField(key=slug, label=k, value=v, confidence=0.98))
+                        discovered.append(
+                            ExtractedField(key=slug, label=k, value=v, confidence=0.98)
+                        )
                         i += 1
                         continue
             if line.endswith(":") and 1 <= len(line[:-1].strip().split()) <= 6 and len(line) < 45:
@@ -112,7 +116,9 @@ class MockLLMProvider(LLMProvider):
                         slug = re.sub(r"[^a-z0-9_]+", "_", k.lower()).strip("_")
                         if slug and slug not in seen:
                             seen.add(slug)
-                            discovered.append(ExtractedField(key=slug, label=k, value=next_val, confidence=0.98))
+                            discovered.append(
+                                ExtractedField(key=slug, label=k, value=next_val, confidence=0.98)
+                            )
                             i += 2
                             continue
             i += 1
@@ -368,14 +374,21 @@ class MockLLMProvider(LLMProvider):
             if total_amt is not None:
                 summary = f"Invoice {inv_num or ''} from {vendor_name or 'vendor'} totaling {curr} {total_amt:.2f}."
             else:
-                summary = f"Invoice {inv_num or ''} extracted successfully with {len(fields)} fields."
+                summary = (
+                    f"Invoice {inv_num or ''} extracted successfully with {len(fields)} fields."
+                )
 
         elif doc_type == "receipt":
             lines = [l.strip("# ").strip() for l in parsed_text.splitlines() if l.strip()]
             merchant = None
             if lines:
                 for l in lines[:4]:
-                    if "STORE" in l.upper() or "MARKET" in l.upper() or "CAFE" in l.upper() or len(l) > 3:
+                    if (
+                        "STORE" in l.upper()
+                        or "MARKET" in l.upper()
+                        or "CAFE" in l.upper()
+                        or len(l) > 3
+                    ):
                         merchant = l.split("Store")[0].strip(" -:")
                         break
 
@@ -385,7 +398,9 @@ class MockLLMProvider(LLMProvider):
             total_match = re.search(r"(?i)TOTAL(?: PAID)?:\s*[$]?\s*([0-9,]+\.\d{2})", parsed_text)
             total_amt = float(total_match.group(1)) if total_match else None
 
-            tax_match = re.search(r"(?i)(?:sales\s*)?tax[^:]*:\s*[$]?\s*([0-9,]+\.\d{2})", parsed_text)
+            tax_match = re.search(
+                r"(?i)(?:sales\s*)?tax[^:]*:\s*[$]?\s*([0-9,]+\.\d{2})", parsed_text
+            )
             tax_amt = float(tax_match.group(1)) if tax_match else None
 
             # Benchmark evaluation dataset matching
@@ -421,11 +436,15 @@ class MockLLMProvider(LLMProvider):
                 )
             if total_amt is not None:
                 fields.append(
-                    ExtractedField(key="total_amount", label="Total Amount", value=total_amt, confidence=0.99)
+                    ExtractedField(
+                        key="total_amount", label="Total Amount", value=total_amt, confidence=0.99
+                    )
                 )
             if tax_amt is not None:
                 fields.append(
-                    ExtractedField(key="tax_amount", label="Tax Amount", value=tax_amt, confidence=0.96)
+                    ExtractedField(
+                        key="tax_amount", label="Tax Amount", value=tax_amt, confidence=0.96
+                    )
                 )
 
             discovered = self._discover_key_values(parsed_text)
@@ -434,7 +453,11 @@ class MockLLMProvider(LLMProvider):
                 if d.key not in existing_keys:
                     fields.append(d)
 
-            summary = f"Store receipt from {merchant or 'merchant'} totaling ${total_amt:.2f}." if total_amt else f"Receipt extracted with {len(fields)} fields."
+            summary = (
+                f"Store receipt from {merchant or 'merchant'} totaling ${total_amt:.2f}."
+                if total_amt
+                else f"Receipt extracted with {len(fields)} fields."
+            )
 
         elif doc_type in ["id_card", "driving_license"]:
             m_cnic = re.search(r"\b(\d{5}-\d{7}-\d)\b", parsed_text)
@@ -442,23 +465,37 @@ class MockLLMProvider(LLMProvider):
 
             # ISO 18013 Field 5: Driver licence / ID number (e.g. "5: WALKE812147JD9RJ49" or "5. WALKE812147JD9RJ 49")
             if not id_num:
-                m_f5 = re.search(r"(?i)(?:^|\n|[^\w])5[:.\s]\s*([A-Za-z0-9\s-]{8,25})(?=\s*(?:3LEYBANK|6|7|8|9|\n|$))", parsed_text)
+                m_f5 = re.search(
+                    r"(?i)(?:^|\n|[^\w])5[:.\s]\s*([A-Za-z0-9\s-]{8,25})(?=\s*(?:3LEYBANK|6|7|8|9|\n|$))",
+                    parsed_text,
+                )
                 if m_f5:
                     cand = m_f5.group(1).strip()
                     if re.search(r"\d", cand) and re.search(r"[A-Za-z]", cand):
                         id_num = cand
 
             if not id_num:
-                id_match = re.search(r"(?i)\b(?:ID\s*(?:Number|No|#)?|Identity\s*Number|DL\s*(?:No|#)?|License\s*No|Card\s*No)\b[:\s#]*([A-Za-z0-9-_]{5,})", parsed_text)
+                id_match = re.search(
+                    r"(?i)\b(?:ID\s*(?:Number|No|#)?|Identity\s*Number|DL\s*(?:No|#)?|License\s*No|Card\s*No)\b[:\s#]*([A-Za-z0-9-_]{5,})",
+                    parsed_text,
+                )
                 if id_match and id_match.group(1).lower() not in ["entity", "identity", "number"]:
                     id_num = id_match.group(1).strip()
 
-            name_match = re.search(r"(?i)(?:^|\n)\s*(?:Full\s*Name|Name|Holder\s*Name)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Father|Gender|Country|Identity|$)", parsed_text)
+            name_match = re.search(
+                r"(?i)(?:^|\n)\s*(?:Full\s*Name|Name|Holder\s*Name)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Father|Gender|Country|Identity|$)",
+                parsed_text,
+            )
             name = name_match.group(1).strip() if name_match else None
             if name:
-                name = re.sub(r"(?i)\b(?:national\s*identity\s*card|identity\s*card|pakistan)\b", "", name).strip()
+                name = re.sub(
+                    r"(?i)\b(?:national\s*identity\s*card|identity\s*card|pakistan)\b", "", name
+                ).strip()
 
-            father_match = re.search(r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)", parsed_text)
+            father_match = re.search(
+                r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]*([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)",
+                parsed_text,
+            )
             father_name = father_match.group(1).strip() if father_match else None
 
             def normalize_date_format(d_str: str | None) -> str | None:
@@ -477,10 +514,19 @@ class MockLLMProvider(LLMProvider):
             detected_authority = None
 
             # ISO 18013 markers 3 (DOB), 4a (issue), 4b (expiry), 4c (authority)
-            m_3 = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))3[:.\s]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text)
-            m_4a = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text)
-            m_4b = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text)
-            m_4c = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4c\.?\s*([A-Za-z0-9\s/-]+?)(?=\s*(?:4b|5|8|9|\n|$))", parsed_text)
+            m_3 = re.search(
+                r"(?i)(?:^|\n|[^\w]|(?<=\d))3[:.\s]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text
+            )
+            m_4a = re.search(
+                r"(?i)(?:^|\n|[^\w]|(?<=\d))4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text
+            )
+            m_4b = re.search(
+                r"(?i)(?:^|\n|[^\w]|(?<=\d))4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", parsed_text
+            )
+            m_4c = re.search(
+                r"(?i)(?:^|\n|[^\w]|(?<=\d))4c\.?\s*([A-Za-z0-9\s/-]+?)(?=\s*(?:4b|5|8|9|\n|$))",
+                parsed_text,
+            )
             if m_3 and not dob:
                 dob = normalize_date_format(m_3.group(1))
             if m_4a:
@@ -530,19 +576,35 @@ class MockLLMProvider(LLMProvider):
                     exp_date = f"{raw_exp[4:6]}.{raw_exp[2:4]}.20{raw_exp[:2]}"
 
             if not dob:
-                dob_match = re.search(r"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+                dob_match = re.search(
+                    r"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})",
+                    parsed_text,
+                )
                 dob = normalize_date_format(dob_match.group(1).strip()) if dob_match else None
 
             if not iss_date:
-                iss_match = re.search(r"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+                iss_match = re.search(
+                    r"(?i)(?:Date of Issue|Issue Date|Issued|ISS)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})",
+                    parsed_text,
+                )
                 iss_date = normalize_date_format(iss_match.group(1).strip()) if iss_match else None
 
             if not exp_date:
-                exp_match = re.search(r"(?i)(?:Date of Expiry|Expiry Date|Expires|EXP)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})", parsed_text)
+                exp_match = re.search(
+                    r"(?i)(?:Date of Expiry|Expiry Date|Expires|EXP)[:\s-]*(\d{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|\d{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4})",
+                    parsed_text,
+                )
                 exp_date = normalize_date_format(exp_match.group(1).strip()) if exp_match else None
 
-            all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", parsed_text)
-            has_iss_label = bool(re.search(r"(?i)\b(?:Date\s*of\s*Issue|Issue\s*Date|Issued|ISS|Emis[aă]?\s*la|Expedici[oó]n|4a\.?)\b", parsed_text))
+            all_dates = re.findall(
+                r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", parsed_text
+            )
+            has_iss_label = bool(
+                re.search(
+                    r"(?i)\b(?:Date\s*of\s*Issue|Issue\s*Date|Issued|ISS|Emis[aă]?\s*la|Expedici[oó]n|4a\.?)\b",
+                    parsed_text,
+                )
+            )
 
             def get_date_year(d: str | None) -> int | None:
                 if not d:
@@ -599,14 +661,38 @@ class MockLLMProvider(LLMProvider):
                 m_mrz_c = re.search(r"(?:[A-Z]{3}|\b)\d([A-Z]{3})\d{6}\d", parsed_text)
                 if m_mrz_c:
                     c_code = m_mrz_c.group(1).upper()
-                    mrz_map = {"ROU": "Romania", "CAN": "Canada", "GBR": "United Kingdom", "USA": "United States", "PAK": "Pakistan", "IND": "India"}
+                    mrz_map = {
+                        "ROU": "Romania",
+                        "CAN": "Canada",
+                        "GBR": "United Kingdom",
+                        "USA": "United States",
+                        "PAK": "Pakistan",
+                        "IND": "India",
+                    }
                     if c_code in mrz_map:
                         nationality = mrz_map[c_code]
                 if not nationality:
-                    nat_match = re.search(r"(?i)\b(?:Cet[aă]tenie(?:/[A-Za-z]+)*|Nationality|Citizenship)\b[:\s/,-]*([A-Za-z\s/]+?)(?=\s*(?:Loc|Place|Sex|Domiciliu|Address|CNP|\n|$))", parsed_text)
+                    nat_match = re.search(
+                        r"(?i)\b(?:Cet[aă]tenie(?:/[A-Za-z]+)*|Nationality|Citizenship)\b[:\s/,-]*([A-Za-z\s/]+?)(?=\s*(?:Loc|Place|Sex|Domiciliu|Address|CNP|\n|$))",
+                        parsed_text,
+                    )
                     if nat_match:
                         cand = nat_match.group(1).strip(" /,-")
-                        skip_words = {"of", "stay", "card", "republic", "sex", "sexe", "gender", "loc", "nastere", "place", "birth", "domiciliu", "address"}
+                        skip_words = {
+                            "of",
+                            "stay",
+                            "card",
+                            "republic",
+                            "sex",
+                            "sexe",
+                            "gender",
+                            "loc",
+                            "nastere",
+                            "place",
+                            "birth",
+                            "domiciliu",
+                            "address",
+                        }
                         if cand.lower() not in skip_words and len(cand) > 1:
                             nationality = cand
 
@@ -629,7 +715,9 @@ class MockLLMProvider(LLMProvider):
                 )
             if father_name:
                 fields.append(
-                    ExtractedField(key="father_name", label="Father Name", value=father_name, confidence=0.98)
+                    ExtractedField(
+                        key="father_name", label="Father Name", value=father_name, confidence=0.98
+                    )
                 )
             if id_num:
                 fields.append(
@@ -642,15 +730,21 @@ class MockLLMProvider(LLMProvider):
                 )
             if dob:
                 fields.append(
-                    ExtractedField(key="date_of_birth", label="Date of Birth", value=dob, confidence=0.98)
+                    ExtractedField(
+                        key="date_of_birth", label="Date of Birth", value=dob, confidence=0.98
+                    )
                 )
             if iss_date:
                 fields.append(
-                    ExtractedField(key="issue_date", label="Date of Issue", value=iss_date, confidence=0.98)
+                    ExtractedField(
+                        key="issue_date", label="Date of Issue", value=iss_date, confidence=0.98
+                    )
                 )
             if exp_date:
                 fields.append(
-                    ExtractedField(key="expiry_date", label="Expiration Date", value=exp_date, confidence=0.98)
+                    ExtractedField(
+                        key="expiry_date", label="Expiration Date", value=exp_date, confidence=0.98
+                    )
                 )
             gender = None
             m_g = re.search(
@@ -666,7 +760,9 @@ class MockLLMProvider(LLMProvider):
                     gender = m_mrz_g.group(2).upper()
 
             address = None
-            m_iso8 = re.search(r"(?i)(?:^|\n)\s*8[:.\s]\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", parsed_text)
+            m_iso8 = re.search(
+                r"(?i)(?:^|\n)\s*8[:.\s]\s*([^\n]+(?:\n\s*(?:[A-Z0-9\s,.-]+))?)", parsed_text
+            )
             if m_iso8:
                 address = " ".join(m_iso8.group(1).split())
             if not address:
@@ -695,7 +791,9 @@ class MockLLMProvider(LLMProvider):
                     r"\1 \2",
                     address,
                 )
-                address = re.sub(r"\b([A-Z]{1,2})\s*(\d{1,2}[A-Z]?)\s*(\d)\s*([A-Z]{2})\b", r"\1\2 \3\4", address)
+                address = re.sub(
+                    r"\b([A-Z]{1,2})\s*(\d{1,2}[A-Z]?)\s*(\d)\s*([A-Z]{2})\b", r"\1\2 \3\4", address
+                )
                 address = re.sub(r"\b([A-Z]{2})\s*(\d{5}(?:-\d{4})?)\b", r"\1 \2", address)
                 address = re.sub(r",(?!\s)", ", ", address).strip()
 
@@ -707,11 +805,16 @@ class MockLLMProvider(LLMProvider):
             if m_cls_lbl and len(m_cls_lbl.group(1).strip()) > 0:
                 license_class = m_cls_lbl.group(1).strip()
             if not license_class:
-                m_f9 = re.search(r"(?i)(?:^|\n|[^\w])9[:.\s]\s*([A-Za-z0-9/,\s-]+?)(?=\n|$)", parsed_text)
+                m_f9 = re.search(
+                    r"(?i)(?:^|\n|[^\w])9[:.\s]\s*([A-Za-z0-9/,\s-]+?)(?=\n|$)", parsed_text
+                )
                 if m_f9:
                     license_class = m_f9.group(1).strip()
             if not license_class:
-                m_cls_k = re.search(r"\b(CLASS\s+[A-Z0-9]+|CDL|COMMERCIAL\s+DRIVER\s+LICEN[CS]E|OPERATOR|LEARNER|PROVISIONAL|CAR|MOTORCYCLE)\b", parsed_text.upper())
+                m_cls_k = re.search(
+                    r"\b(CLASS\s+[A-Z0-9]+|CDL|COMMERCIAL\s+DRIVER\s+LICEN[CS]E|OPERATOR|LEARNER|PROVISIONAL|CAR|MOTORCYCLE)\b",
+                    parsed_text.upper(),
+                )
                 if m_cls_k:
                     license_class = m_cls_k.group(1).strip()
 
@@ -730,11 +833,17 @@ class MockLLMProvider(LLMProvider):
                 )
                 if m_known_auth:
                     cand = m_known_auth.group(1).strip()
-                    issuing_authority = "Driver and Vehicle Licensing Agency (DVLA)" if cand.upper() == "DVLA" else cand
+                    issuing_authority = (
+                        "Driver and Vehicle Licensing Agency (DVLA)"
+                        if cand.upper() == "DVLA"
+                        else cand
+                    )
 
             if nationality:
                 fields.append(
-                    ExtractedField(key="nationality", label="Nationality", value=nationality, confidence=0.97)
+                    ExtractedField(
+                        key="nationality", label="Nationality", value=nationality, confidence=0.97
+                    )
                 )
             if gender:
                 fields.append(
@@ -746,11 +855,21 @@ class MockLLMProvider(LLMProvider):
                 )
             if license_class:
                 fields.append(
-                    ExtractedField(key="license_class", label="License Categories / Type", value=license_class, confidence=0.98)
+                    ExtractedField(
+                        key="license_class",
+                        label="License Categories / Type",
+                        value=license_class,
+                        confidence=0.98,
+                    )
                 )
             if issuing_authority:
                 fields.append(
-                    ExtractedField(key="issuing_authority", label="Issuing Authority", value=issuing_authority, confidence=0.98)
+                    ExtractedField(
+                        key="issuing_authority",
+                        label="Issuing Authority",
+                        value=issuing_authority,
+                        confidence=0.98,
+                    )
                 )
 
             discovered = self._discover_key_values(parsed_text)
@@ -786,7 +905,11 @@ class MockLLMProvider(LLMProvider):
                 if d.key not in ["document_title", "summary_detail"]:
                     fields.append(d)
 
-            summary = f"Document '{title}' with {len(discovered)} attributes discovered." if discovered else f"Document: {title}"
+            summary = (
+                f"Document '{title}' with {len(discovered)} attributes discovered."
+                if discovered
+                else f"Document: {title}"
+            )
 
         # Filter: Skip any field whose value is None or empty across all document types
         fields = [f for f in fields if f.value is not None and str(f.value).strip() != ""]

@@ -1,14 +1,11 @@
 """Security middleware for hardening headers, CSRF defense, and open-redirect validation."""
 
-import re
-from typing import Optional
 from urllib.parse import urlparse
 
+from app.config import settings
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
-
-from app.config import settings
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
@@ -37,7 +34,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # 4. Permissions Policy (Disables sensitive APIs)
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=()"
+        )
 
         # 5. Content Security Policy (Level 2/3)
         response.headers["Content-Security-Policy"] = (
@@ -54,7 +53,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # 6. HSTS (Strict-Transport-Security)
         if settings.is_production or request.url.scheme == "https":
-            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains; preload"
+            )
 
         return response
 
@@ -77,15 +78,18 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 
         # Check if request has a session cookie
         has_session_cookie = (
-            "openocr_session" in request.cookies
-            or "__Host-openocr_session" in request.cookies
+            "openocr_session" in request.cookies or "__Host-openocr_session" in request.cookies
         )
 
         # Only apply CSRF check if state-changing request uses session cookies
         if has_session_cookie or request.url.path.startswith("/v1/auth"):
             # Check custom header (Standard CORS preflight protection)
-            client_header = request.headers.get("X-Requested-With") or request.headers.get("x-requested-with")
-            csrf_token_header = request.headers.get("X-CSRF-Token") or request.headers.get("x-csrf-token")
+            client_header = request.headers.get("X-Requested-With") or request.headers.get(
+                "x-requested-with"
+            )
+            csrf_token_header = request.headers.get("X-CSRF-Token") or request.headers.get(
+                "x-csrf-token"
+            )
             csrf_cookie = request.cookies.get("openocr_csrf")
 
             # Check origin/referer against allowed origins if present
@@ -93,12 +97,21 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             if origin and origin not in settings.CORS_ORIGINS:
                 return JSONResponse(
                     status_code=403,
-                    content={"error": {"code": "CSRF_ORIGIN_INVALID", "message": "Cross-site request rejected."}},
+                    content={
+                        "error": {
+                            "code": "CSRF_ORIGIN_INVALID",
+                            "message": "Cross-site request rejected.",
+                        }
+                    },
                 )
 
             # Accept if standard client header present or matching double-submit cookie
-            header_valid = bool(client_header in {"XMLHttpRequest", "OpenOCR-Web", "OpenOCR-Client"})
-            token_valid = bool(csrf_token_header and csrf_cookie and csrf_token_header == csrf_cookie)
+            header_valid = bool(
+                client_header in {"XMLHttpRequest", "OpenOCR-Web", "OpenOCR-Client"}
+            )
+            token_valid = bool(
+                csrf_token_header and csrf_cookie and csrf_token_header == csrf_cookie
+            )
 
             # If it's a public signup or login form, permit if origin header is trusted or client header matches
             if not header_valid and not token_valid and has_session_cookie:
@@ -115,7 +128,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-def validate_internal_redirect(redirect_url: Optional[str], default_path: str = "/") -> str:
+def validate_internal_redirect(redirect_url: str | None, default_path: str = "/") -> str:
     """
     Prevents Open Redirect vulnerabilities:
     - Only allows internal relative paths starting with single '/'

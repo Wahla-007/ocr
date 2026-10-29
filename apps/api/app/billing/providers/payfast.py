@@ -1,7 +1,6 @@
 """PayFast Payment Gateway Stub Provider (Ready for multi-gateway expansion)."""
 
 import logging
-from typing import Optional
 
 from app.billing.providers.base import (
     CheckoutSessionResult,
@@ -17,7 +16,7 @@ logger = logging.getLogger("openocr.billing.payfast")
 class PayFastProvider(PaymentProvider):
     """Stub implementation of PayFast for future Pakistani multi-gateway routing."""
 
-    def __init__(self, merchant_id: Optional[str] = None, secured_key: Optional[str] = None):
+    def __init__(self, merchant_id: str | None = None, secured_key: str | None = None):
         self.merchant_id = merchant_id or ""
         self.secured_key = secured_key or ""
 
@@ -28,9 +27,11 @@ class PayFastProvider(PaymentProvider):
         currency: str,
         success_url: str,
         cancel_url: str,
-        customer_email: Optional[str] = None,
+        customer_email: str | None = None,
     ) -> CheckoutSessionResult:
-        raise NotImplementedError("PayFast gateway integration is not yet active. Set PAYMENT_PROVIDER=safepay.")
+        raise NotImplementedError(
+            "PayFast gateway integration is not yet active. Set PAYMENT_PROVIDER=safepay."
+        )
 
     async def fetch_payment_status(self, provider_ref: str) -> PaymentStatusResult:
         raise NotImplementedError("PayFast gateway status check not yet active.")

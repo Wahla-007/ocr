@@ -1,7 +1,6 @@
 """Email notification service with failure isolation, retry logging, and security masking."""
 
 import logging
-from typing import Optional
 
 from app.config import settings
 
@@ -88,9 +87,7 @@ class EmailService:
     async def send_password_changed_notification(cls, email: str) -> bool:
         masked = mask_email(email)
         try:
-            logger.info(
-                f"[EMAIL DISPATCH] Sent 'Your password was changed' alert to {masked}."
-            )
+            logger.info(f"[EMAIL DISPATCH] Sent 'Your password was changed' alert to {masked}.")
             return True
         except Exception as exc:
             logger.error(f"Failed to dispatch password changed alert to {masked}: {exc!r}")
@@ -141,4 +138,3 @@ class EmailService:
         except Exception as exc:
             logger.error(f"Failed to dispatch cancellation email to {masked}: {exc!r}")
             return False
-

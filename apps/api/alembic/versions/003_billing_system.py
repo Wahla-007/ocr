@@ -42,7 +42,9 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(length=36), nullable=False),
         sa.Column("provider", sa.String(length=32), nullable=False, server_default="safepay"),
         sa.Column("provider_customer_id", sa.String(length=128), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_billing_customers_user_id", "billing_customers", ["user_id"], unique=True)
@@ -59,7 +61,9 @@ def upgrade() -> None:
         sa.Column("provider", sa.String(length=32), nullable=False, server_default="safepay"),
         sa.Column("provider_ref", sa.String(length=128), nullable=True),
         sa.Column("idempotency_key", sa.String(length=128), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("paid_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("refunded_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("metadata_json", JsonType, nullable=True),
@@ -84,8 +88,12 @@ def upgrade() -> None:
         sa.Column("cancel_at_period_end", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("provider", sa.String(length=32), nullable=False, server_default="safepay"),
         sa.Column("provider_sub_id", sa.String(length=128), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["plan_code"], ["products_catalog.code"]),
     )
@@ -104,10 +112,14 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=32), nullable=False, server_default="pending"),
         sa.Column("error", sa.Text(), nullable=True),
         sa.Column("payload_json", JsonType, nullable=True),
-        sa.Column("received_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "received_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_payment_events_provider_event_id", "payment_events", ["provider_event_id"], unique=True)
+    op.create_index(
+        "ix_payment_events_provider_event_id", "payment_events", ["provider_event_id"], unique=True
+    )
     op.create_index("ix_payment_events_event_type", "payment_events", ["event_type"])
 
     # 6. invoices
@@ -122,7 +134,9 @@ def upgrade() -> None:
         sa.Column("currency", sa.String(length=3), nullable=False, server_default="USD"),
         sa.Column("status", sa.String(length=32), nullable=False, server_default="paid"),
         sa.Column("line_items_json", JsonType, nullable=True),
-        sa.Column("issued_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "issued_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(["order_id"], ["orders.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
     )
@@ -132,11 +146,23 @@ def upgrade() -> None:
 
     # 7. Update usage_ledger with order_id and entry_type
     op.add_column("usage_ledger", sa.Column("order_id", sa.String(length=36), nullable=True))
-    op.add_column("usage_ledger", sa.Column("entry_type", sa.String(length=32), nullable=False, server_default="usage"))
-    op.create_foreign_key("fk_usage_ledger_order_id", "usage_ledger", "orders", ["order_id"], ["id"], ondelete="SET NULL")
+    op.add_column(
+        "usage_ledger",
+        sa.Column("entry_type", sa.String(length=32), nullable=False, server_default="usage"),
+    )
+    op.create_foreign_key(
+        "fk_usage_ledger_order_id",
+        "usage_ledger",
+        "orders",
+        ["order_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
     op.create_index("ix_usage_ledger_order_id", "usage_ledger", ["order_id"])
     op.create_index("ix_usage_ledger_entry_type", "usage_ledger", ["entry_type"])
-    op.create_unique_constraint("uq_usage_ledger_order_entry", "usage_ledger", ["order_id", "entry_type"])
+    op.create_unique_constraint(
+        "uq_usage_ledger_order_entry", "usage_ledger", ["order_id", "entry_type"]
+    )
 
 
 def downgrade() -> None:

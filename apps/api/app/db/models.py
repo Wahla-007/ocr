@@ -55,7 +55,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     plan: Mapped[str] = mapped_column(String(32), nullable=False, default="free")
-    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     failed_login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -111,8 +113,12 @@ class Session(Base):
     last_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
 
     user: Mapped["User"] = relationship("User", back_populates="sessions")
 
@@ -124,9 +130,13 @@ class OneTimeToken(Base):
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    token_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # email_verify | password_reset
+    token_type: Mapped[str] = mapped_column(
+        String(32), nullable=False, index=True
+    )  # email_verify | password_reset
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
@@ -301,10 +311,14 @@ class ProductCatalog(Base):
     code: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     type: Mapped[str] = mapped_column(String(32), nullable=False)  # 'subscription' | 'pack'
-    price_minor: Mapped[int] = mapped_column(Integer, nullable=False)  # integer cents/paisas (e.g. 2900 = $29.00)
+    price_minor: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )  # integer cents/paisas (e.g. 2900 = $29.00)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")  # 'USD' | 'PKR'
     credits: Mapped[int] = mapped_column(Integer, nullable=False)
-    interval: Mapped[str | None] = mapped_column(String(16), nullable=True)  # 'month' | 'year' | None
+    interval: Mapped[str | None] = mapped_column(
+        String(16), nullable=True
+    )  # 'month' | 'year' | None
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     orders: Mapped[list["Order"]] = relationship("Order", back_populates="catalog_item")
@@ -315,7 +329,11 @@ class BillingCustomer(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
     )
     provider: Mapped[str] = mapped_column(String(32), nullable=False, default="safepay")
     provider_customer_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -342,8 +360,12 @@ class Order(Base):
         String(32), nullable=False, default="pending", index=True
     )  # pending | paid | failed | canceled | refunded | partially_refunded | disputed
     provider: Mapped[str] = mapped_column(String(32), nullable=False, default="safepay")
-    provider_ref: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)  # Safepay tracker token
-    idempotency_key: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    provider_ref: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, index=True
+    )  # Safepay tracker token
+    idempotency_key: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
@@ -353,8 +375,12 @@ class Order(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="orders")
     catalog_item: Mapped["ProductCatalog"] = relationship("ProductCatalog", back_populates="orders")
-    ledger_entries: Mapped[list["UsageLedger"]] = relationship("UsageLedger", back_populates="order")
-    invoice: Mapped[Optional["Invoice"]] = relationship("Invoice", back_populates="order", uselist=False)
+    ledger_entries: Mapped[list["UsageLedger"]] = relationship(
+        "UsageLedger", back_populates="order"
+    )
+    invoice: Mapped[Optional["Invoice"]] = relationship(
+        "Invoice", back_populates="order", uselist=False
+    )
 
     __table_args__ = (
         Index("idx_orders_user_created", "user_id", "created_at"),
@@ -376,7 +402,9 @@ class Subscription(Base):
         String(32), nullable=False, default="active", index=True
     )  # active | past_due | canceled | expired
     current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    current_period_end: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     provider: Mapped[str] = mapped_column(String(32), nullable=False, default="safepay")
     provider_sub_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
@@ -397,8 +425,12 @@ class PaymentEvent(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     provider: Mapped[str] = mapped_column(String(32), nullable=False, default="safepay")
-    provider_event_id: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
-    event_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # payment.completed, etc.
+    provider_event_id: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, index=True
+    )
+    event_type: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True
+    )  # payment.completed, etc.
     raw_payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="pending"
@@ -425,7 +457,9 @@ class Invoice(Base):
     amount_minor: Mapped[int] = mapped_column(Integer, nullable=False)
     tax_minor: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="paid")  # paid | void | refunded
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="paid"
+    )  # paid | void | refunded
     line_items_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JsonType, nullable=True)
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
@@ -433,4 +467,3 @@ class Invoice(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="invoices")
     order: Mapped[Optional["Order"]] = relationship("Order", back_populates="invoice")
-

@@ -1,7 +1,7 @@
 """Pydantic schemas for billing, checkout, catalog, subscriptions, and invoices."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,8 +11,13 @@ class CheckoutRequest(BaseModel):
     Checkout initiation request.
     Strictly accepts ONLY plan_code and idempotency_key to prevent client-side amount tampering.
     """
-    plan_code: str = Field(..., min_length=2, max_length=64, description="Server-side catalog item code")
-    idempotency_key: str = Field(..., min_length=8, max_length=128, description="Client idempotency key")
+
+    plan_code: str = Field(
+        ..., min_length=2, max_length=64, description="Server-side catalog item code"
+    )
+    idempotency_key: str = Field(
+        ..., min_length=8, max_length=128, description="Client idempotency key"
+    )
 
 
 class CheckoutResponse(BaseModel):
@@ -30,7 +35,7 @@ class CatalogItemResponse(BaseModel):
     price_minor: int
     currency: str
     credits: int
-    interval: Optional[str] = None
+    interval: str | None = None
     description: str
 
 
@@ -47,7 +52,7 @@ class OrderResponse(BaseModel):
     status: str
     provider: str
     created_at: datetime
-    paid_at: Optional[datetime] = None
+    paid_at: datetime | None = None
 
 
 class SubscriptionResponse(BaseModel):
@@ -69,7 +74,7 @@ class InvoiceResponse(BaseModel):
     currency: str
     status: str
     issued_at: datetime
-    line_items_json: Optional[list[dict[str, Any]]] = None
+    line_items_json: list[dict[str, Any]] | None = None
 
 
 class BillingStatusResponse(BaseModel):
@@ -77,7 +82,7 @@ class BillingStatusResponse(BaseModel):
     provider: str
     user_plan: str
     credit_balance: int
-    subscription: Optional[SubscriptionResponse] = None
+    subscription: SubscriptionResponse | None = None
 
 
 class AdminRefundRequest(BaseModel):

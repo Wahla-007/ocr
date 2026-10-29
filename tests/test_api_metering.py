@@ -9,11 +9,12 @@ Verifies:
 6. Proper commercial response headers (X-OpenOCR-Plan, X-OpenOCR-Items-Used, X-OpenOCR-Latency-Ms, X-RateLimit-Limit).
 """
 
-import sys
 import os
+import sys
 import time
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Add project roots
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -28,10 +29,11 @@ API_BASE_URL = os.environ.get("OPENOCR_API_URL", "http://127.0.0.1:3000")
 def create_dummy_pdf(num_pages: int = 1) -> bytes:
     """Creates a valid in-memory PDF with the specified number of pages using PyMuPDF."""
     import pymupdf
+
     doc = pymupdf.open()
     for i in range(num_pages):
         page = doc.new_page(width=595, height=842)
-        page.insert_text((50, 72), f"Invoice Sample Page {i+1}", fontsize=16)
+        page.insert_text((50, 72), f"Invoice Sample Page {i + 1}", fontsize=16)
         page.insert_text((50, 120), "Invoice Number: INV-2026-TEST", fontsize=11)
         page.insert_text((50, 140), "Total Amount: $150.00 USD", fontsize=11)
     return doc.tobytes()
@@ -83,7 +85,9 @@ async def test_free_tier_rejects_more_than_two_pages():
             files={"file": ("multi_page.pdf", pdf_3_pages, "application/pdf")},
         )
 
-        assert res.status_code == 402, f"Expected 402 Payment Required, got {res.status_code}: {res.text}"
+        assert res.status_code == 402, (
+            f"Expected 402 Payment Required, got {res.status_code}: {res.text}"
+        )
         data = res.json()
         assert "error" in data
         assert data["error"]["code"] == "FREE_TIER_PAGE_LIMIT"
@@ -127,7 +131,9 @@ async def test_free_tier_lifetime_five_items_limit():
                 headers={"X-API-Key": free_key},
                 files={"file": (f"doc_{i}.pdf", pdf_bytes, "application/pdf")},
             )
-            assert res.status_code == 200, f"Item {i} expected 200, got {res.status_code}: {res.text}"
+            assert res.status_code == 200, (
+                f"Item {i} expected 200, got {res.status_code}: {res.text}"
+            )
             assert res.headers.get("X-OpenOCR-Items-Used") == str(i)
 
         # Attempt 6th item: MUST be rejected with HTTP 402
@@ -136,7 +142,9 @@ async def test_free_tier_lifetime_five_items_limit():
             headers={"X-API-Key": free_key},
             files={"file": ("doc_6_exceeded.pdf", pdf_bytes, "application/pdf")},
         )
-        assert res6.status_code == 402, f"Expected 402 on 6th item, got {res6.status_code}: {res6.text}"
+        assert res6.status_code == 402, (
+            f"Expected 402 on 6th item, got {res6.status_code}: {res6.text}"
+        )
         data = res6.json()
         assert data["error"]["code"] == "FREE_TIER_LIMIT_REACHED"
         assert data["error"]["items_processed"] >= 5
@@ -179,7 +187,9 @@ async def test_pricing_endpoint_conformance():
         pro_plan = next(p for p in data["plans"] if p["id"] == "pro")
         assert pro_plan["monthly_fee"] == "$9 / mo"
         assert pro_plan["max_pages_per_item"] == 500
-        print("[PASS] Pricing endpoint accurately reflects Free (5 items, 2 pgs) and Pro ($9/mo, 500 pgs).")
+        print(
+            "[PASS] Pricing endpoint accurately reflects Free (5 items, 2 pgs) and Pro ($9/mo, 500 pgs)."
+        )
 
 
 if __name__ == "__main__":

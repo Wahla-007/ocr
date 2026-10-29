@@ -1,10 +1,9 @@
 """Security hardening tests: headers, CSRF defense, open redirect protection, injection payloads."""
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-
 from app.main import app
 from app.middleware.security import validate_internal_redirect
+from httpx import ASGITransport, AsyncClient
 
 
 def test_open_redirect_validation():
@@ -83,7 +82,7 @@ async def test_injection_payloads_in_auth_endpoints():
             "admin' --",
             "<script>alert('xss')</script>",
             "'; DROP TABLE users; --",
-            "\" or 1=1--",
+            '" or 1=1--',
             "\x00nullbyte",
         ]
 

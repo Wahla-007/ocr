@@ -14,7 +14,6 @@ import asyncio
 import base64
 import json
 import logging
-import os
 import re
 import sys
 import time
@@ -35,6 +34,7 @@ for p in [ROOT_DIR, ROOT_DIR / "apps" / "api", ROOT_DIR / "apps" / "worker"]:
         sys.path.insert(0, str(p))
 
 from dotenv import load_dotenv
+
 load_dotenv(ROOT_DIR / ".env")
 
 import pymupdf
@@ -106,7 +106,6 @@ def clean_num(s: str | None) -> float | None:
         return None
 
 
-
 def detect_currency(text: str) -> str | None:
     if "$" in text or re.search(r"\bUSD\b", text):
         return "USD"
@@ -163,7 +162,7 @@ def extract_key_values(lines: list[str]) -> list[dict]:
         colon_idx = line.find(":")
         if colon_idx > 0 and colon_idx < len(line) - 1:
             k = line[:colon_idx].strip()
-            v = line[colon_idx + 1:].strip()
+            v = line[colon_idx + 1 :].strip()
             if (
                 1 <= len(k.split()) <= 6
                 and len(k) < 40
@@ -274,7 +273,11 @@ def extract_address_block(text: str, lines: list[str] | None = None) -> dict:
         )
         for l in lines:
             line_str = l.strip()
-            if skip_kw.search(line_str) or re.search(r"\b\d{2}[-./]\d{2}[-./]\d{4}\b", line_str) or re.match(r"^\d{6,12}$", line_str):
+            if (
+                skip_kw.search(line_str)
+                or re.search(r"\b\d{2}[-./]\d{2}[-./]\d{4}\b", line_str)
+                or re.match(r"^\d{6,12}$", line_str)
+            ):
                 continue
             cleaned = clean_address_token(line_str)
             if street_kw.search(cleaned) or street_kw.search(line_str):
@@ -344,7 +347,9 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
                     if len(row) <= max(desc_idx, total_idx, 0):
                         continue
                     desc = str(row[desc_idx]).strip() if desc_idx != -1 else ""
-                    if not desc or any(k in desc.lower() for k in ["subtotal", "tax", "total", "balance"]):
+                    if not desc or any(
+                        k in desc.lower() for k in ["subtotal", "tax", "total", "balance"]
+                    ):
                         continue
                     qty_val = clean_num(str(row[qty_idx])) if qty_idx != -1 else 1.0
                     rate_val = clean_num(str(row[rate_idx])) if rate_idx != -1 else None
@@ -352,14 +357,18 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
                     if tot_val is None and rate_val is not None:
                         tot_val = round((qty_val or 1.0) * rate_val, 2)
 
-                    items.append({
-                        "description": desc,
-                        "details": None,
-                        "quantity": qty_val or 1.0,
-                        "unit": "HOURS" if (qty_idx != -1 and "hr" in str(row[qty_idx]).lower()) else "UNITS",
-                        "rate": rate_val if rate_val is not None else tot_val,
-                        "amount": tot_val or 0.0,
-                    })
+                    items.append(
+                        {
+                            "description": desc,
+                            "details": None,
+                            "quantity": qty_val or 1.0,
+                            "unit": "HOURS"
+                            if (qty_idx != -1 and "hr" in str(row[qty_idx]).lower())
+                            else "UNITS",
+                            "rate": rate_val if rate_val is not None else tot_val,
+                            "amount": tot_val or 0.0,
+                        }
+                    )
 
     if items:
         return items
@@ -378,21 +387,31 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
             desc = m_a.group(1).strip()
             if not any(
                 k in desc.lower()
-                for k in ["subtotal", "total", "tax", "vat", "itemdescription", "item description", "unitprice"]
+                for k in [
+                    "subtotal",
+                    "total",
+                    "tax",
+                    "vat",
+                    "itemdescription",
+                    "item description",
+                    "unitprice",
+                ]
             ):
                 rate_val = clean_num(m_a.group(2))
                 qty_val = clean_num(m_a.group(3)) if m_a.group(3) else 1.0
                 amt_val = clean_num(m_a.group(4))
                 if desc.lower() in ["xn/in", "xn / in", "ui / ux", "ui/ux"]:
                     desc = "UI / UX"
-                items.append({
-                    "description": desc,
-                    "details": None,
-                    "quantity": qty_val,
-                    "unit": "UNITS",
-                    "rate": rate_val or amt_val,
-                    "amount": amt_val or 0.0,
-                })
+                items.append(
+                    {
+                        "description": desc,
+                        "details": None,
+                        "quantity": qty_val,
+                        "unit": "UNITS",
+                        "rate": rate_val or amt_val,
+                        "amount": amt_val or 0.0,
+                    }
+                )
                 continue
 
         # Layout B: Description | Qty | Unit-Price | Total  (e.g. "Web Design 1 $500.00 $500.00")
@@ -411,14 +430,16 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
                 amt_val = clean_num(m_b.group(4))
                 if desc.lower() in ["xn/in", "xn / in", "ui / ux", "ui/ux"]:
                     desc = "UI / UX"
-                items.append({
-                    "description": desc,
-                    "details": None,
-                    "quantity": qty_val,
-                    "unit": "HOURS" if "hr" in m_b.group(2).lower() else "UNITS",
-                    "rate": rate_val or amt_val,
-                    "amount": amt_val or 0.0,
-                })
+                items.append(
+                    {
+                        "description": desc,
+                        "details": None,
+                        "quantity": qty_val,
+                        "unit": "HOURS" if "hr" in m_b.group(2).lower() else "UNITS",
+                        "rate": rate_val or amt_val,
+                        "amount": amt_val or 0.0,
+                    }
+                )
                 continue
 
         # Layout C: Receipt style: Description Price
@@ -427,18 +448,31 @@ def extract_line_items(tables: list, detected_lines: list[str]) -> list[dict]:
             desc = m_rcpt.group(1).strip()
             if not any(
                 k in desc.lower()
-                for k in ["subtotal", "total", "tax", "vat", "cash", "credit", "card", "change", "due", "itemdescription"]
+                for k in [
+                    "subtotal",
+                    "total",
+                    "tax",
+                    "vat",
+                    "cash",
+                    "credit",
+                    "card",
+                    "change",
+                    "due",
+                    "itemdescription",
+                ]
             ):
                 amt_val = clean_num(m_rcpt.group(2))
                 if amt_val is not None:
-                    items.append({
-                        "description": desc,
-                        "details": None,
-                        "quantity": 1.0,
-                        "unit": "UNITS",
-                        "rate": amt_val,
-                        "amount": amt_val,
-                    })
+                    items.append(
+                        {
+                            "description": desc,
+                            "details": None,
+                            "quantity": 1.0,
+                            "unit": "UNITS",
+                            "rate": amt_val,
+                            "amount": amt_val,
+                        }
+                    )
 
     return items
 
@@ -465,7 +499,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
     # 1. Normalize (including auto-orientation)
     norm = normalize_document(data, mime, max_pages=max_pages)
-    working_data = norm.pages[0].image_bytes if (norm.pages and norm.pages[0].rotation_applied != 0) else data
+    working_data = (
+        norm.pages[0].image_bytes if (norm.pages and norm.pages[0].rotation_applied != 0) else data
+    )
 
     # 2. Parse (RapidOCR / PyMuPDF)
     parsed = await parse_document(working_data, mime)
@@ -482,10 +518,19 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         th0 = sum(abs(b.bbox.height) for b in parsed.blocks if b.bbox)
         ar0 = tw0 / max(1.0, th0) if th0 > 0 else 0.0
 
-        if classification.doc_type in ["unknown", "document"] or ar0 < 1.1 or len(parsed.blocks) < 5:
-            from providers.engines.docling_engine import detect_and_correct_orientation, get_ocr_engine
+        if (
+            classification.doc_type in ["unknown", "document"]
+            or ar0 < 1.1
+            or len(parsed.blocks) < 5
+        ):
             import io
+
             from PIL import Image
+
+            from providers.engines.docling_engine import (
+                detect_and_correct_orientation,
+                get_ocr_engine,
+            )
 
             ocr = get_ocr_engine()
             if ocr:
@@ -498,7 +543,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                         working_data = buf.getvalue()
                         parsed = await parse_document(working_data, mime)
                         text_content = parsed.markdown or "\n".join(b.text for b in parsed.blocks)
-                        classification, extraction = await classify_and_extract(text_content, parsed.blocks)
+                        classification, extraction = await classify_and_extract(
+                            text_content, parsed.blocks
+                        )
                 except Exception as e:
                     sys.stderr.write(f"Post-analysis tilt check failed: {e}\n")
 
@@ -584,9 +631,20 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
     ):
         doc_type = "invoice"
     else:
-        doc_type = classification.doc_type if classification.doc_type in [
-            "invoice", "receipt", "id_card", "driving_license", "contract", "bank_statement", "resume"
-        ] else "document"
+        doc_type = (
+            classification.doc_type
+            if classification.doc_type
+            in [
+                "invoice",
+                "receipt",
+                "id_card",
+                "driving_license",
+                "contract",
+                "bank_statement",
+                "resume",
+            ]
+            else "document"
+        )
 
     # Default fields initialization
     vendor_name = None
@@ -606,7 +664,11 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
     tax_val = None
     tax_rate = None
     total = None
-    currency = detect_currency(text_content) if doc_type in ["invoice", "receipt", "bank_statement"] else None
+    currency = (
+        detect_currency(text_content)
+        if doc_type in ["invoice", "receipt", "bank_statement"]
+        else None
+    )
     credits_charged = 10
 
     date_pat = r"([0-9]{4}[-/.][0-9]{1,2}[-/.][0-9]{1,2}|[0-9]{1,2}[-/.][0-9]{1,2}[-/.][0-9]{2,4}|(?:\d{1,2}\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?(?:\s+\d{1,2})?,?\s+\d{2,4})"
@@ -628,14 +690,27 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             sp_boxes = []
             for b in parsed.blocks:
                 if b.bbox and b.text:
-                    sp_boxes.append(OCRBox(b.bbox.x, b.bbox.y, b.bbox.x + b.bbox.width, b.bbox.y + b.bbox.height, b.text, b.confidence))
+                    sp_boxes.append(
+                        OCRBox(
+                            b.bbox.x,
+                            b.bbox.y,
+                            b.bbox.x + b.bbox.width,
+                            b.bbox.y + b.bbox.height,
+                            b.text,
+                            b.confidence,
+                        )
+                    )
             spatial_extractor = LightweightSpatialInvoiceExtractor()
             spatial_data = spatial_extractor.extract_from_boxes(sp_boxes)
         except Exception as e:
             sys.stderr.write(f"Spatial invoice extraction failed: {e}\n")
 
         # Vendor Name: prominent top non-keyword header line
-        vendor_name = fields_dict.get("brand_name") or fields_dict.get("vendor_name") or spatial_data.get("supplier")
+        vendor_name = (
+            fields_dict.get("brand_name")
+            or fields_dict.get("vendor_name")
+            or spatial_data.get("supplier")
+        )
         if not vendor_name or vendor_name in ["Vendor", "None"]:
             for l in detected_lines[:6]:
                 clean_l = l.strip()
@@ -644,8 +719,14 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     and len(clean_l) > 2
                     and not re.search(r"[$€£₹]|\b\d{2,}\b|\n", clean_l)
                 ):
-                    cand = re.sub(r"(?i)\s*\b(?:invoice|tax\s*invoice|bill|receipt)\b.*$", "", clean_l).strip(" -:#|")
-                    if len(cand) > 2 and not re.search(skip_kw, cand) and not re.search(r"[$€£₹]|\b\d{2,}\b", cand):
+                    cand = re.sub(
+                        r"(?i)\s*\b(?:invoice|tax\s*invoice|bill|receipt)\b.*$", "", clean_l
+                    ).strip(" -:#|")
+                    if (
+                        len(cand) > 2
+                        and not re.search(skip_kw, cand)
+                        and not re.search(r"[$€£₹]|\b\d{2,}\b", cand)
+                    ):
                         vendor_name = cand
                         break
 
@@ -656,7 +737,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         web_m = re.search(r"\b(?:https?://|www\.)[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b", text_content)
         supplier_web = web_m.group(0) if web_m else None
 
-        phone_m = re.search(r"(?:^|\n|[^\w])(?:P|Phone|Tel|Mobile)[:.\s-]*([+0-9\s-]{8,20})", text_content)
+        phone_m = re.search(
+            r"(?:^|\n|[^\w])(?:P|Phone|Tel|Mobile)[:.\s-]*([+0-9\s-]{8,20})", text_content
+        )
         supplier_phone = phone_m.group(1).strip() if phone_m else None
 
         addr_data = extract_address_block(text_content)
@@ -665,7 +748,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         if vendor_name:
             v_phone = re.search(r"\b[P|Phone][:.\s-]*([0-9\s+-]{6,20})", vendor_name)
-            v_web = re.search(r"\b[W|Web|Website][:.\s-]*([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", vendor_name)
+            v_web = re.search(
+                r"\b[W|Web|Website][:.\s-]*([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", vendor_name
+            )
             v_addr = re.search(r"\b[A|Address][:.\s-]*([^\n]+?)(?=\s+[WP]:|$)", vendor_name)
             if v_phone and not supplier_phone:
                 supplier_phone = v_phone.group(1).strip()
@@ -679,13 +764,19 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         customer_name = fields_dict.get("customer_name") or spatial_data.get("customer")
         if not customer_name or customer_name in ["Buyer", "None"]:
             for i, l in enumerate(detected_lines):
-                m_bill = re.search(r"(?i)(?:billed\s*to|bill\s*to|customer|client|sold\s*to|invoice\s*to)\s*[:\s-]*$", l.strip())
+                m_bill = re.search(
+                    r"(?i)(?:billed\s*to|bill\s*to|customer|client|sold\s*to|invoice\s*to)\s*[:\s-]*$",
+                    l.strip(),
+                )
                 if m_bill and i + 1 < len(detected_lines):
                     cand = detected_lines[i + 1].strip()
                     if not re.search(skip_kw, cand):
                         customer_name = cand
                         break
-                m_inline = re.search(r"(?i)(?:billed\s*to|bill\s*to|customer|client|sold\s*to|invoice\s*to)\s*[:\s-]+\s*([^\n]+)", l.strip())
+                m_inline = re.search(
+                    r"(?i)(?:billed\s*to|bill\s*to|customer|client|sold\s*to|invoice\s*to)\s*[:\s-]+\s*([^\n]+)",
+                    l.strip(),
+                )
                 if m_inline:
                     cand = m_inline.group(1).strip()
                     if not re.search(skip_kw, cand):
@@ -702,7 +793,15 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 r"(?i)(?:invoice\s*(?:number|no|num|#)|inv\s*(?:no|num|#)|bill\s*(?:no|#)|account\s*(?:number|no|num|#)|accountno\.?)\s*[:#.\s-]*([A-Za-z0-9/_-]+)",
                 text_content,
             )
-            if inv_m and inv_m.group(1).lower() not in ["number", "no", "date", "due", "total", "amount", "dd/mm/yyyy"]:
+            if inv_m and inv_m.group(1).lower() not in [
+                "number",
+                "no",
+                "date",
+                "due",
+                "total",
+                "amount",
+                "dd/mm/yyyy",
+            ]:
                 inv_num = inv_m.group(1).strip()
             else:
                 alt_m = re.search(r"(?i)\b(?:INV|BILL|DOC)[-_]?[0-9]{3,}\b", text_content)
@@ -712,14 +811,20 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         # Issue Date
         issue_date = fields_dict.get("issue_date") or spatial_data.get("invoice_date")
         if not issue_date:
-            iss_m = re.search(rf"(?i)(?:issue\s*date|invoice\s*date|date\s*of\s*issue|billing\s*date|date)\s*[:\s-]*{date_pat}", text_content)
+            iss_m = re.search(
+                rf"(?i)(?:issue\s*date|invoice\s*date|date\s*of\s*issue|billing\s*date|date)\s*[:\s-]*{date_pat}",
+                text_content,
+            )
             if iss_m and "dd/mm" not in iss_m.group(1).lower():
                 issue_date = iss_m.group(1).strip()
 
         # Due Date
         due_date = fields_dict.get("due_date") or spatial_data.get("invoice_due_date")
         if not due_date:
-            due_m = re.search(rf"(?i)(?:due\s*date|payment\s*due|due\s*by|pay\s*by)\s*[:\s-]*{date_pat}", text_content)
+            due_m = re.search(
+                rf"(?i)(?:due\s*date|payment\s*due|due\s*by|pay\s*by)\s*[:\s-]*{date_pat}",
+                text_content,
+            )
             if due_m and "dd/mm" not in due_m.group(1).lower():
                 due_date = due_m.group(1).strip()
 
@@ -737,30 +842,53 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         line_items = extract_line_items(parsed.tables, detected_lines)
         if not line_items and spatial_data.get("lines"):
             for l in spatial_data["lines"]:
-                line_items.append({
-                    "description": l["description"],
-                    "details": l.get("uom"),
-                    "quantity": l.get("quantity") or 1.0,
-                    "unit": l.get("uom") or "UNITS",
-                    "rate": l.get("price"),
-                    "amount": l.get("sub_total"),
-                })
+                line_items.append(
+                    {
+                        "description": l["description"],
+                        "details": l.get("uom"),
+                        "quantity": l.get("quantity") or 1.0,
+                        "unit": l.get("uom") or "UNITS",
+                        "rate": l.get("price"),
+                        "amount": l.get("sub_total"),
+                    }
+                )
 
         # Financial Amounts
-        sub_m = re.search(rf"(?i)(?:subtotal|sub\s*total|net\s*amount)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
-        subtotal = spatial_data.get("total_untaxed") if spatial_data.get("total_untaxed") is not None else (clean_num(sub_m.group(1)) if sub_m else fields_dict.get("subtotal"))
+        sub_m = re.search(
+            rf"(?i)(?:subtotal|sub\s*total|net\s*amount)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}",
+            text_content,
+        )
+        subtotal = (
+            spatial_data.get("total_untaxed")
+            if spatial_data.get("total_untaxed") is not None
+            else (clean_num(sub_m.group(1)) if sub_m else fields_dict.get("subtotal"))
+        )
         if subtotal is None and line_items:
             subtotal = round(sum(i["amount"] for i in line_items if i.get("amount")), 2)
 
-        tax_m = re.search(rf"(?i)(?:sales\s*tax|tax|vat|gst)\s*(?:\(([0-9.]+)%\))?\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
+        tax_m = re.search(
+            rf"(?i)(?:sales\s*tax|tax|vat|gst)\s*(?:\(([0-9.]+)%\))?\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}",
+            text_content,
+        )
         if tax_m:
             tax_rate = clean_num(tax_m.group(1))
-            tax_val = spatial_data.get("tax_amount") if spatial_data.get("tax_amount") is not None else clean_num(tax_m.group(2))
+            tax_val = (
+                spatial_data.get("tax_amount")
+                if spatial_data.get("tax_amount") is not None
+                else clean_num(tax_m.group(2))
+            )
         else:
             tax_val = spatial_data.get("tax_amount") or fields_dict.get("tax_amount")
 
-        tot_m = re.search(rf"(?i)(?:grand\s*total|total\s*due|amount\s*due|balance\s*due|total\s*amount|total\s*paid|(?<!sub)total)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}", text_content)
-        total = spatial_data.get("total_amount") if spatial_data.get("total_amount") is not None else (clean_num(tot_m.group(1)) if tot_m else fields_dict.get("total_amount"))
+        tot_m = re.search(
+            rf"(?i)(?:grand\s*total|total\s*due|amount\s*due|balance\s*due|total\s*amount|total\s*paid|(?<!sub)total)\s*[:\s-]*[Ss$€£₹]?\s*{amt_pat}",
+            text_content,
+        )
+        total = (
+            spatial_data.get("total_amount")
+            if spatial_data.get("total_amount") is not None
+            else (clean_num(tot_m.group(1)) if tot_m else fields_dict.get("total_amount"))
+        )
         if total is None and subtotal is not None:
             total = round(subtotal + (tax_val or 0.0), 2)
 
@@ -776,7 +904,10 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         order_number = spatial_data.get("order_number")
         if not order_number:
-            ord_m = re.search(r"(?i)(?:order\s*number|order\s*no\.?|order\s*#)\s*[:#\s-]*([A-Za-z0-9/_-]+)", text_content)
+            ord_m = re.search(
+                r"(?i)(?:order\s*number|order\s*no\.?|order\s*#)\s*[:#\s-]*([A-Za-z0-9/_-]+)",
+                text_content,
+            )
             if ord_m:
                 order_number = ord_m.group(1).strip()
 
@@ -786,27 +917,61 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             if prod_m:
                 product = prod_m.group(1).strip()
         if product:
-            product = re.sub(r"(?i)\s*(?:d[ie]scounts?|credits?|charges?|gross\s*amount|billing\s*summary|vat|\d+[,.]\d{2}).*$", "", product).strip(" -:#|")
+            product = re.sub(
+                r"(?i)\s*(?:d[ie]scounts?|credits?|charges?|gross\s*amount|billing\s*summary|vat|\d+[,.]\d{2}).*$",
+                "",
+                product,
+            ).strip(" -:#|")
 
         billing_period = spatial_data.get("billing_period")
         if not billing_period:
-            bp_m = re.search(r"(?i)(?:billing\s*period|service\s*period)\s*[:#\s-]*([^\n]+)", text_content)
+            bp_m = re.search(
+                r"(?i)(?:billing\s*period|service\s*period)\s*[:#\s-]*([^\n]+)", text_content
+            )
             if bp_m:
                 billing_period = bp_m.group(1).strip()
 
         payment_instructions = spatial_data.get("payment_instructions")
         if not payment_instructions:
-            pi_m = re.search(r"(?i)(?:payment\s*instructions?|remittance\s*instructions?)\s*[:#\s-]*([^\n]+)", text_content)
+            pi_m = re.search(
+                r"(?i)(?:payment\s*instructions?|remittance\s*instructions?)\s*[:#\s-]*([^\n]+)",
+                text_content,
+            )
             if pi_m:
                 payment_instructions = pi_m.group(1).strip()
 
         customer_po_number = po_number or spatial_data.get("po_number")
         if not customer_po_number:
-            po_m = re.search(r"(?i)(?:customer\s*po\s*number|po\s*number|purchase\s*order(?:\s*number|\s*no\.?|\s*#)?)\s*[:#\s-]*([A-Za-z0-9/_-]+)", text_content)
-            if po_m and po_m.group(1).lower() not in ["number", "no", "id", "#", "customer", "dicounts", "discounts", "billing", "summary", "vat"]:
+            po_m = re.search(
+                r"(?i)(?:customer\s*po\s*number|po\s*number|purchase\s*order(?:\s*number|\s*no\.?|\s*#)?)\s*[:#\s-]*([A-Za-z0-9/_-]+)",
+                text_content,
+            )
+            if po_m and po_m.group(1).lower() not in [
+                "number",
+                "no",
+                "id",
+                "#",
+                "customer",
+                "dicounts",
+                "discounts",
+                "billing",
+                "summary",
+                "vat",
+            ]:
                 customer_po_number = po_m.group(1).strip()
 
-        if customer_po_number and str(customer_po_number).lower() in ["number", "no", "id", "#", "customer", "dicounts", "discounts", "billing", "summary", "vat"]:
+        if customer_po_number and str(customer_po_number).lower() in [
+            "number",
+            "no",
+            "id",
+            "#",
+            "customer",
+            "dicounts",
+            "discounts",
+            "billing",
+            "summary",
+            "vat",
+        ]:
             customer_po_number = None
 
         order_details = {
@@ -823,7 +988,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         if product:
             additional_fields.append({"label": "Product", "value": str(product)})
         if customer_po_number:
-            additional_fields.append({"label": "Customer PO Number", "value": str(customer_po_number)})
+            additional_fields.append(
+                {"label": "Customer PO Number", "value": str(customer_po_number)}
+            )
         if order_number:
             additional_fields.append({"label": "Order Number", "value": str(order_number)})
         if billing_period:
@@ -833,46 +1000,69 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         if due_date:
             additional_fields.append({"label": "Due Date", "value": str(due_date)})
         if payment_instructions:
-            additional_fields.append({"label": "Payment Instructions", "value": str(payment_instructions)})
+            additional_fields.append(
+                {"label": "Payment Instructions", "value": str(payment_instructions)}
+            )
         if spatial_data.get("customer_vat_id"):
-            additional_fields.append({"label": "Customer VAT ID", "value": str(spatial_data["customer_vat_id"])})
+            additional_fields.append(
+                {"label": "Customer VAT ID", "value": str(spatial_data["customer_vat_id"])}
+            )
         if spatial_data.get("supplier_vat_id"):
-            additional_fields.append({"label": "Supplier VAT ID", "value": str(spatial_data["supplier_vat_id"])})
+            additional_fields.append(
+                {"label": "Supplier VAT ID", "value": str(spatial_data["supplier_vat_id"])}
+            )
 
         payment_methods = []
-        for m_name in ["bank account", "paypal", "mastercard", "visa", "wire transfer", "credit card", "cash"]:
+        for m_name in [
+            "bank account",
+            "paypal",
+            "mastercard",
+            "visa",
+            "wire transfer",
+            "credit card",
+            "cash",
+        ]:
             if m_name in text_content.lower():
                 payment_methods.append(m_name.title())
         payment_method = ", ".join(payment_methods) if payment_methods else None
 
         validation_checks = []
         if line_items and subtotal:
-            valid_amounts = [float(i["amount"]) for i in line_items if isinstance(i, dict) and i.get("amount") is not None]
+            valid_amounts = [
+                float(i["amount"])
+                for i in line_items
+                if isinstance(i, dict) and i.get("amount") is not None
+            ]
             items_sum = round(sum(valid_amounts), 2) if valid_amounts else 0.0
             passed = abs(items_sum - subtotal) < 0.05
-            validation_checks.append({
-                "name": "line_items_sum_matches_subtotal",
-                "severity": "warning",
-                "passed": passed,
-                "status": "passed" if passed else "warning",
-                "detail": f"Line items sum ({items_sum:.2f}) matches subtotal ({subtotal:.2f}).",
-            })
+            validation_checks.append(
+                {
+                    "name": "line_items_sum_matches_subtotal",
+                    "severity": "warning",
+                    "passed": passed,
+                    "status": "passed" if passed else "warning",
+                    "detail": f"Line items sum ({items_sum:.2f}) matches subtotal ({subtotal:.2f}).",
+                }
+            )
         if subtotal and total:
             calc_tot = round(subtotal + (tax_val or 0.0), 2)
             passed = abs(calc_tot - total) < 0.05
-            validation_checks.append({
-                "name": "subtotal_tax_equals_total",
-                "severity": "warning",
-                "passed": passed,
-                "status": "passed" if passed else "warning",
-                "detail": f"{subtotal:.2f} + {tax_val or 0.0:.2f} = {total:.2f}.",
-            })
+            validation_checks.append(
+                {
+                    "name": "subtotal_tax_equals_total",
+                    "severity": "warning",
+                    "passed": passed,
+                    "status": "passed" if passed else "warning",
+                    "detail": f"{subtotal:.2f} + {tax_val or 0.0:.2f} = {total:.2f}.",
+                }
+            )
 
         validation = {
             "is_valid": True,
             "status": "valid",
             "strength": "arithmetic",
-            "checks": validation_checks or [
+            "checks": validation_checks
+            or [
                 {
                     "name": "invoice_structure_verified",
                     "severity": "info",
@@ -901,7 +1091,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 "first": None,
                 "last": None,
             },
-            "address": supplier_addr or buyer_addr or (addr_data if addr_data.get("line1") else None),
+            "address": supplier_addr
+            or buyer_addr
+            or (addr_data if addr_data.get("line1") else None),
             "line_items": line_items,
             "subtotal": subtotal,
             "tax_amount": tax_val,
@@ -955,7 +1147,6 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 "total": total,
                 "currency": currency or "$",
                 "place_of_supply": None,
-                "payment_terms": payment_terms,
                 "payment_method": payment_method,
                 "purchase_order_number": customer_po_number,
                 "amount_in_words": None,
@@ -976,7 +1167,13 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             if "<<<" in l or l.strip().startswith("P<") or l.strip().startswith(">")
         ]
         mrz_surname, mrz_given, mrz_dob, mrz_sex, mrz_exp, mrz_num, mrz_country = (
-            None, None, None, None, None, None, None
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
         mrz_line1, mrz_line2 = None, None
 
@@ -1096,9 +1293,20 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         exp_date = mrz_exp
 
         month_map = {
-            "JAN": "01", "FEB": "02", "MAR": "03", "APR": "04", "MAY": "05", "JUN": "06",
-            "JUNE": "06", "JUIN": "06", "JUL": "07", "AUG": "08", "SEP": "09", "OCT": "10",
-            "NOV": "11", "DEC": "12",
+            "JAN": "01",
+            "FEB": "02",
+            "MAR": "03",
+            "APR": "04",
+            "MAY": "05",
+            "JUN": "06",
+            "JUNE": "06",
+            "JUIN": "06",
+            "JUL": "07",
+            "AUG": "08",
+            "SEP": "09",
+            "OCT": "10",
+            "NOV": "11",
+            "DEC": "12",
         }
 
         def parse_passport_date(s_raw: str | None) -> str | None:
@@ -1202,7 +1410,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             issuing_country = "United Kingdom"
         else:
             nationality = mrz_country or "Canadian"
-            issuing_country = "Canada" if "CANADA" in upper else (mrz_country or "Government Authority")
+            issuing_country = (
+                "Canada" if "CANADA" in upper else (mrz_country or "Government Authority")
+            )
 
         # 7. Place of Birth & Issuing Authority
         place_of_birth = None
@@ -1216,8 +1426,17 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     place_of_birth = detected_lines[i + 1].strip()
         if not place_of_birth:
             for l in detected_lines:
-                if "LONDON" in l.upper() or "LONDGN" in l.upper() or "PARIS" in l.upper() or "NEW YORK" in l.upper():
-                    place_of_birth = "London, UK" if ("LONDON" in l.upper() or "LONDGN" in l.upper()) else l.strip()
+                if (
+                    "LONDON" in l.upper()
+                    or "LONDGN" in l.upper()
+                    or "PARIS" in l.upper()
+                    or "NEW YORK" in l.upper()
+                ):
+                    place_of_birth = (
+                        "London, UK"
+                        if ("LONDON" in l.upper() or "LONDGN" in l.upper())
+                        else l.strip()
+                    )
                     break
 
         issuing_auth = None
@@ -1326,8 +1545,15 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         for i, line in enumerate(detected_lines):
             line_s = line.strip()
             # Strip trailing labels attached on same line (e.g. "JANE CITIZEN LICENCE NO" -> "JANE CITIZEN")
-            line_s_clean = re.sub(r"(?i)\s*\b(?:licen[cs]e(?:\s*(?:no|number|#))?|card(?:\s*no)?|id(?:\s*no)?|dl(?:\s*no)?)\b.*$", "", line_s).strip()
-            m_lbl = re.match(r"(?i)^(?:Full\s*Name|Holder(?:\s*Name)?|Name)\s*[:\-]?\s*([A-Za-z\s.'-]+)?$", line_s_clean)
+            line_s_clean = re.sub(
+                r"(?i)\s*\b(?:licen[cs]e(?:\s*(?:no|number|#))?|card(?:\s*no)?|id(?:\s*no)?|dl(?:\s*no)?)\b.*$",
+                "",
+                line_s,
+            ).strip()
+            m_lbl = re.match(
+                r"(?i)^(?:Full\s*Name|Holder(?:\s*Name)?|Name)\s*[:\-]?\s*([A-Za-z\s.'-]+)?$",
+                line_s_clean,
+            )
             if m_lbl:
                 val = m_lbl.group(1)
                 if val and len(val.strip()) > 1 and not re.search(skip_doc_words, val):
@@ -1335,26 +1561,43 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     break
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1].strip()
-                    if nxt and not re.search(r"(?i)^(?:father|gender|country|identity|date|iss|exp)\b", nxt):
+                    if nxt and not re.search(
+                        r"(?i)^(?:father|gender|country|identity|date|iss|exp)\b", nxt
+                    ):
                         clean_nxt = re.sub(r"[^\x00-\x7F]+", "", nxt).strip()
-                        if clean_nxt and len(clean_nxt) > 1 and not re.search(skip_doc_words, clean_nxt):
+                        if (
+                            clean_nxt
+                            and len(clean_nxt) > 1
+                            and not re.search(skip_doc_words, clean_nxt)
+                        ):
                             name_clean = clean_nxt
                             break
 
         if not name_clean:
-            name_m = re.search(r"(?i)(?:^|\n)\s*(?:Full\s*Name|Holder\s*Name|Name)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Father|Gender|Country|Identity|$)", text_content)
+            name_m = re.search(
+                r"(?i)(?:^|\n)\s*(?:Full\s*Name|Holder\s*Name|Name)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Father|Gender|Country|Identity|$)",
+                text_content,
+            )
             if name_m:
                 cand = name_m.group(1).strip()
                 cand = re.sub(skip_doc_words, "", cand).strip()
                 if cand and len(cand) > 1:
                     name_clean = cand
-            elif fields_dict.get("full_name") and not str(fields_dict.get("full_name")).startswith("{") and not re.search(skip_doc_words, str(fields_dict.get("full_name"))):
+            elif (
+                fields_dict.get("full_name")
+                and not str(fields_dict.get("full_name")).startswith("{")
+                and not re.search(skip_doc_words, str(fields_dict.get("full_name")))
+            ):
                 name_clean = str(fields_dict.get("full_name"))
 
         if not name_clean:
             # Layer 2: Driver license standard ISO format (1. Surname, 2. Given Name or LN/FN)
-            ln_m = re.search(r"(?i)\b(?:1\.|LN|Surname|Last\s*Name)[:\s-]*([A-Za-z.'-]+)", text_content)
-            fn_m = re.search(r"(?i)\b(?:2\.|FN|Given\s*Name|First\s*Name)[:\s-]*([A-Za-z.'-]+)", text_content)
+            ln_m = re.search(
+                r"(?i)\b(?:1\.|LN|Surname|Last\s*Name)[:\s-]*([A-Za-z.'-]+)", text_content
+            )
+            fn_m = re.search(
+                r"(?i)\b(?:2\.|FN|Given\s*Name|First\s*Name)[:\s-]*([A-Za-z.'-]+)", text_content
+            )
             if ln_m and fn_m:
                 name_clean = f"{fn_m.group(1).strip()} {ln_m.group(1).strip()}"
             elif fn_m:
@@ -1365,7 +1608,11 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         if not name_clean:
             # Layer 3: Scan detected lines for prominent 2-4 word personal name (e.g. "JANE CITIZEN LICENCE NO" -> "JANE CITIZEN")
             for line in detected_lines:
-                cand_line = re.sub(r"(?i)\s*\b(?:licen[cs]e(?:\s*(?:no|number|#))?|card(?:\s*no)?|id(?:\s*no)?|dl(?:\s*no)?)\b.*$", "", line.strip()).strip()
+                cand_line = re.sub(
+                    r"(?i)\s*\b(?:licen[cs]e(?:\s*(?:no|number|#))?|card(?:\s*no)?|id(?:\s*no)?|dl(?:\s*no)?)\b.*$",
+                    "",
+                    line.strip(),
+                ).strip()
                 if (
                     re.match(r"^[A-Za-z.'-]+(?:\s+[A-Za-z.'-]+){1,3}$", cand_line)
                     and not re.search(skip_doc_words, cand_line)
@@ -1376,8 +1623,12 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         if not name_clean:
             # Layer 4: Scan top OCR text blocks
-            for b in sorted(parsed.blocks, key=lambda x: (x.bbox.y if x.bbox else 0)):
-                b_text = re.sub(r"(?i)\s*\b(?:licen[cs]e(?:\s*(?:no|number|#))?|card(?:\s*no)?|id(?:\s*no)?|dl(?:\s*no)?)\b.*$", "", b.text.strip()).strip()
+            for b in sorted(parsed.blocks, key=lambda x: x.bbox.y if x.bbox else 0):
+                b_text = re.sub(
+                    r"(?i)\s*\b(?:licen[cs]e(?:\s*(?:no|number|#))?|card(?:\s*no)?|id(?:\s*no)?|dl(?:\s*no)?)\b.*$",
+                    "",
+                    b.text.strip(),
+                ).strip()
                 if (
                     re.match(r"^[A-Za-z.'-]+(?:\s+[A-Za-z.'-]+){1,3}$", b_text)
                     and not re.search(skip_doc_words, b_text)
@@ -1388,7 +1639,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         # Layer 5: Guaranteed fallback so name field is NEVER omitted on identification docs
         if not name_clean:
-            if fields_dict.get("full_name") and not str(fields_dict.get("full_name")).startswith("{"):
+            if fields_dict.get("full_name") and not str(fields_dict.get("full_name")).startswith(
+                "{"
+            ):
                 name_clean = str(fields_dict.get("full_name")).strip()
             else:
                 name_clean = "Document Holder"
@@ -1402,22 +1655,34 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         father_name = None
         for i, line in enumerate(detected_lines):
             line_s = line.strip()
-            m_f = re.match(r"(?i)^(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)\s*[:\-]?\s*([A-Za-z\s.'-]+)?$", line_s)
+            m_f = re.match(
+                r"(?i)^(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)\s*[:\-]?\s*([A-Za-z\s.'-]+)?$",
+                line_s,
+            )
             if m_f:
                 val = m_f.group(1)
-                if val and len(val.strip()) > 1 and not re.search(r"(?i)\b(?:gender|country|identity|card)\b", val):
+                if (
+                    val
+                    and len(val.strip()) > 1
+                    and not re.search(r"(?i)\b(?:gender|country|identity|card)\b", val)
+                ):
                     father_name = val.strip()
                     break
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1].strip()
-                    if nxt and not re.search(r"(?i)^(?:gender|country|identity|date|iss|exp)\b", nxt):
+                    if nxt and not re.search(
+                        r"(?i)^(?:gender|country|identity|date|iss|exp)\b", nxt
+                    ):
                         clean_nxt = re.sub(r"[^\x00-\x7F]+", "", nxt).strip()
                         if clean_nxt and len(clean_nxt) > 1:
                             father_name = clean_nxt
                             break
 
         if not father_name:
-            m_f = re.search(r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)", text_content)
+            m_f = re.search(
+                r"(?i)(?:^|\n)\s*(?:Father(?:\s*'?s)?\s*Name|S/O|D/O|W/O)[:\s-]+([A-Za-z\s.'-]+?)(?=\n|\r|Gender|Country|Identity|$)",
+                text_content,
+            )
             if m_f:
                 father_name = m_f.group(1).strip()
         if father_name:
@@ -1428,10 +1693,14 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         country_of_stay = None
         for i, line in enumerate(detected_lines):
             line_s = line.strip()
-            if re.search(r"(?i)Gender.*Country", line_s) or (re.search(r"(?i)\bGender\b", line_s) and re.search(r"(?i)\bCountry\b", line_s)):
+            if re.search(r"(?i)Gender.*Country", line_s) or (
+                re.search(r"(?i)\bGender\b", line_s) and re.search(r"(?i)\bCountry\b", line_s)
+            ):
                 if i + 1 < len(detected_lines):
                     val_line = detected_lines[i + 1].strip()
-                    m_gc = re.match(r"^([MF]|MALE|FEMALE)\s*[, -]?\s*([A-Za-z\s,.-]+)$", val_line, re.I)
+                    m_gc = re.match(
+                        r"^([MF]|MALE|FEMALE)\s*[, -]?\s*([A-Za-z\s,.-]+)$", val_line, re.I
+                    )
                     if m_gc:
                         g_val = m_gc.group(1).upper()
                         gender = "M" if g_val in ["M", "MALE"] else "F"
@@ -1470,7 +1739,10 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 gender = m_mrz_sex.group(2).upper()
 
         if not country_of_stay:
-            m_cs = re.search(r"(?i)(?:Country\s*of\s*Stay)[:\s-]+([A-Za-z\s,.-]+?)(?=\n|\r|Identity|Date|$)", text_content)
+            m_cs = re.search(
+                r"(?i)(?:Country\s*of\s*Stay)[:\s-]+([A-Za-z\s,.-]+?)(?=\n|\r|Identity|Date|$)",
+                text_content,
+            )
             if m_cs:
                 country_of_stay = re.sub(r",(?!\s)", ", ", m_cs.group(1).strip())
 
@@ -1491,11 +1763,18 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     id_num = cand
                     break
             # Check next line or adjacent blocks if label is separated (e.g. "JANE CITIZEN LICENCE NO" -> "987654321")
-            m_tag = re.search(r"(?i)\b(?:licen[cs]e\s*(?:no|num|number|#)|dl\s*(?:no|#)|id\s*(?:no|num|number|#)|card\s*(?:no|num|number|#))\b", line_s)
+            m_tag = re.search(
+                r"(?i)\b(?:licen[cs]e\s*(?:no|num|number|#)|dl\s*(?:no|#)|id\s*(?:no|num|number|#)|card\s*(?:no|num|number|#))\b",
+                line_s,
+            )
             if m_tag and i + 1 < len(detected_lines):
                 nxt = detected_lines[i + 1].strip()
                 m_num = re.search(r"\b([A-Za-z0-9-]{5,18})\b", nxt)
-                if m_num and re.search(r"\d", m_num.group(1)) and not re.match(r"^\d{2}[-/.]\d{2}[-/.]\d{4}$", nxt):
+                if (
+                    m_num
+                    and re.search(r"\d", m_num.group(1))
+                    and not re.match(r"^\d{2}[-/.]\d{2}[-/.]\d{4}$", nxt)
+                ):
                     cand = m_num.group(1).strip()
                     if cand.lower() not in ["entity", "identity", "number", "licence", "license"]:
                         id_num = cand
@@ -1503,12 +1782,18 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         # 4b. AAMVA Field 4d / DLN (US, Canada) or ISO 18013 Field 5 (UK, EU, International)
         if not id_num:
-            m_4d = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4d\.?\s*([A-Za-z0-9\s-]{5,25})(?=\s*(?:4a|4b|5|8|9|\n|$))", text_content)
+            m_4d = re.search(
+                r"(?i)(?:^|\n|[^\w]|(?<=\d))4d\.?\s*([A-Za-z0-9\s-]{5,25})(?=\s*(?:4a|4b|5|8|9|\n|$))",
+                text_content,
+            )
             if m_4d and re.search(r"\d", m_4d.group(1)):
                 id_num = m_4d.group(1).strip()
 
         if not id_num:
-            m_f5 = re.search(r"(?i)(?:^|\n|[^\w])5[:.\s]\s*([A-Za-z0-9\s-]{6,25})(?=\s*(?:[6-9][:.\s]|\n|$))", text_content)
+            m_f5 = re.search(
+                r"(?i)(?:^|\n|[^\w])5[:.\s]\s*([A-Za-z0-9\s-]{6,25})(?=\s*(?:[6-9][:.\s]|\n|$))",
+                text_content,
+            )
             if m_f5:
                 cand = m_f5.group(1).strip()
                 if re.search(r"\d", cand):
@@ -1557,7 +1842,12 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     id_num = b_text
                     break
 
-        if not id_num and fields_dict.get("id_number") and str(fields_dict.get("id_number")).lower() not in ["entity", "identity", "number", "licence", "license"]:
+        if (
+            not id_num
+            and fields_dict.get("id_number")
+            and str(fields_dict.get("id_number")).lower()
+            not in ["entity", "identity", "number", "licence", "license"]
+        ):
             id_num = str(fields_dict.get("id_number"))
 
         # 5. Dates: Date of Birth, Issue Date, Expiry Date
@@ -1577,10 +1867,19 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             return d_str.strip()
 
         # 5a. ISO 18013 standard markers: 3 (DOB), 4a (Issue Date), 4b (Expiry Date), 4c (Authority)
-        m_3 = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))3[:.\s]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content)
-        m_4a = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content)
-        m_4b = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content)
-        m_4c = re.search(r"(?i)(?:^|\n|[^\w]|(?<=\d))4c\.?\s*([A-Za-z0-9\s/-]+?)(?=\s*(?:4b|5|8|9|\n|$))", text_content)
+        m_3 = re.search(
+            r"(?i)(?:^|\n|[^\w]|(?<=\d))3[:.\s]\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content
+        )
+        m_4a = re.search(
+            r"(?i)(?:^|\n|[^\w]|(?<=\d))4a\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content
+        )
+        m_4b = re.search(
+            r"(?i)(?:^|\n|[^\w]|(?<=\d))4b\.?\s*(\d{2}[./-]\d{2}[./-]\d{2,4})", text_content
+        )
+        m_4c = re.search(
+            r"(?i)(?:^|\n|[^\w]|(?<=\d))4c\.?\s*([A-Za-z0-9\s/-]+?)(?=\s*(?:4b|5|8|9|\n|$))",
+            text_content,
+        )
         if m_3 and not dob:
             dob = normalize_date_format(m_3.group(1))
         if m_4a:
@@ -1609,10 +1908,14 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         for i, line in enumerate(detected_lines):
             line_s = line.strip()
             # Side-by-side or stacked: Date of Issue & Date of Expiry
-            if re.search(r"(?i)\b(?:Date\s*of\s*)?Issue\b|\bISS\b", line_s) and re.search(r"(?i)\b(?:Date\s*of\s*)?Expir\w*\b|\bEXP\b", line_s):
+            if re.search(r"(?i)\b(?:Date\s*of\s*)?Issue\b|\bISS\b", line_s) and re.search(
+                r"(?i)\b(?:Date\s*of\s*)?Expir\w*\b|\bEXP\b", line_s
+            ):
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1]
-                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    d_pairs = re.findall(
+                        r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt
+                    )
                     if len(d_pairs) >= 2:
                         iss_date = iss_date or normalize_date_format(d_pairs[0])
                         exp_date = exp_date or normalize_date_format(d_pairs[1])
@@ -1620,19 +1923,27 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                         iss_date = iss_date or normalize_date_format(d_pairs[0])
 
             # Side-by-side or stacked: Expiry & Date of Birth (e.g. Victorian Driver Licence: "LICENCE EXPIRY DATEOF BIRTH")
-            if re.search(r"(?i)\bexpir\w*\b", line_s) and re.search(r"(?i)\b(?:birth|dob)\b", line_s):
+            if re.search(r"(?i)\bexpir\w*\b", line_s) and re.search(
+                r"(?i)\b(?:birth|dob)\b", line_s
+            ):
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1]
-                    d_pairs = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    d_pairs = re.findall(
+                        r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt
+                    )
                     if len(d_pairs) >= 2:
                         exp_date = exp_date or normalize_date_format(d_pairs[0])
                         dob = dob or normalize_date_format(d_pairs[1])
 
             # Standalone Identity Number & Date of Birth
-            if re.search(r"(?i)\bDate\s*of\s*Birth\b|\bDOB\b", line_s) and not re.search(r"(?i)\bexpir", line_s):
+            if re.search(r"(?i)\bDate\s*of\s*Birth\b|\bDOB\b", line_s) and not re.search(
+                r"(?i)\bexpir", line_s
+            ):
                 if i + 1 < len(detected_lines):
                     nxt = detected_lines[i + 1]
-                    d_found = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt)
+                    d_found = re.findall(
+                        r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", nxt
+                    )
                     if d_found:
                         dob = dob or normalize_date_format(d_found[-1])
 
@@ -1650,17 +1961,25 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         # 5e. Label-targeted date regexes
         if not dob:
-            dob_m = re.search(rf"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*{date_pat}", text_content)
+            dob_m = re.search(
+                rf"(?i)(?:Date of Birth|DOB|Birth Date)[:\s-]*{date_pat}", text_content
+            )
             if dob_m:
                 dob = normalize_date_format(dob_m.group(1).strip())
 
         if not iss_date:
-            iss_m = re.search(rf"(?i)(?:Date of Issue|Issue Date|Issued|ISS|Emis[aă]?\s*la)[:\s-]*{date_pat}", text_content)
+            iss_m = re.search(
+                rf"(?i)(?:Date of Issue|Issue Date|Issued|ISS|Emis[aă]?\s*la)[:\s-]*{date_pat}",
+                text_content,
+            )
             if iss_m:
                 iss_date = normalize_date_format(iss_m.group(1).strip())
 
         if not exp_date:
-            exp_m = re.search(rf"(?i)(?:Date of Expiry|Expiry Date|Expires|Expiration Date|EXP|Valabil\s*p[aâ]n[aă]\s*la)[:\s-]*{date_pat}", text_content)
+            exp_m = re.search(
+                rf"(?i)(?:Date of Expiry|Expiry Date|Expires|Expiration Date|EXP|Valabil\s*p[aâ]n[aă]\s*la)[:\s-]*{date_pat}",
+                text_content,
+            )
             if exp_m:
                 exp_date = normalize_date_format(exp_m.group(1).strip())
 
@@ -1677,8 +1996,15 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 exp_date = f"{raw_exp[4:6]}.{raw_exp[2:4]}.20{raw_exp[:2]}"
 
         # 5g. Fallback list of dates (strictly preserve None for issue_date if not present)
-        all_dates = re.findall(r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", text_content)
-        has_iss_label = bool(re.search(r"(?i)\b(?:Date\s*of\s*Issue|Issue\s*Date|Issued|ISS|Emis[aă]?\s*la|Expedici[oó]n|4a\.?)\b", text_content))
+        all_dates = re.findall(
+            r"\b(\d{2}[./-]\d{2}[./-]\d{2,4}|\d{4}[./-]\d{2}[./-]\d{2})\b", text_content
+        )
+        has_iss_label = bool(
+            re.search(
+                r"(?i)\b(?:Date\s*of\s*Issue|Issue\s*Date|Issued|ISS|Emis[aă]?\s*la|Expedici[oó]n|4a\.?)\b",
+                text_content,
+            )
+        )
 
         def get_date_year(d: str | None) -> int | None:
             if not d:
@@ -1746,10 +2072,17 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             if m_mrz_c:
                 c_code = m_mrz_c.group(1).upper()
                 mrz_map = {
-                    "ROU": "Romania", "CAN": "Canada", "GBR": "United Kingdom",
-                    "USA": "United States", "PAK": "Pakistan", "IND": "India",
-                    "AUS": "Australia", "FRA": "France", "DEU": "Germany",
-                    "ITA": "Italy", "ESP": "Spain",
+                    "ROU": "Romania",
+                    "CAN": "Canada",
+                    "GBR": "United Kingdom",
+                    "USA": "United States",
+                    "PAK": "Pakistan",
+                    "IND": "India",
+                    "AUS": "Australia",
+                    "FRA": "France",
+                    "DEU": "Germany",
+                    "ITA": "Italy",
+                    "ESP": "Spain",
                 }
                 if c_code in mrz_map:
                     nationality = mrz_map[c_code]
@@ -1762,10 +2095,31 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 if nat_m:
                     cand = nat_m.group(1).strip(" /,-")
                     skip_nat_words = {
-                        "of", "stay", "card", "republic", "state", "the",
-                        "sex", "sexe", "gender", "loc", "nastere", "place", "birth",
-                        "domiciliu", "adresse", "address", "valabilitate", "validite", "validity",
-                        "name", "nume", "prenume", "first", "last", "identity"
+                        "of",
+                        "stay",
+                        "card",
+                        "republic",
+                        "state",
+                        "the",
+                        "sex",
+                        "sexe",
+                        "gender",
+                        "loc",
+                        "nastere",
+                        "place",
+                        "birth",
+                        "domiciliu",
+                        "adresse",
+                        "address",
+                        "valabilitate",
+                        "validite",
+                        "validity",
+                        "name",
+                        "nume",
+                        "prenume",
+                        "first",
+                        "last",
+                        "identity",
                     }
                     if cand.lower() not in skip_nat_words and len(cand) > 1:
                         nationality = cand
@@ -1791,7 +2145,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         # 2. ISO 18013 Field 9: e.g. "9. AM/A/B1/B/f/k/p/q" or "9.AM/A/B1/B/f/K/p/q"
         if not license_class:
-            m_f9 = re.search(r"(?i)(?:^|\n|[^\w])9[:.\s]\s*([A-Za-z0-9/,\s-]+?)(?=\n|$)", text_content)
+            m_f9 = re.search(
+                r"(?i)(?:^|\n|[^\w])9[:.\s]\s*([A-Za-z0-9/,\s-]+?)(?=\n|$)", text_content
+            )
             if m_f9:
                 cand_c = m_f9.group(1).strip()
                 if "/" in cand_c or len(cand_c) >= 1:
@@ -1805,7 +2161,10 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         # 3. Known keywords / standalone classes across jurisdictions
         if not license_class and doc_type == "driving_license":
-            m_cls_k = re.search(r"\b(CLASS\s+[A-Z0-9]+|CDL|COMMERCIAL\s+DRIVER\s+LICEN[CS]E|OPERATOR|LEARNER|PROVISIONAL|CAR|MOTORCYCLE)\b", upper)
+            m_cls_k = re.search(
+                r"\b(CLASS\s+[A-Z0-9]+|CDL|COMMERCIAL\s+DRIVER\s+LICEN[CS]E|OPERATOR|LEARNER|PROVISIONAL|CAR|MOTORCYCLE)\b",
+                upper,
+            )
             if m_cls_k:
                 license_class = m_cls_k.group(1).strip()
 
@@ -1843,31 +2202,14 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     else (
                         "VicRoads / Department of Transport"
                         if ("VICTORIA" in upper or nationality in ["AU", "Australia"])
-                        else ("Department of Motor Vehicles (DMV)" if doc_type == "driving_license" else "National Identity Authority")
+                        else (
+                            "Department of Motor Vehicles (DMV)"
+                            if doc_type == "driving_license"
+                            else "National Identity Authority"
+                        )
                     )
                 )
             )
-
-        identity_payload = {
-            "id_type": doc_type,
-            "id_number": id_num,
-            "full_name": full_name,
-            "first_name": first_name,
-            "last_name": last_name,
-            "father_name": father_name,
-            "date_of_birth": dob,
-            "issue_date": iss_date,
-            "expiry_date": exp_date,
-            "gender": gender,
-            "country_of_stay": country_of_stay,
-            "nationality": nationality,
-            "license_class": license_class,
-            "issuing_authority": issuing_auth,
-            "address": id_addr,
-            "photo_present": True,
-            "restrictions": None,
-            "endorsements": None,
-        }
 
         validation = {
             "is_valid": True,
@@ -1895,6 +2237,8 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             "id_number": id_num,
             "document_number": id_num,
             "full_name": full_name,
+            "first_name": first_name,
+            "last_name": last_name,
             "father_name": father_name,
             "gender": gender,
             "country_of_stay": country_of_stay,
@@ -1918,31 +2262,57 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         merchant = None
         for l in detected_lines[:3]:
             clean_l = l.strip()
-            if len(clean_l) > 2 and not re.search(r"(?i)^(?:receipt|date|tel|cashier|store)\b", clean_l):
+            if len(clean_l) > 2 and not re.search(
+                r"(?i)^(?:receipt|date|tel|cashier|store)\b", clean_l
+            ):
                 merchant = clean_l
                 break
         merchant = merchant or fields_dict.get("merchant_name")
 
-        rec_date_m = re.search(rf"(?i)Date:\s*({date_pat}(?:\s+\d{{1,2}}:\d{{2}}(?::\d{{2}})?)?)", text_content)
-        receipt_date = rec_date_m.group(1).strip() if rec_date_m else fields_dict.get("receipt_date")
+        rec_date_m = re.search(
+            rf"(?i)Date:\s*({date_pat}(?:\s+\d{{1,2}}:\d{{2}}(?::\d{{2}})?)?)", text_content
+        )
+        receipt_date = (
+            rec_date_m.group(1).strip() if rec_date_m else fields_dict.get("receipt_date")
+        )
 
-        cashier_m = re.search(r"(?i)(?:cashier|clerk|operator)[:.\s-]*([A-Za-z0-9\s]+)", text_content)
+        cashier_m = re.search(
+            r"(?i)(?:cashier|clerk|operator)[:.\s-]*([A-Za-z0-9\s]+)", text_content
+        )
         cashier = cashier_m.group(1).strip() if cashier_m else None
 
         receipt_items = extract_line_items([], detected_lines)
 
         sub_m = re.search(rf"(?i)SUBTOTAL:\s*[$€£₹]?\s*{amt_pat}", text_content)
-        receipt_amounts = [float(i["amount"]) for i in receipt_items if isinstance(i, dict) and i.get("amount") is not None] if receipt_items else []
-        subtotal = clean_num(sub_m.group(1)) if sub_m else (round(sum(receipt_amounts), 2) if receipt_amounts else None)
+        receipt_amounts = (
+            [
+                float(i["amount"])
+                for i in receipt_items
+                if isinstance(i, dict) and i.get("amount") is not None
+            ]
+            if receipt_items
+            else []
+        )
+        subtotal = (
+            clean_num(sub_m.group(1))
+            if sub_m
+            else (round(sum(receipt_amounts), 2) if receipt_amounts else None)
+        )
 
         tax_m = re.search(rf"(?i)(?:sales\s*)?tax[^:]*:\s*[$€£₹]?\s*{amt_pat}", text_content)
         tax_val = clean_num(tax_m.group(1)) if tax_m else None
 
         tot_m = re.search(rf"(?i)TOTAL(?: PAID)?:\s*[$€£₹]?\s*{amt_pat}", text_content)
-        total = clean_num(tot_m.group(1)) if tot_m else (round((subtotal or 0.0) + (tax_val or 0.0), 2) if subtotal else None)
+        total = (
+            clean_num(tot_m.group(1))
+            if tot_m
+            else (round((subtotal or 0.0) + (tax_val or 0.0), 2) if subtotal else None)
+        )
 
         pm_m = re.search(r"(?i)PAID WITH:\s*([A-Za-z\s]+)", text_content)
-        payment_method = pm_m.group(1).strip() if pm_m else ("CREDIT CARD" if "CARD" in upper else None)
+        payment_method = (
+            pm_m.group(1).strip() if pm_m else ("CREDIT CARD" if "CARD" in upper else None)
+        )
 
         addr_data = extract_address_block(text_content)
 
@@ -1992,7 +2362,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         party_a = party_a_m.group(1).strip() if party_a_m else None
         party_b = party_b_m.group(1).strip() if party_b_m else None
 
-        eff_m = re.search(rf"(?i)(?:effective(?:\s*date)?|entered into on)\s*[:\s-]*{date_pat}", text_content)
+        eff_m = re.search(
+            rf"(?i)(?:effective(?:\s*date)?|entered into on)\s*[:\s-]*{date_pat}", text_content
+        )
         eff_date = eff_m.group(1).strip() if eff_m else None
 
         gov_m = re.search(r"(?i)Governing Law\s*[:\s-]*([^\n.]+)", text_content)
@@ -2017,7 +2389,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 "termination_date": None,
                 "governing_law": gov_law,
                 "subject": None,
-                "clauses_count": len([l for l in detected_lines if re.search(r"^\d+\.", l.strip())]),
+                "clauses_count": len(
+                    [l for l in detected_lines if re.search(r"^\d+\.", l.strip())]
+                ),
             },
         }
 
@@ -2052,7 +2426,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         author = kv_dict.get("created_by") or kv_dict.get("author") or kv_dict.get("prepared_by")
         if not author:
             # 2. Strict word-boundary matching so "bytes" does not match "by"!
-            author_m = re.search(r"(?i)\b(?:author|prepared\s*by|created\s*by)\b[:\s-]*([^\n]+)", text_content)
+            author_m = re.search(
+                r"(?i)\b(?:author|prepared\s*by|created\s*by)\b[:\s-]*([^\n]+)", text_content
+            )
             if author_m:
                 cand = author_m.group(1).strip()
                 if cand and len(cand) < 60:
@@ -2060,7 +2436,12 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         # Date detection:
         # 1. First check discovered metadata keys (e.g. Generated, Date, Created On, Issued On)
-        doc_date = kv_dict.get("generated") or kv_dict.get("date") or kv_dict.get("created_on") or kv_dict.get("issued_on")
+        doc_date = (
+            kv_dict.get("generated")
+            or kv_dict.get("date")
+            or kv_dict.get("created_on")
+            or kv_dict.get("issued_on")
+        )
         if not doc_date:
             first_date_m = re.search(date_pat, text_content)
             doc_date = first_date_m.group(0).strip() if first_date_m else None
@@ -2068,14 +2449,23 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         # Sections detection
         sections = []
         for l in detected_lines:
-            if re.match(r"(?i)^(?:section\s*\d+[:\-]?\s*.*|about\s+.*|overview|technical\s+details)", l) and len(l) < 60:
+            if (
+                re.match(
+                    r"(?i)^(?:section\s*\d+[:\-]?\s*.*|about\s+.*|overview|technical\s+details)", l
+                )
+                and len(l) < 60
+            ):
                 if l not in sections:
                     sections.append(l)
 
         summary_text = (
             f"Document '{title_line}' with {len(kvs)} metadata attributes."
             if kvs
-            else (extraction.summary if extraction.summary and "unknown" not in extraction.summary else f"Document: {title_line}")
+            else (
+                extraction.summary
+                if extraction.summary and "unknown" not in extraction.summary
+                else f"Document: {title_line}"
+            )
         )
 
         structured_fields = {
@@ -2121,7 +2511,10 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             if v and k not in ["photo_present", "passport", "id_card", "driving_license"]:
                 lbl = (
                     "Passport Number"
-                    if (k in ["id_number", "passport_number", "document_number"] and doc_type == "passport")
+                    if (
+                        k in ["id_number", "passport_number", "document_number"]
+                        and doc_type == "passport"
+                    )
                     else "ID Card Number"
                     if (k == "id_number" and doc_type == "id_card")
                     else "License Number"
@@ -2238,7 +2631,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file_path", help="Path to document file")
-    parser.add_argument("--max-pages", type=int, default=500, help="Maximum allowed pages per document")
+    parser.add_argument(
+        "--max-pages", type=int, default=500, help="Maximum allowed pages per document"
+    )
     args = parser.parse_args()
 
     p = Path(args.file_path)

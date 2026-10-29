@@ -40,6 +40,7 @@ async def generic_http_exception_handler(request: Request, exc: HTTPException):
         headers=headers,
     )
 
+
 # 1. Security Headers (CSP, HSTS, X-Content-Type-Options, Frame-Options)
 app.add_middleware(SecurityHeadersMiddleware)
 

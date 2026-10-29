@@ -2,15 +2,14 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
 class CheckoutSessionResult:
     checkout_url: str
     provider_ref: str  # Safepay tracker token or equivalent
-    order_id: Optional[str] = None
-
+    order_id: str | None = None
 
 
 @dataclass
@@ -28,7 +27,7 @@ class RefundResult:
     success: bool
     refund_id: str
     amount_minor: int
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -36,7 +35,7 @@ class WebhookEventData:
     event_id: str
     event_type: str  # 'payment.completed', 'payment.failed', 'refund.created', etc.
     provider_ref: str  # tracker token
-    order_id: Optional[str]
+    order_id: str | None
     amount_minor: int
     currency: str
     raw_data: dict[str, Any]
@@ -53,7 +52,7 @@ class PaymentProvider(ABC):
         currency: str,
         success_url: str,
         cancel_url: str,
-        customer_email: Optional[str] = None,
+        customer_email: str | None = None,
     ) -> CheckoutSessionResult:
         """Initializes a hosted payment order and returns the customer redirection URL."""
         pass
@@ -64,12 +63,14 @@ class PaymentProvider(ABC):
         pass
 
     @abstractmethod
-    def verify_webhook_signature(self, headers: dict[str, str], raw_body: bytes) -> bool:
+    def verify_webhook_signature(self, arg1: Any, arg2: Any = None) -> bool:
         """Verifies the authenticity and integrity of an incoming webhook payload using constant-time HMAC."""
         pass
 
     @abstractmethod
-    def parse_webhook_event(self, raw_body: bytes) -> WebhookEventData:
+    def parse_webhook_event(
+        self, raw_body: bytes, signature: str | None = None
+    ) -> WebhookEventData:
         """Parses the raw webhook body into a normalized WebhookEventData structure."""
         pass
 

@@ -1,29 +1,30 @@
 """Pydantic schemas for authentication and session management."""
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
 
 class SignupRequest(BaseModel):
     email: str = Field(..., max_length=254, description="User email address")
-    password: str = Field(..., min_length=12, max_length=128, description="Password meeting NIST standards")
-    honeypot: Optional[str] = Field(None, max_length=100, description="Honeypot field for bot trapping")
+    password: str = Field(
+        ..., min_length=12, max_length=128, description="Password meeting NIST standards"
+    )
+    honeypot: str | None = Field(
+        None, max_length=100, description="Honeypot field for bot trapping"
+    )
 
 
 class SignupResponse(BaseModel):
     status: str = "success"
-    message: str = (
-        "If your email is valid and unregistered, a verification link has been dispatched to your inbox."
-    )
+    message: str = "If your email is valid and unregistered, a verification link has been dispatched to your inbox."
 
 
 class LoginRequest(BaseModel):
     email: str = Field(..., max_length=254)
     password: str = Field(..., min_length=1, max_length=128)
     remember_me: bool = Field(False, description="Extend session lifetime up to 14 days")
-    honeypot: Optional[str] = Field(None, max_length=100)
+    honeypot: str | None = Field(None, max_length=100)
 
 
 class AuthUserResponse(BaseModel):
@@ -32,13 +33,13 @@ class AuthUserResponse(BaseModel):
     plan: str
     email_verified: bool
     created_at: datetime
-    last_login_at: Optional[datetime] = None
+    last_login_at: datetime | None = None
 
 
 class SessionInfoResponse(BaseModel):
     id: str
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None
     created_at: datetime
     last_seen_at: datetime
     expires_at: datetime
@@ -55,7 +56,7 @@ class ResendVerificationRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: str = Field(..., max_length=254)
-    honeypot: Optional[str] = Field(None, max_length=100)
+    honeypot: str | None = Field(None, max_length=100)
 
 
 class ResetPasswordRequest(BaseModel):

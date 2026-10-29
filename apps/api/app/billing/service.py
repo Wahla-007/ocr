@@ -1,14 +1,9 @@
 """Billing and Payment Processing Service (OWASP ASVS L2 / PCI DSS SAQ-A Compliant)."""
 
-from datetime import UTC, datetime, timedelta
 import hashlib
 import logging
-from typing import Optional
 import uuid
-
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import timedelta
 
 from app.billing.catalog import get_catalog_item
 from app.billing.ledger import record_credit_grant, record_refund_reversal
@@ -19,12 +14,14 @@ from app.db.models import (
     Invoice,
     Order,
     PaymentEvent,
-    ProductCatalog,
     Subscription,
     User,
     utc_now,
 )
 from app.services.email import EmailService, mask_email
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("openocr.billing.service")
 
@@ -46,7 +43,7 @@ class BillingService:
         user: User,
         plan_code: str,
         idempotency_key: str,
-        currency: Optional[str] = None,
+        currency: str | None = None,
     ) -> tuple[Order, str]:
         """
         Initializes an order from the server-side catalog and acquires hosted checkout redirect.
@@ -71,7 +68,9 @@ class BillingService:
         app_url = cls.get_app_url()
 
         if existing_order:
-            logger.info(f"Reusing existing order {existing_order.id} for idempotency key {clean_key}")
+            logger.info(
+                f"Reusing existing order {existing_order.id} for idempotency key {clean_key}"
+            )
             # If already paid, return existing state
             if existing_order.status == "paid":
                 return existing_order, f"{app_url}/billing/success?order_id={existing_order.id}"
@@ -133,7 +132,7 @@ class BillingService:
         cls,
         db: AsyncSession,
         order_id: str,
-        provider_ref: Optional[str] = None,
+        provider_ref: str | None = None,
     ) -> bool:
         """
         Fulfills a paid order with strict concurrency protection (FOR UPDATE row lock).
@@ -149,7 +148,9 @@ class BillingService:
 
         # Idempotent guard: if already fulfilled, do nothing
         if order.status == "paid":
-            logger.info(f"Order {order_id} has already been fulfilled; skipping duplicate processing.")
+            logger.info(
+                f"Order {order_id} has already been fulfilled; skipping duplicate processing."
+            )
             return True
 
         catalog_item = get_catalog_item(order.plan_code)
@@ -177,7 +178,9 @@ class BillingService:
                 entry_type=entry_type,
             )
         except IntegrityError:
-            logger.warning(f"Ledger entry for order {order_id} already exists via unique constraint.")
+            logger.warning(
+                f"Ledger entry for order {order_id} already exists via unique constraint."
+            )
 
         # 3. Handle Subscription Plan Activation
         if catalog_item.type == "subscription":
@@ -255,7 +258,9 @@ class BillingService:
                 credits_granted=catalog_item.credits,
             )
 
-        logger.info(f"Order {order_id} fulfilled successfully. Credits granted: {catalog_item.credits}")
+        logger.info(
+            f"Order {order_id} fulfilled successfully. Credits granted: {catalog_item.credits}"
+        )
         return True
 
     @classmethod
@@ -299,9 +304,15 @@ class BillingService:
                 # Locate target order
                 order = None
                 if event.order_id:
-                    order = (await db.execute(select(Order).where(Order.id == event.order_id))).scalar_one_or_none()
+                    order = (
+                        await db.execute(select(Order).where(Order.id == event.order_id))
+                    ).scalar_one_or_none()
                 if not order and event.provider_ref:
-                    order = (await db.execute(select(Order).where(Order.provider_ref == event.provider_ref))).scalar_one_or_none()
+                    order = (
+                        await db.execute(
+                            select(Order).where(Order.provider_ref == event.provider_ref)
+                        )
+                    ).scalar_one_or_none()
 
                 if order:
                     success = await cls.fulfill_paid_order(
@@ -310,11 +321,15 @@ class BillingService:
                         provider_ref=event.provider_ref,
                     )
                 else:
-                    logger.error(f"Webhook received for unknown order: ref={event.provider_ref}, order_id={event.order_id}")
+                    logger.error(
+                        f"Webhook received for unknown order: ref={event.provider_ref}, order_id={event.order_id}"
+                    )
 
             elif event.event_type in {"payment.failed", "charge.failed"}:
                 if event.order_id:
-                    order = (await db.execute(select(Order).where(Order.id == event.order_id))).scalar_one_or_none()
+                    order = (
+                        await db.execute(select(Order).where(Order.id == event.order_id))
+                    ).scalar_one_or_none()
                     if order and order.status == "pending":
                         order.status = "failed"
                         await db.commit()
@@ -396,7 +411,7 @@ class BillingService:
         cls,
         db: AsyncSession,
         user_id: str,
-    ) -> Optional[Subscription]:
+    ) -> Subscription | None:
         """Returns current active or past-due subscription for user."""
         stmt = (
             select(Subscription)
@@ -470,11 +485,7 @@ class BillingService:
         user_id: str,
     ) -> list[Invoice]:
         """Returns all issued invoices for the authenticated user."""
-        stmt = (
-            select(Invoice)
-            .where(Invoice.user_id == user_id)
-            .order_by(Invoice.issued_at.desc())
-        )
+        stmt = select(Invoice).where(Invoice.user_id == user_id).order_by(Invoice.issued_at.desc())
         res = await db.execute(stmt)
         return list(res.scalars().all())
 
@@ -491,7 +502,9 @@ class BillingService:
         order = res.scalar_one_or_none()
 
         if not order or order.status != "paid":
-            raise ValueError(f"Order {order_id} not eligible for refund (current status: {order.status if order else 'None'}).")
+            raise ValueError(
+                f"Order {order_id} not eligible for refund (current status: {order.status if order else 'None'})."
+            )
 
         catalog_item = get_catalog_item(order.plan_code)
         credits_to_revert = catalog_item.credits if catalog_item else 0
@@ -524,4 +537,3 @@ class BillingService:
 
         await db.commit()
         return True
-

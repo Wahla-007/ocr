@@ -4,11 +4,10 @@ import hashlib
 import hmac
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
-
 from app.billing.providers.base import (
     CheckoutSessionResult,
     PaymentProvider,
@@ -35,11 +34,11 @@ class SafepayProvider(PaymentProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        v1_secret: Optional[str] = None,
-        webhook_secret: Optional[str] = None,
-        environment: Optional[str] = None,
-        env: Optional[str] = None,
+        api_key: str | None = None,
+        v1_secret: str | None = None,
+        webhook_secret: str | None = None,
+        environment: str | None = None,
+        env: str | None = None,
     ):
         self.env = (env or environment or getattr(settings, "SAFEPAY_ENV", "sandbox")).lower()
 
@@ -47,9 +46,7 @@ class SafepayProvider(PaymentProvider):
         self.v1_secret = v1_secret or getattr(settings, "SAFEPAY_V1_SECRET", "")
         self.webhook_secret = webhook_secret or getattr(settings, "SAFEPAY_WEBHOOK_SECRET", "")
 
-        self.api_base_url = (
-            PRODUCTION_API_URL if self.env == "production" else SANDBOX_API_URL
-        )
+        self.api_base_url = PRODUCTION_API_URL if self.env == "production" else SANDBOX_API_URL
         self.checkout_base_url = (
             PRODUCTION_CHECKOUT_URL if self.env == "production" else SANDBOX_CHECKOUT_URL
         )
@@ -61,7 +58,7 @@ class SafepayProvider(PaymentProvider):
         currency: str,
         success_url: str,
         cancel_url: str,
-        customer_email: Optional[str] = None,
+        customer_email: str | None = None,
     ) -> CheckoutSessionResult:
         """
         Calls Safepay Order API to initialize a transaction tracker token,
@@ -92,14 +89,18 @@ class SafepayProvider(PaymentProvider):
                     )
                     if resp.status_code != 200:
                         logger.error(f"Safepay order init failed: {resp.status_code} - {resp.text}")
-                        raise RuntimeError(f"Safepay initialization failed with status {resp.status_code}")
+                        raise RuntimeError(
+                            f"Safepay initialization failed with status {resp.status_code}"
+                        )
 
                     data = resp.json().get("data", {})
                     tracker_token = data.get("token")
                     if not tracker_token:
                         raise RuntimeError("Safepay response missing tracker token")
             except Exception as exc:
-                logger.warning(f"Error calling Safepay API ({exc!r}), using simulated tracker for development.")
+                logger.warning(
+                    f"Error calling Safepay API ({exc!r}), using simulated tracker for development."
+                )
                 tracker_token = f"track_dev_{order_id}_{amount_minor}"
 
         # Construct official Safepay hosted checkout redirect URL
@@ -123,7 +124,7 @@ class SafepayProvider(PaymentProvider):
         order_id: str,
         success_url: str,
         cancel_url: str,
-        customer_email: Optional[str] = None,
+        customer_email: str | None = None,
     ) -> str:
         """Constructs official Safepay hosted checkout redirect URL with beacon token."""
         query_params = {
@@ -147,7 +148,11 @@ class SafepayProvider(PaymentProvider):
         endpoint = f"{self.api_base_url}/reporter/api/v1/payments/{provider_ref}"
 
         # Simulated fallback for mock/local development
-        if not self.api_key or "placeholder" in self.api_key or provider_ref.startswith("track_test_"):
+        if (
+            not self.api_key
+            or "placeholder" in self.api_key
+            or provider_ref.startswith("track_test_")
+        ):
             return PaymentStatusResult(
                 is_paid=True,
                 status="paid",
@@ -184,7 +189,9 @@ class SafepayProvider(PaymentProvider):
                         raw_response=payload,
                     )
                 else:
-                    logger.warning(f"Safepay status reporter returned {resp.status_code} for tracker {provider_ref}")
+                    logger.warning(
+                        f"Safepay status reporter returned {resp.status_code} for tracker {provider_ref}"
+                    )
                     return PaymentStatusResult(
                         is_paid=False,
                         status="pending",
@@ -212,7 +219,7 @@ class SafepayProvider(PaymentProvider):
         - verify_webhook_signature(raw_body_bytes, signature_str)
         """
         raw_body: bytes = b""
-        signature_header: Optional[str] = None
+        signature_header: str | None = None
 
         if isinstance(arg1, (bytes, bytearray)):
             raw_body = bytes(arg1)
@@ -254,8 +261,8 @@ class SafepayProvider(PaymentProvider):
                 expected_data = hmac.new(secret_bytes, data_json, hashlib.sha512).hexdigest()
                 if hmac.compare_digest(expected_data.lower(), signature_header.lower()):
                     return True
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(f"Safepay signature payload parse exception: {exc}")
 
         # Algorithm 3: Fallback HMAC-SHA256 support for legacy endpoints
         expected_sha256 = hmac.new(secret_bytes, raw_body, hashlib.sha256).hexdigest()
@@ -264,10 +271,11 @@ class SafepayProvider(PaymentProvider):
 
         return False
 
-    def parse_webhook_event(self, raw_body: bytes, signature: Optional[str] = None) -> WebhookEventData:
+    def parse_webhook_event(
+        self, raw_body: bytes, signature: str | None = None
+    ) -> WebhookEventData:
         """Parses webhook JSON into a normalized WebhookEventData record."""
         payload = json.loads(raw_body.decode("utf-8"))
-
 
         data = payload.get("data", {})
         event_type = payload.get("type") or payload.get("event") or "payment.completed"
@@ -281,7 +289,6 @@ class SafepayProvider(PaymentProvider):
             or f"evt_{hashlib.sha256(raw_body).hexdigest()[:24]}"
         )
 
-
         tracker = (
             data.get("tracker")
             or data.get("token")
@@ -289,7 +296,6 @@ class SafepayProvider(PaymentProvider):
             or payload.get("tracker")
             or ""
         )
-
 
         order_id = (
             data.get("order_id")

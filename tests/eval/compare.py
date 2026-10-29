@@ -86,17 +86,19 @@ def compare_reports(
         c_lat = c_d["latencies_ms"]["total"] if c_d else 0.0
         doc_lat_delta = round(c_lat - b_lat, 2)
 
-        doc_comparisons.append({
-            "file_name": fname,
-            "base_class_correct": b_class,
-            "candidate_class_correct": c_class,
-            "base_field_acc": b_field_acc,
-            "candidate_field_acc": c_field_acc,
-            "field_acc_delta": field_delta,
-            "base_latency_ms": b_lat,
-            "candidate_latency_ms": c_lat,
-            "latency_delta_ms": doc_lat_delta,
-        })
+        doc_comparisons.append(
+            {
+                "file_name": fname,
+                "base_class_correct": b_class,
+                "candidate_class_correct": c_class,
+                "base_field_acc": b_field_acc,
+                "candidate_field_acc": c_field_acc,
+                "field_acc_delta": field_delta,
+                "base_latency_ms": b_lat,
+                "candidate_latency_ms": c_lat,
+                "latency_delta_ms": doc_lat_delta,
+            }
+        )
 
     return {
         "metadata": {

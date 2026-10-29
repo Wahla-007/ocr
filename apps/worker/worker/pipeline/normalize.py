@@ -7,12 +7,15 @@ reject files over plan limits.
 """
 
 import io
+import logging
 
 import pymupdf  # Fast native PDF engine
 from app.errors import FileTooLargeError, TooManyPagesError, UnsupportedTypeError
 from app.validation import detect_mime_type
 from PIL import Image, ImageOps
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 MAX_DIMENSION = 3000  # Cap resolution to 3000px on the longest side
 
@@ -52,8 +55,8 @@ def _normalize_image_orientation(img: Image.Image) -> tuple[Image.Image, int]:
         transposed = ImageOps.exif_transpose(img)
         if transposed:
             img = transposed
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(f"EXIF transpose failed: {exc}")
 
     try:
         from providers.engines.docling_engine import detect_and_correct_orientation, get_ocr_engine
@@ -63,8 +66,8 @@ def _normalize_image_orientation(img: Image.Image) -> tuple[Image.Image, int]:
             img, rot = detect_and_correct_orientation(img, ocr)
             if rot != 0:
                 rotation_applied = rot
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(f"Orientation detection failed: {exc}")
 
     return img, rotation_applied
 

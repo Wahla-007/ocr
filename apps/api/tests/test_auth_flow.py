@@ -1,12 +1,11 @@
 """Integration tests for user authentication, verification, login, lockout, and sessions."""
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
-
-from app.db.models import OneTimeToken, Session as DbSession, User
+from app.db.models import OneTimeToken, User
 from app.db.session import get_db
 from app.main import app
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 VALID_PASSWORD = "Correct Horse Battery 2026!"
 
@@ -37,7 +36,7 @@ async def test_signup_and_email_verification_flow():
             res = await session.execute(stmt)
             token_entry, user = res.first()
             assert user.email_verified_at is None
-            token_hash = token_entry.token_hash
+            assert token_entry.token_hash is not None
             user_id = user.id
 
         # 3. Attempt login BEFORE email verification (must be forbidden)

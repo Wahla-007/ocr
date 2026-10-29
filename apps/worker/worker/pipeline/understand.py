@@ -132,8 +132,7 @@ async def classify_and_extract(
 
     # Filter out missing/empty fields across all document types
     extraction.fields = [
-        f for f in extraction.fields
-        if f.value is not None and str(f.value).strip() != ""
+        f for f in extraction.fields if f.value is not None and str(f.value).strip() != ""
     ]
 
     # 3. FIELD-TO-BBOX MAPPING

@@ -4,14 +4,12 @@ import hashlib
 import logging
 import re
 import unicodedata
-from typing import Optional
 
+import httpx
+from app.config import settings
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHash, VerifyMismatchError
-import httpx
 from zxcvbn import zxcvbn
-
-from app.config import settings
 
 logger = logging.getLogger("openocr.security.password")
 
@@ -63,14 +61,14 @@ def normalize_email(email: str) -> str:
     return f"{local_part.lower()}@{domain.lower()}"
 
 
-def hash_password(password: str, pepper: Optional[str] = None) -> str:
+def hash_password(password: str, pepper: str | None = None) -> str:
     """Hashes a password with Argon2id and optional pepper."""
     effective_pepper = pepper or getattr(settings, "AUTH_PASSWORD_PEPPER", "")
     secret_bytes = (password + effective_pepper).encode("utf-8")
     return ph.hash(secret_bytes)
 
 
-def verify_password(password: str, hashed: str, pepper: Optional[str] = None) -> tuple[bool, bool]:
+def verify_password(password: str, hashed: str, pepper: str | None = None) -> tuple[bool, bool]:
     """
     Verifies a password against an Argon2id hash.
     Returns: (is_valid: bool, needs_rehash: bool)
@@ -100,7 +98,7 @@ async def check_haveibeenpwned_breach(password: str) -> bool:
     Fails OPEN with logging if the external API is unreachable.
     Returns True if breached, False if clean or API unavailable.
     """
-    sha1_hash = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
+    sha1_hash = hashlib.sha1(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
     prefix = sha1_hash[:5]
     suffix = sha1_hash[5:]
 
@@ -122,7 +120,11 @@ async def check_haveibeenpwned_breach(password: str) -> bool:
             for line in lines:
                 parts = line.split(":")
                 if len(parts) >= 1 and parts[0].strip() == suffix:
-                    count = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip().isdigit() else 1
+                    count = (
+                        int(parts[1].strip())
+                        if len(parts) > 1 and parts[1].strip().isdigit()
+                        else 1
+                    )
                     logger.info(f"Password rejected: found in HIBP database ({count} breaches).")
                     return True
 
@@ -132,7 +134,7 @@ async def check_haveibeenpwned_breach(password: str) -> bool:
         return False
 
 
-def validate_nist_password(password: str, user_email: Optional[str] = None) -> None:
+def validate_nist_password(password: str, user_email: str | None = None) -> None:
     """
     Validates password against NIST SP 800-63B standards:
     - Minimum length: 12 characters

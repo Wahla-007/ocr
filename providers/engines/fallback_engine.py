@@ -82,7 +82,9 @@ class PaddleOCRFallbackEngine(ParseEngine):
 
                 if not page_lines:
                     pix = page.get_pixmap(dpi=150)
-                    ocr_b, ocr_l, ocr_c = run_ocr_on_image(pix.tobytes("png"), page_num=page_num + 1)
+                    ocr_b, ocr_l, ocr_c = run_ocr_on_image(
+                        pix.tobytes("png"), page_num=page_num + 1
+                    )
                     if ocr_b:
                         blocks.extend(ocr_b)
                         total_conf += ocr_c

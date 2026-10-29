@@ -13,11 +13,10 @@ Outputs versioned JSON and Markdown reports in tests/eval/reports/.
 import argparse
 import asyncio
 import json
-import os
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +31,7 @@ from app.logging import logger
 from worker.pipeline.normalize import normalize_document
 from worker.pipeline.parse import parse_document
 from worker.pipeline.understand import classify_and_extract
+
 from providers.llm.factory import get_llm_provider
 
 EVAL_DIR = Path(__file__).resolve().parent
@@ -199,7 +199,9 @@ async def run_evaluation(
     for exp_file in expected_files:
         stem = exp_file.name.replace(".expected.json", "")
         # Look for matching document file
-        doc_files = [f for f in dataset_dir.glob(f"{stem}.*") if not f.name.endswith(".expected.json")]
+        doc_files = [
+            f for f in dataset_dir.glob(f"{stem}.*") if not f.name.endswith(".expected.json")
+        ]
         if not doc_files:
             logger.warning(f"No document file found matching ground-truth {exp_file.name}")
             continue
@@ -221,10 +223,10 @@ async def run_evaluation(
     mean_field_acc = (total_field_accuracy / total_docs) if total_docs > 0 else 0.0
     avg_latency = (total_latency_ms / total_docs) if total_docs > 0 else 0.0
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     report_data = {
         "benchmark_metadata": {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "engine_version": engine_version,
             "prompt_version": prompt_version,
             "llm_provider": provider_name,
@@ -286,11 +288,13 @@ def generate_markdown_report(report: dict[str, Any]) -> str:
             f"| `{d['file_name']}` | `{d['doc_type_expected']}` | `{d['doc_type_predicted']}` | {match_symbol} | {d['field_accuracy'] * 100:.1f}% | {d['latencies_ms']['total']} ms | {d['estimated_credits']} |"
         )
 
-    lines.extend([
-        "",
-        "## Field-Level Validation Details",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Field-Level Validation Details",
+            "",
+        ]
+    )
 
     for d in docs:
         lines.append(f"### `{d['file_name']}` ({d['doc_type_predicted']})")
@@ -318,9 +322,13 @@ if __name__ == "__main__":
             llm_provider_name=args.provider,
         )
     )
-    print(f"\nEvaluation Benchmark Completed Successfully!")
-    print(f"Classification Accuracy: {data['summary_metrics']['classification_accuracy'] * 100:.1f}%")
-    print(f"Field Extraction Accuracy: {data['summary_metrics']['field_extraction_accuracy'] * 100:.1f}%")
+    print("\nEvaluation Benchmark Completed Successfully!")
+    print(
+        f"Classification Accuracy: {data['summary_metrics']['classification_accuracy'] * 100:.1f}%"
+    )
+    print(
+        f"Field Extraction Accuracy: {data['summary_metrics']['field_extraction_accuracy'] * 100:.1f}%"
+    )
     print(f"Average Latency: {data['summary_metrics']['average_latency_ms']} ms")
     print(f"JSON Report: {json_out}")
     print(f"Markdown Report: {md_out}")

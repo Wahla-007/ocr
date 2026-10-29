@@ -157,39 +157,47 @@ export function validateApiKey(apiKeyInput: string | null): {
   }
 
   const cleanKey = apiKeyInput.startsWith("Bearer ") ? apiKeyInput.slice(7).trim() : apiKeyInput.trim();
-  
-  // Reject any free keys or free prefixes immediately
-  if (cleanKey.startsWith("ocr_free_") || cleanKey === FREE_TRIAL_KEY) {
-    return {
-      valid: false,
-      error: "API keys are not permitted on the Free Plan. Programmatic API access requires a Developer or Enterprise paid plan. Visit /pricing to upgrade.",
-      errorCode: "API_KEY_NOT_ALLOWED_ON_FREE_PLAN",
-      statusCode: 403,
-    };
-  }
 
   let record = API_KEY_STORE.get(cleanKey);
 
+  // Auto-provision if cleanKey has valid free prefix or evaluation key
+  if (!record && (cleanKey.startsWith("ocr_free_") || cleanKey === FREE_TRIAL_KEY)) {
+    record = {
+      key: cleanKey,
+      name: "Free Trial Key",
+      plan: "free",
+      itemsProcessed: 0,
+      maxItems: FREE_TIER_MAX_ITEMS,
+      maxPagesPerItem: FREE_TIER_MAX_PAGES_PER_ITEM,
+      creditsRemaining: 10,
+      creditsUsed: 0,
+      costPerCreditUsd: 0.000,
+      createdAt: new Date().toISOString(),
+      rateLimitPerMinute: 10,
+      requestsThisMinute: 0,
+      lastRequestMinute: Math.floor(Date.now() / 60000),
+    };
+    API_KEY_STORE.set(cleanKey, record);
+  }
+
   // Auto-provision if cleanKey has valid pro prefix
-  if (!record) {
-    if (cleanKey.startsWith("ocr_live_") || cleanKey.startsWith("ocr_pro_")) {
-      record = {
-        key: cleanKey,
-        name: "Pro Key",
-        plan: "pro",
-        itemsProcessed: 0,
-        maxItems: Number.POSITIVE_INFINITY,
-        maxPagesPerItem: 500,
-        creditsRemaining: 10000,
-        creditsUsed: 0,
-        costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
-        createdAt: new Date().toISOString(),
-        rateLimitPerMinute: 300,
-        requestsThisMinute: 0,
-        lastRequestMinute: Math.floor(Date.now() / 60000),
-      };
-      API_KEY_STORE.set(cleanKey, record);
-    }
+  if (!record && (cleanKey.startsWith("ocr_live_") || cleanKey.startsWith("ocr_pro_"))) {
+    record = {
+      key: cleanKey,
+      name: "Pro Key",
+      plan: "pro",
+      itemsProcessed: 0,
+      maxItems: Number.POSITIVE_INFINITY,
+      maxPagesPerItem: 500,
+      creditsRemaining: 10000,
+      creditsUsed: 0,
+      costPerCreditUsd: DEFAULT_COST_PER_PAGE_USD,
+      createdAt: new Date().toISOString(),
+      rateLimitPerMinute: 300,
+      requestsThisMinute: 0,
+      lastRequestMinute: Math.floor(Date.now() / 60000),
+    };
+    API_KEY_STORE.set(cleanKey, record);
   }
 
   if (!record) {
@@ -201,13 +209,14 @@ export function validateApiKey(apiKeyInput: string | null): {
     };
   }
 
-  if (record.plan === "free") {
+  // Check free plan lifetime item limit (max 5 items)
+  if (record.plan === "free" && record.itemsProcessed >= record.maxItems) {
     return {
       valid: false,
       record,
-      error: "API keys are not permitted on the Free Plan. Programmatic API access requires a Developer or Enterprise paid plan. Visit /pricing to upgrade.",
-      errorCode: "API_KEY_NOT_ALLOWED_ON_FREE_PLAN",
-      statusCode: 403,
+      error: `Free tier lifetime limit of ${record.maxItems} documents reached. Please upgrade to Pro plan ($9/mo) for unlimited items.`,
+      errorCode: "FREE_TIER_LIMIT_REACHED",
+      statusCode: 402,
     };
   }
 

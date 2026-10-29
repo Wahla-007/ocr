@@ -20,13 +20,27 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     # 1. Expand users table with authentication and lockout columns
-    op.add_column("users", sa.Column("password_hash", sa.String(length=255), nullable=False, server_default=""))
-    op.add_column("users", sa.Column("email_verified_at", sa.DateTime(timezone=True), nullable=True))
-    op.add_column("users", sa.Column("failed_login_count", sa.Integer(), nullable=False, server_default="0"))
+    op.add_column(
+        "users",
+        sa.Column("password_hash", sa.String(length=255), nullable=False, server_default=""),
+    )
+    op.add_column(
+        "users", sa.Column("email_verified_at", sa.DateTime(timezone=True), nullable=True)
+    )
+    op.add_column(
+        "users", sa.Column("failed_login_count", sa.Integer(), nullable=False, server_default="0")
+    )
     op.add_column("users", sa.Column("locked_until", sa.DateTime(timezone=True), nullable=True))
     op.add_column("users", sa.Column("last_login_at", sa.DateTime(timezone=True), nullable=True))
-    op.add_column("users", sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()))
-    op.add_column("users", sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    op.add_column(
+        "users", sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true())
+    )
+    op.add_column(
+        "users",
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+    )
 
     # 2. Create sessions table
     op.create_table(
@@ -36,8 +50,12 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(length=36), nullable=False),
         sa.Column("ip_address", sa.String(length=45), nullable=True),
         sa.Column("user_agent", sa.String(length=512), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "last_seen_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
@@ -57,7 +75,9 @@ def upgrade() -> None:
         sa.Column("token_hash", sa.String(length=64), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("used_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
