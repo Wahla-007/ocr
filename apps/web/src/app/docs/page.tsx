@@ -36,6 +36,7 @@ import {
   RefreshCw,
   Cpu,
   Bot,
+  LifeBuoy,
 } from "lucide-react";
 
 type CodeLang = "curl" | "python" | "typescript" | "go";
@@ -1026,6 +1027,11 @@ func main() {
                   Self-Hosted Solution
                 </Button>
               </Link>
+              <Link href="/support">
+                <Button variant="outline" size="sm" leftIcon={<LifeBuoy className="w-3.5 h-3.5" />}>
+                  Support Portal
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -1099,6 +1105,13 @@ func main() {
                 className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
               >
                 <span>Self-Hosted Cluster</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+              <Link
+                href="/support"
+                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
+              >
+                <span>Customer Support &amp; Tickets</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>

@@ -16,6 +16,8 @@ import {
   Server,
   BookOpen,
   Bot,
+  Menu,
+  X,
 } from "lucide-react";
 import { authApi, AuthUser } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
@@ -38,11 +40,13 @@ export function Header({
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isDark, setIsDark] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Check initial theme from DOM or system
     const darkActive = document.documentElement.classList.contains("dark");
     setIsDark(darkActive);
+    setMobileMenuOpen(false);
 
     authApi.getCurrentUser().then(setCurrentUser).catch(() => setCurrentUser(null));
   }, [pathname]);
@@ -196,8 +200,47 @@ export function Header({
               </Link>
             </div>
           )}
+
+          {/* Mobile Menu Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-1.5 rounded-sm border border-[var(--line-hairline)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline-none"
+            title="Toggle Navigation Menu"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Drawer Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-[var(--line-hairline)] mt-2.5 pt-3 pb-2 space-y-1 bg-[var(--surface-base)] animate-in fade-in slide-in-from-top-2 duration-150">
+          {navLinks.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2 rounded-sm text-xs font-mono transition-colors ${
+                  active
+                    ? "text-[var(--signal)] font-bold bg-[var(--signal-subtle)] border-l-2 border-l-[var(--signal)]"
+                    : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
+                }`}
+              >
+                <span>{link.label}</span>
+                {link.href === "/support" && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--signal-subtle)] text-[var(--signal)] border border-[var(--signal)]/30 font-bold">
+                    Help Desk
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 }

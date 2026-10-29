@@ -277,6 +277,14 @@ export function ChatWidget() {
             >
               Talk to Human
             </button>
+            <Link
+              href="/support"
+              onClick={() => setIsOpen(false)}
+              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1"
+            >
+              <span>Support Portal</span>
+              <ExternalLink className="w-2.5 h-2.5" />
+            </Link>
           </div>
 
           {/* Messages Stream */}
