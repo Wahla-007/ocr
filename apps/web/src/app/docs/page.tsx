@@ -1004,7 +1004,7 @@ func main() {
               </Link>
               <Link href="/self-hosted">
                 <Button variant="outline" size="sm" leftIcon={<Server className="w-3.5 h-3.5" />}>
-                  Self-Hosted Blueprint
+                  Self-Hosted Solution
                 </Button>
               </Link>
             </div>
@@ -1595,7 +1595,7 @@ func Verify(body []byte, ts int64, sig, secret string) bool {
               <div className="pt-2">
                 <Link href="/self-hosted">
                   <Button variant="outline" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                    View Full Self-Hosted Blueprint
+                    View Self-Hosted Solution
                   </Button>
                 </Link>
               </div>

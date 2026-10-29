@@ -319,7 +319,7 @@ export default function PricingRateCardPage() {
               </div>
               <Link href="/self-hosted">
                 <Button variant="outline" size="sm" className="w-full">
-                  Review Blueprint
+                  Self-Hosted Solution
                 </Button>
               </Link>
             </div>

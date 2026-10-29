@@ -23,7 +23,7 @@ import {
   Network,
 } from "lucide-react";
 
-export default function SelfHostedBlueprintPage() {
+export default function SelfHostedSolutionPage() {
   const [activeTab, setActiveTab] = useState<"compose" | "helm">("compose");
   const [inquiryName, setInquiryName] = useState("");
   const [inquiryEmail, setInquiryEmail] = useState("");
@@ -97,7 +97,7 @@ helm install openocr-cluster openocr/openocr \\
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-[var(--signal)] font-bold tracking-wider uppercase">
-                The Blueprint
+                Self-Hosted Solution
               </span>
               <Badge variant="outline">AIR-GAPPED ARCHITECTURE</Badge>
             </div>
@@ -116,7 +116,7 @@ helm install openocr-cluster openocr/openocr \\
           </a>
         </div>
 
-        {/* Signature Element: Interactive Architecture Blueprint Diagram */}
+        {/* Signature Element: Interactive Architecture Schematic Diagram */}
         <section className="p-6 border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] shadow-card relative registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br space-y-6">
           <div className="flex items-center justify-between border-b border-[var(--line-hairline)] pb-3">
             <div>
@@ -131,7 +131,7 @@ helm install openocr-cluster openocr/openocr \\
             <span className="archival-stamp text-[var(--semantic-success)]">ZERO OUTBOUND EGRESS</span>
           </div>
 
-          {/* Blueprint Canvas Box */}
+          {/* Schematic Canvas Box */}
           <div
             className="p-6 border-2 border-dashed border-[var(--line-strong)] rounded-sm bg-[var(--surface-sunken)] space-y-6 relative overflow-hidden"
             role="region"

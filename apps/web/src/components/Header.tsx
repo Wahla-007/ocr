@@ -71,7 +71,7 @@ export function Header({
     { href: "/", label: "Light Table" },
     { href: "/docs", label: "Documentation" },
     { href: "/pricing", label: "Rate Card" },
-    { href: "/self-hosted", label: "Blueprint" },
+    { href: "/self-hosted", label: "Self-Hosted Solution" },
   ];
 
   return (
