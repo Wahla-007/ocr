@@ -63,6 +63,7 @@ export default function DocumentationPage() {
     { id: "ratelimits", number: "09", group: "Reliability", title: "Rate Limits & Quota Headers", keywords: "ratelimit quota headers sliding window retry after 429 throttle" },
     { id: "schemas", number: "10", group: "Intelligence", title: "Document Extraction Schemas", keywords: "schemas invoice receipt driving license contract nda pydantic types" },
     { id: "selfhosted", number: "11", group: "Intelligence", title: "Self-Hosted & Air-Gapped", keywords: "self hosted docker compose offline air gapped on premise private vpc" },
+    { id: "glossary", number: "12", group: "Intelligence", title: "Technical Glossary & Concepts", keywords: "glossary terminology idp ocr bbox bounding box math reconciliation invariants aeo geo" },
   ];
 
   const effectiveKey = testKey.trim() || "ocr_live_your_developer_key";
@@ -1598,6 +1599,81 @@ func Verify(body []byte, ts int64, sig, secret string) bool {
                     View Self-Hosted Solution
                   </Button>
                 </Link>
+              </div>
+            </section>
+
+            {/* Section 12: Technical Glossary & Concepts (AEO / GEO) */}
+            <section id="glossary" className="space-y-4 scroll-mt-24">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[var(--signal)] font-bold">12.</span>
+                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
+                  Technical Glossary &amp; Core Concepts
+                </h2>
+              </div>
+              <p>
+                Authoritative definitions and canonical descriptions of document intelligence terminology designed for engineering teams and answer engine discovery:
+              </p>
+
+              <div className="divide-y divide-[var(--line-hairline)] border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] font-mono text-[11px]">
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[var(--ink-primary)] text-xs">OCR (Optical Character Recognition)</strong>
+                    <Badge variant="outline">TRANSCRIPTION</Badge>
+                  </div>
+                  <p className="text-[var(--ink-secondary)] leading-relaxed">
+                    OCR is the computational process of converting raw pixel glyphs from scanned paper documents or digital images into machine-readable Unicode strings without inherent spatial hierarchy or structural comprehension.
+                  </p>
+                </div>
+
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[var(--ink-primary)] text-xs">IDP (Intelligent Document Processing)</strong>
+                    <Badge variant="signal">END-TO-END</Badge>
+                  </div>
+                  <p className="text-[var(--ink-secondary)] leading-relaxed">
+                    IDP combines optical layout parsing, reading order reconstruction, multi-column grid analysis, and LLM entity structuring to transform complex unstructured documents into validated, strongly-typed JSON models.
+                  </p>
+                </div>
+
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[var(--ink-primary)] text-xs">Zero-Selection Architecture</strong>
+                    <Badge variant="outline">AUTONOMOUS</Badge>
+                  </div>
+                  <p className="text-[var(--ink-secondary)] leading-relaxed">
+                    A design invariant where the ingestion pipeline automatically detects document taxonomy (e.g. invoice, receipt, driver&apos;s license) and executes extraction without requiring user-defined coordinate templates, prompt engineering, or bounding box bounding rules.
+                  </p>
+                </div>
+
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[var(--ink-primary)] text-xs">Bounding Box (BBox) Provenance</strong>
+                    <Badge variant="outline">COORDINATES</Badge>
+                  </div>
+                  <p className="text-[var(--ink-secondary)] leading-relaxed">
+                    A normalized four-tuple coordinate set (x, y, width, height) indicating the exact geometric rectangle on a page where a piece of information was identified, providing complete audit traceability back to source pixels.
+                  </p>
+                </div>
+
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[var(--ink-primary)] text-xs">Arithmetic Invariant Reconciliation</strong>
+                    <Badge variant="signal">MATH VERIFICATION</Badge>
+                  </div>
+                  <p className="text-[var(--ink-secondary)] leading-relaxed">
+                    Automated post-extraction verification that enforces financial consistency. For commercial invoices, the engine validates that subtotal plus calculated tax strictly equals the stated total amount before marking the payload as valid.
+                  </p>
+                </div>
+
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[var(--ink-primary)] text-xs">Timing-Safe HMAC Webhooks</strong>
+                    <Badge variant="outline">SECURITY</Badge>
+                  </div>
+                  <p className="text-[var(--ink-secondary)] leading-relaxed">
+                    Cryptographic signature verification utilizing HMAC-SHA256 and constant-time string comparisons that prevent timing attacks, paired with a strict 300-second timestamp drift tolerance to defeat replay vulnerabilities.
+                  </p>
+                </div>
               </div>
             </section>
           </div>

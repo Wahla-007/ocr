@@ -1,0 +1,31 @@
+# OpenOCR
+
+> Research-grade, zero-selection document intelligence platform for commercial invoices, receipts, identity documents, and financial reports. Runs on pure CPU (<20MB RAM) and is 100% air-gapped VPC capable.
+
+## Core Capabilities
+- **Zero Schema Selection:** Automatically detects document type, normalizes orientation, parses reading order and tabular grids, and extracts typed key-value pairs without manual template building.
+- **Two-Stage Processing:** IBM Docling layout parser with PaddleOCR/RapidOCR fallbacks, followed by isolated LLM post-processing with mathematical reconciliation.
+- **Pure CPU Inference:** Optimized for x86_64 AVX2 CPUs (<500ms per page). No GPU required.
+- **Air-Gapped Sovereign Deployment:** Zero telemetry, zero external network egress in self-hosted mode.
+
+## Canonical URLs & Documentation
+- [Homepage & Light Table Playground](https://openocr.io/): Interactive document extraction interface and specimen archive.
+- [Developer Documentation & API Reference](https://openocr.io/docs): Complete RESTful API specification, endpoints, SDK code snippets, and schemas.
+- [Rate Card & Pricing](https://openocr.io/pricing): Free Explorer ($0), Developer Pro ($49/mo), Enterprise Self-Hosted ($499/mo).
+- [Self-Hosted Solution](https://openocr.io/self-hosted): Docker Compose and Helm architecture schematics for air-gapped VPCs.
+- [Customer Support Portal](https://openocr.io/support): Plan-based priority issue resolution and ticket tracking.
+
+## API Endpoints
+- `POST /v1/extract`: Synchronous and asynchronous document extraction via multipart form-data or storage key.
+- `GET /v1/jobs/{id}`: Poll asynchronous extraction status and fetch structured results.
+- `POST /v1/uploads/sign`: Request pre-signed S3/MinIO upload URL for files over 10MB (up to 100MB).
+- `GET /v1/health`: Cluster health, engine availability, and uptime checks.
+
+## Supported File Types
+- PDF (multi-page up to 50 pages cloud, unlimited self-hosted)
+- PNG, JPEG/JPG, WEBP, TIFF (up to 100MB via signed storage)
+
+## Security & Verification
+- HMAC-SHA256 signatures on webhook events (`X-OpenOCR-Signature: t={timestamp},v1={hex}`) with 300s replay window.
+- Argon2id password and API key hashing (`ocr_live_*` and `ocr_test_*`).
+- Zero document retention option; default 24-hour TTL before permanent deletion.

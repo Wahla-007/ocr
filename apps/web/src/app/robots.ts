@@ -14,22 +14,39 @@ export default function robots(): MetadataRoute.Robots {
   }
 
   return {
-    rules: {
-      userAgent: "*",
-      allow: ["/", "/docs", "/pricing", "/self-hosted", "/support"],
-      disallow: [
-        "/api/",
-        "/v1/",
-        "/billing",
-        "/verify-email",
-        "/reset-password",
-        "/forgot-password",
-        "/login",
-        "/signup",
-        "/dev/",
-        "/registry/",
-      ],
-    },
+    rules: [
+      {
+        userAgent: "*",
+        allow: ["/", "/docs", "/pricing", "/self-hosted", "/support", "/llms.txt"],
+        disallow: [
+          "/api/",
+          "/v1/",
+          "/billing",
+          "/verify-email",
+          "/reset-password",
+          "/forgot-password",
+          "/login",
+          "/signup",
+          "/dev/",
+          "/registry/",
+        ],
+      },
+      // Search and Retrieval AI Crawlers explicitly welcomed for AEO/GEO indexing
+      {
+        userAgent: ["GPTBot", "PerplexityBot", "ClaudeBot", "Google-Extended"],
+        allow: ["/", "/docs", "/pricing", "/self-hosted", "/support", "/llms.txt"],
+        disallow: [
+          "/api/",
+          "/v1/",
+          "/billing",
+          "/verify-email",
+          "/reset-password",
+          "/forgot-password",
+          "/login",
+          "/signup",
+        ],
+      },
+    ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
