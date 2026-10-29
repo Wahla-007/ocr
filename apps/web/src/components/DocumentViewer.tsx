@@ -757,7 +757,7 @@ export function DocumentViewer({
                       width: `${width}px`,
                       height: `${height}px`,
                     }}
-                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm flex items-start justify-end p-0.5 select-none
+                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm select-none
                       ${
                         isSelected
                           ? "border-2 border-[#B24E2A] bg-[#C85A32]/35 ring-3 ring-[#C85A32] shadow-[0_0_12px_rgba(200,90,50,0.5)] z-30"
@@ -767,12 +767,8 @@ export function DocumentViewer({
                       }
                       ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.2)_3px,rgba(200,90,50,0.2)_6px)]" : ""}
                     `}
-                    title={`${field.label}: ${field.value} (${Math.round(field.confidence * 100)}% confidence)`}
-                  >
-                    <span className="bg-[#C85A32] text-white text-[10px] font-mono px-1.5 py-0.5 rounded-sm font-bold leading-none shadow-md">
-                      {Math.round(field.confidence * 100)}%
-                    </span>
-                  </div>
+                    title={`${field.label}: ${field.value}`}
+                  />
                 );
               })}
             </div>
@@ -874,7 +870,7 @@ export function DocumentViewer({
                 }`}
               >
                 <span>{field.label}:</span>
-                <span className="tabular-nums opacity-90">[{Math.round(field.confidence * 100)}%]</span>
+                <span className="font-medium text-[var(--ink-primary)] truncate max-w-[140px]">{String(field.value)}</span>
               </li>
             );
           })}

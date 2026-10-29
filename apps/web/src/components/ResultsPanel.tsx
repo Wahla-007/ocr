@@ -180,9 +180,6 @@ export function ResultsPanel({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge confidence={field.confidence}>
-                          {Math.round(field.confidence * 100)}%
-                        </Badge>
                         <button
                           type="button"
                           onClick={(e) => {
