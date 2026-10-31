@@ -6,10 +6,10 @@
 """
 
 import httpx
-import json
 
 API_URL = "http://127.0.0.1:8000"
 WEB_URL = "http://127.0.0.1:3001"
+
 
 def run_tests():
     print("=" * 70)
@@ -18,7 +18,7 @@ def run_tests():
 
     # 1. Test Login Error Handling & No [object Object]
     print("\n--- 1. Login Validation & Error Formatting ---")
-    
+
     # 1a. Empty password
     r = httpx.post(f"{API_URL}/v1/auth/login", json={"email": "admin@openocr.org", "password": ""})
     assert r.status_code == 422, f"Expected 422, got {r.status_code}"
@@ -34,10 +34,15 @@ def run_tests():
     assert r.status_code == 401 or r.status_code == 422
     data = r.json()
     assert "[object Object]" not in str(data)
-    print(f"  [PASS] Empty email -> clean rejection: {data.get('error', {}).get('message') or data.get('detail')}")
+    print(
+        f"  [PASS] Empty email -> clean rejection: {data.get('error', {}).get('message') or data.get('detail')}"
+    )
 
     # 1c. Invalid password
-    r = httpx.post(f"{API_URL}/v1/auth/login", json={"email": "admin@openocr.org", "password": "WrongPassword99!"})
+    r = httpx.post(
+        f"{API_URL}/v1/auth/login",
+        json={"email": "admin@openocr.org", "password": "WrongPassword99!"},
+    )
     assert r.status_code == 401
     data = r.json()
     assert data["error"]["code"] == "INVALID_CREDENTIALS"
@@ -47,9 +52,11 @@ def run_tests():
     # 2. Test Admin Authentication & Session
     print("\n--- 2. Admin Authentication & Session Cookies ---")
     session = httpx.Client(base_url=WEB_URL)
-    
+
     # Login as admin via Next.js web proxy
-    r = session.post("/v1/auth/login", json={"email": "admin@openocr.org", "password": "Admin@OpenOCR2026!"})
+    r = session.post(
+        "/v1/auth/login", json={"email": "admin@openocr.org", "password": "Admin@OpenOCR2026!"}
+    )
     assert r.status_code == 200, f"Login failed: {r.status_code} {r.text}"
     user = r.json()
     assert user["email"] == "admin@openocr.org"
@@ -66,7 +73,7 @@ def run_tests():
 
     # 3. Test Support Tickets API
     print("\n--- 3. Support Tickets Lifecycle ---")
-    
+
     # 3a. Query all tickets
     r_tickets = session.get("/api/v1/support/tickets")
     assert r_tickets.status_code == 200, f"Failed to get tickets: {r_tickets.status_code}"
@@ -87,11 +94,15 @@ def run_tests():
         "planTier": "developer",
     }
     r_create = session.post("/api/v1/support/tickets", json=new_ticket_payload)
-    assert r_create.status_code == 201, f"Failed to create ticket: {r_create.status_code} {r_create.text}"
+    assert r_create.status_code == 201, (
+        f"Failed to create ticket: {r_create.status_code} {r_create.text}"
+    )
     created_ticket = r_create.json()["ticket"]
     ticket_id = created_ticket["id"]
     ticket_ref = created_ticket["reference"]
-    print(f"  [PASS] Created ticket: ref={ticket_ref}, id={ticket_id}, status={created_ticket['status']}")
+    print(
+        f"  [PASS] Created ticket: ref={ticket_ref}, id={ticket_id}, status={created_ticket['status']}"
+    )
 
     # 3c. Query created ticket by reference
     r_by_ref = session.get(f"/api/v1/support/tickets?ref={ticket_ref}")
@@ -108,19 +119,25 @@ def run_tests():
         "status": "Resolved",
     }
     r_patch = session.patch("/api/v1/support/tickets", json=patch_payload)
-    assert r_patch.status_code == 200, f"Failed to patch ticket: {r_patch.status_code} {r_patch.text}"
+    assert r_patch.status_code == 200, (
+        f"Failed to patch ticket: {r_patch.status_code} {r_patch.text}"
+    )
     updated_ticket = r_patch.json()["ticket"]
     assert updated_ticket["status"] == "Resolved"
     assert len(updated_ticket["replies"]) >= 3
     assert updated_ticket["replies"][-1]["authorName"] == "Antigravity Admin"
-    print(f"  [PASS] Ticket updated by admin: status is now '{updated_ticket['status']}', replies={len(updated_ticket['replies'])}")
+    print(
+        f"  [PASS] Ticket updated by admin: status is now '{updated_ticket['status']}', replies={len(updated_ticket['replies'])}"
+    )
 
     # 3e. Test Filtering
     r_filtered = session.get("/api/v1/support/tickets?status=resolved")
     assert r_filtered.status_code == 200
     resolved_tickets = r_filtered.json()["tickets"]
     assert any(t["id"] == ticket_id for t in resolved_tickets)
-    print(f"  [PASS] Filter by status=resolved returns {len(resolved_tickets)} tickets (includes newly resolved ticket)")
+    print(
+        f"  [PASS] Filter by status=resolved returns {len(resolved_tickets)} tickets (includes newly resolved ticket)"
+    )
 
     # 4. Test Logout
     print("\n--- 4. Logout & Session Termination ---")
@@ -139,6 +156,7 @@ def run_tests():
     print("\n" + "=" * 70)
     print("ALL THOROUGH SYSTEM TESTS PASSED SUCCESSFULLY!")
     print("=" * 70 + "\n")
+
 
 if __name__ == "__main__":
     run_tests()

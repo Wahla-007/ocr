@@ -5,11 +5,14 @@ import httpx
 API_BASE = "http://127.0.0.1:8000"
 WEB_BASE = "http://127.0.0.1:3001"
 
+
 def test_admin_auth():
     print("\n--- Verifying Admin Authentication & Error Responses ---")
-    
+
     # 1. Validation error on empty password
-    res = httpx.post(f"{API_BASE}/v1/auth/login", json={"email": "admin@openocr.org", "password": ""})
+    res = httpx.post(
+        f"{API_BASE}/v1/auth/login", json={"email": "admin@openocr.org", "password": ""}
+    )
     assert res.status_code == 422, f"Expected 422, got {res.status_code}"
     body = res.json()
     assert "error" in body, f"Expected 'error' in body: {body}"
@@ -29,7 +32,10 @@ def test_admin_auth():
     print(f"  [PASS] Empty payload returns 422 with string error: '{body['error']['message']}'")
 
     # 3. Invalid credentials
-    res = httpx.post(f"{API_BASE}/v1/auth/login", json={"email": "admin@openocr.org", "password": "WrongPassword123!"})
+    res = httpx.post(
+        f"{API_BASE}/v1/auth/login",
+        json={"email": "admin@openocr.org", "password": "WrongPassword123!"},
+    )
     assert res.status_code == 401
     body = res.json()
     assert "error" in body
@@ -39,13 +45,17 @@ def test_admin_auth():
 
     # 4. Valid admin login
     client = httpx.Client(base_url=API_BASE)
-    res = client.post("/v1/auth/login", json={"email": "admin@openocr.org", "password": "Admin@OpenOCR2026!"})
+    res = client.post(
+        "/v1/auth/login", json={"email": "admin@openocr.org", "password": "Admin@OpenOCR2026!"}
+    )
     assert res.status_code == 200, f"Admin login failed: {res.status_code} {res.text}"
     user_data = res.json()
     assert user_data.get("email") == "admin@openocr.org"
     assert user_data.get("is_admin") is True, f"Expected is_admin=True, got: {user_data}"
     assert "openocr_session" in client.cookies, "Expected session cookie to be set"
-    print(f"  [PASS] Admin login succeeded: email={user_data['email']}, is_admin={user_data['is_admin']}")
+    print(
+        f"  [PASS] Admin login succeeded: email={user_data['email']}, is_admin={user_data['is_admin']}"
+    )
 
     # 5. Check /v1/auth/me retains is_admin=True
     res_me = client.get("/v1/auth/me")
@@ -56,13 +66,16 @@ def test_admin_auth():
 
     # 6. Test through Next.js proxy
     web_client = httpx.Client(base_url=WEB_BASE)
-    res_web = web_client.post("/v1/auth/login", json={"email": "admin@openocr.org", "password": "Admin@OpenOCR2026!"})
+    res_web = web_client.post(
+        "/v1/auth/login", json={"email": "admin@openocr.org", "password": "Admin@OpenOCR2026!"}
+    )
     assert res_web.status_code == 200, f"Next.js login proxy failed: {res_web.status_code}"
     web_user = res_web.json()
     assert web_user.get("is_admin") is True
     print(f"  [PASS] Next.js proxy auth login succeeded: is_admin={web_user['is_admin']}")
 
     print("\nALL ADMIN AUTH & ERROR CHECKS PASSED!\n")
+
 
 if __name__ == "__main__":
     test_admin_auth()

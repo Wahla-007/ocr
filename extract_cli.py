@@ -2449,7 +2449,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             if "HOSTINGER" in b.text.upper():
                 brand_name = "Hostinger"
                 break
-            elif re.search(r"\b(google|microsoft|amazon|stripe|godaddy|cloudflare|shopify)\b", b.text, re.I):
+            elif re.search(
+                r"\b(google|microsoft|amazon|stripe|godaddy|cloudflare|shopify)\b", b.text, re.I
+            ):
                 brand_name = b.text.strip()
                 break
 
@@ -2567,12 +2569,14 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
                     if dom not in seen_domains:
                         seen_domains.add(dom)
-                        detected_items.append({
-                            "name": dom,
-                            "price": price_val or "Contact / Available",
-                            "action": action_val,
-                            "raw_text": row_text,
-                        })
+                        detected_items.append(
+                            {
+                                "name": dom,
+                                "price": price_val or "Contact / Available",
+                                "action": action_val,
+                                "raw_text": row_text,
+                            }
+                        )
 
                         slug = re.sub(r"[^a-z0-9]+", "_", dom).strip("_")
                         conf = round(sum(b.confidence for b in cluster) / len(cluster), 2)
@@ -2672,9 +2676,20 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         footer_cats = [
             b.text.strip()
             for b in parsed.blocks
-            if b.text.strip() in [
-                "HOSTING", "DOMAIN", "TOOLS", "INFORMATION", "COMPANY", "SUPPORT",
-                "Hosting", "Domain", "Tools", "Information", "Company", "Support"
+            if b.text.strip()
+            in [
+                "HOSTING",
+                "DOMAIN",
+                "TOOLS",
+                "INFORMATION",
+                "COMPANY",
+                "SUPPORT",
+                "Hosting",
+                "Domain",
+                "Tools",
+                "Information",
+                "Company",
+                "Support",
             ]
         ]
         if footer_cats:
@@ -2687,8 +2702,12 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             + (f"Brand: {brand_name}\n" if brand_name else "")
             + ("\n--- Items & Pricing ---\n" if detected_items else "")
             + "\n".join(f"{it['name']}: {it['price']} ({it['action']})" for it in detected_items)
-            + ("\n\n--- Categories ---\n" + ", ".join(dict.fromkeys(footer_cats)) if footer_cats else "")
-            + f"\n\n--- Document Text ---\n"
+            + (
+                "\n\n--- Categories ---\n" + ", ".join(dict.fromkeys(footer_cats))
+                if footer_cats
+                else ""
+            )
+            + "\n\n--- Document Text ---\n"
             + "\n".join(b.text for b in parsed.blocks)
         )
 
@@ -2803,7 +2822,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         "customer_name": customer_name,
         "full_name": None if doc_type == "invoice" else full_name,
         "invoice_number": inv_num,
-        "line_items": locals().get("line_items") or locals().get("receipt_items") or [] if doc_type in ["invoice", "receipt"] else [],
+        "line_items": locals().get("line_items") or locals().get("receipt_items") or []
+        if doc_type in ["invoice", "receipt"]
+        else [],
         "id_number": id_num,
         "passport_number": id_num if doc_type == "passport" else None,
         "document_number": id_num or inv_num,

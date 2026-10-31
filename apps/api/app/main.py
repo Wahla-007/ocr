@@ -10,6 +10,7 @@ from app.errors import APIError, api_error_handler
 from app.logging import logger
 from app.middleware.security import CSRFProtectionMiddleware, SecurityHeadersMiddleware
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -41,9 +42,6 @@ async def generic_http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-from fastapi.exceptions import RequestValidationError
-
-
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     request_id = getattr(request.state, "request_id", "unknown")
@@ -55,14 +53,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     message = "; ".join(errors) or "Validation error on submitted form"
     return JSONResponse(
         status_code=422,
-        content={"error": {"code": "VALIDATION_ERROR", "message": message, "request_id": request_id}},
+        content={
+            "error": {"code": "VALIDATION_ERROR", "message": message, "request_id": request_id}
+        },
         headers={"X-Request-ID": request_id},
     )
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    from fastapi.exceptions import RequestValidationError
     request_id = getattr(request.state, "request_id", "unknown")
     if isinstance(exc, RequestValidationError):
         errors = []
@@ -73,13 +72,21 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         message = "; ".join(errors) or "Validation error on submitted form"
         return JSONResponse(
             status_code=422,
-            content={"error": {"code": "VALIDATION_ERROR", "message": message, "request_id": request_id}},
+            content={
+                "error": {"code": "VALIDATION_ERROR", "message": message, "request_id": request_id}
+            },
             headers={"X-Request-ID": request_id},
         )
     logger.error(f"Unhandled server error: {exc!r}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"error": {"code": "INTERNAL_SERVER_ERROR", "message": "An internal server error occurred.", "request_id": request_id}},
+        content={
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An internal server error occurred.",
+                "request_id": request_id,
+            }
+        },
         headers={"X-Request-ID": request_id},
     )
 

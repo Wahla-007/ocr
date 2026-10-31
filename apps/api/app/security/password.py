@@ -61,7 +61,12 @@ def normalize_email(email: str) -> str:
         raise ValueError("Invalid email address format.")
 
     local_part, domain = normalized.rsplit("@", 1)
-    if domain.startswith(".") or domain.endswith(".") or domain.startswith("-") or domain.endswith("-"):
+    if (
+        domain.startswith(".")
+        or domain.endswith(".")
+        or domain.startswith("-")
+        or domain.endswith("-")
+    ):
         raise ValueError("Invalid domain format in email.")
     return f"{local_part.lower()}@{domain.lower()}"
 
