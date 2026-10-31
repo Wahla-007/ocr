@@ -56,22 +56,27 @@ jobs:
           uv pip install --python .venv -e providers/
           uv pip install --python .venv -e apps/api/
           uv pip install --python .venv -e apps/worker/
-          uv pip install --python .venv ruff pytest pytest-asyncio aiosqlite
+          uv pip install --python .venv "psycopg[binary]" ruff pytest pytest-asyncio aiosqlite
 
       - name: Run Ruff Lint
         run: ruff check .
 
       - name: Run Database Migrations
         env:
-          DATABASE_URL_SYNC: postgresql://openocr:openocr_secure_pass@localhost:5432/openocr
+          DATABASE_URL_SYNC: postgresql+psycopg2://openocr:openocr_secure_pass@localhost:5432/openocr
         run: |
+          for i in {1..30}; do
+            python -c "import socket; s = socket.socket(); s.connect(('127.0.0.1', 5432)); s.close()" 2>/dev/null && break
+            echo "Waiting for postgres on port 5432..."
+            sleep 1
+          done
           cd apps/api
           alembic upgrade head
 
       - name: Run API Tests
         env:
           DATABASE_URL: postgresql+asyncpg://openocr:openocr_secure_pass@localhost:5432/openocr
-          DATABASE_URL_SYNC: postgresql://openocr:openocr_secure_pass@localhost:5432/openocr
+          DATABASE_URL_SYNC: postgresql+psycopg2://openocr:openocr_secure_pass@localhost:5432/openocr
           REDIS_URL: redis://localhost:6379/0
         run: pytest apps/api/tests
 
