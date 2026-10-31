@@ -52,12 +52,17 @@ def normalize_email(email: str) -> str:
     if len(normalized) > 254:
         raise ValueError("Email exceeds maximum permitted length of 254 characters.")
 
+    if ".." in normalized:
+        raise ValueError("Invalid email address format (consecutive dots are not allowed).")
+
     # RFC 5322 standard email structure check
     email_regex = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     if not email_regex.match(normalized):
         raise ValueError("Invalid email address format.")
 
     local_part, domain = normalized.rsplit("@", 1)
+    if domain.startswith(".") or domain.endswith(".") or domain.startswith("-") or domain.endswith("-"):
+        raise ValueError("Invalid domain format in email.")
     return f"{local_part.lower()}@{domain.lower()}"
 
 

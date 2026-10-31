@@ -179,8 +179,8 @@ All animations are purposeful, informative, and short (150ms to 250ms):
 - **Interactive In-Memory Request Tester:** Developers can test live extraction requests using their own API key. The key is stored **only in browser RAM** (never in localStorage/sessionStorage/cookies) and cleared on navigation.
 - **Field Manual Sections:** Authentication, Extract Endpoints, Asynchronous Jobs & Polling, **HMAC Webhook Verification (with copyable constant-time verification code in Python/Node)**, Error Catalog with standard `{code, message, request_id}` envelopes, Rate Limits, and keystone pagination.
 
-### 3.3 `/pricing`: "The Rate Card"
-*A printed industrial rate card. No countdown timers, no artificial discounts, no hidden fees.*
+### 3.3 `/pricing`: "Pricing"
+*Transparent industrial pricing. No countdown timers, no artificial discounts, no hidden fees.*
 - **Signature Interaction:** **The Live Cost Calculator.** A precision slider (from 1,000 to 500,000 pages/month) that dynamically computes exact monthly cost in tabular numerals, displaying the explicit mathematical formula:  
   `Cost = Included Allowance + (Pages - Included) × Rate/Page`.
 - **Ruled Comparison Table:** Compares Free ($0), Developer Pay-As-You-Go ($0.001/page), Pro Scale ($49/mo, 60,000 included pages), and Self-Hosted Enterprise. Clearly outlines rate limits, concurrency, SLA, and overage behavior.
@@ -244,7 +244,7 @@ openocr.io / (Self-Hosted Instance)
 │
 ├── /                           [Public/App] The Light Table (Core Document Playground)
 ├── /api-platform               [Public] The Field Manual (Interactive Docs & SDK Patch Bay)
-├── /pricing                    [Public] The Rate Card (Cost Calculator & Plans)
+├── /pricing                    [Public] Pricing (Cost Calculator & Plans)
 ├── /self-hosted                [Public] The Blueprint (Air-Gap Specs & Architecture)
 │
 ├── /auth
@@ -322,10 +322,10 @@ openocr.io / (Self-Hosted Instance)
 +---------------------+ +----------------------------------+ +------------------------------------------+ |
 ```
 
-### 5.3 `/pricing`: The Rate Card & Cost Calculator
+### 5.3 `/pricing`: Pricing & Cost Calculator
 ```
 +----------------------------------------------------------------------------------------------------+
-| [// OpenOCR]  RATE CARD & PROCESSING TARIFF               Currency: [ USD ($) ]   [ Contact Sales ] |
+| [// OpenOCR]  PRICING & PROCESSING TARIFF                 Currency: [ USD ($) ]   [ Contact Sales ] |
 +----------------------------------------------------------------------------------------------------+
 |                                                                                                    |
 |  +-- INTERACTIVE VOLUME TARIFF CALCULATOR -------------------------------------------------------+ |

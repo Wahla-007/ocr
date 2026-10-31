@@ -41,6 +41,49 @@ async def generic_http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
+from fastapi.exceptions import RequestValidationError
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    request_id = getattr(request.state, "request_id", "unknown")
+    errors = []
+    for err in exc.errors():
+        loc = ".".join(str(x) for x in err.get("loc", []) if x != "body")
+        msg = err.get("msg", "Invalid input")
+        errors.append(f"{loc}: {msg}" if loc else msg)
+    message = "; ".join(errors) or "Validation error on submitted form"
+    return JSONResponse(
+        status_code=422,
+        content={"error": {"code": "VALIDATION_ERROR", "message": message, "request_id": request_id}},
+        headers={"X-Request-ID": request_id},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    from fastapi.exceptions import RequestValidationError
+    request_id = getattr(request.state, "request_id", "unknown")
+    if isinstance(exc, RequestValidationError):
+        errors = []
+        for err in exc.errors():
+            loc = ".".join(str(x) for x in err.get("loc", []) if x != "body")
+            msg = err.get("msg", "Invalid input")
+            errors.append(f"{loc}: {msg}" if loc else msg)
+        message = "; ".join(errors) or "Validation error on submitted form"
+        return JSONResponse(
+            status_code=422,
+            content={"error": {"code": "VALIDATION_ERROR", "message": message, "request_id": request_id}},
+            headers={"X-Request-ID": request_id},
+        )
+    logger.error(f"Unhandled server error: {exc!r}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"code": "INTERNAL_SERVER_ERROR", "message": "An internal server error occurred.", "request_id": request_id}},
+        headers={"X-Request-ID": request_id},
+    )
+
+
 # 1. Security Headers (CSP, HSTS, X-Content-Type-Options, Frame-Options)
 app.add_middleware(SecurityHeadersMiddleware)
 

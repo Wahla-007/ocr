@@ -32,6 +32,7 @@ class AuthUserResponse(BaseModel):
     email: str
     plan: str
     email_verified: bool
+    is_admin: bool = False
     created_at: datetime
     last_login_at: datetime | None = None
 

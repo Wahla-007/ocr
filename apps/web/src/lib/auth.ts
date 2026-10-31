@@ -7,6 +7,7 @@ export interface AuthUser {
   email: string;
   plan: string;
   email_verified: boolean;
+  is_admin?: boolean;
   created_at: string;
   last_login_at?: string;
 }

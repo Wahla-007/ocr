@@ -1,0 +1,178 @@
+[
+  {
+    "id": "t_1793474381025",
+    "reference": "OCR-2026-1592",
+    "subject": "Urdu invoice invoice_total bounding box issue",
+    "description": "The total Rs. 24,000 on the second page is detected but the bounding box is slightly shifted.",
+    "category": "api_bug",
+    "severity": "S2",
+    "planTier": "developer",
+    "status": "Waiting on Customer",
+    "email": "finance@lahore-trade.com",
+    "createdAt": "2026-10-31 19:19 UTC",
+    "updatedAt": "2026-10-31 19:19 UTC",
+    "replies": [
+      {
+        "id": "rep_1793474381025",
+        "sender": "customer",
+        "authorName": "finance",
+        "message": "The total Rs. 24,000 on the second page is detected but the bounding box is slightly shifted.",
+        "createdAt": "2026-10-31 19:19 UTC"
+      },
+      {
+        "id": "rep_sys_1793474381026",
+        "sender": "system",
+        "authorName": "OpenOCR Dispatcher",
+        "message": "Ticket registered with S2 priority in Developer Priority queue. Core engineering notified.",
+        "createdAt": "2026-10-31 19:19 UTC"
+      },
+      {
+        "id": "rep_1793474391181",
+        "sender": "agent",
+        "authorName": "Dr. Sarah Chen (Core Engine)",
+        "authorRole": "Platform Engineering",
+        "message": "Thanks for the report! We have adjusted the second-page vertical offset in extract_cli.py. Please re-run your document.",
+        "createdAt": "2026-10-31 19:19 UTC"
+      }
+    ]
+  },
+  {
+    "id": "t_01",
+    "reference": "OCR-2026-4812",
+    "subject": "Intermittent timeout on 34-page financial audit PDF",
+    "description": "When processing a 34-page financial audit statement via the /api/v1/extract endpoint, the request intermittently times out at 30 seconds. We are using a Developer Pro key.",
+    "category": "api_bug",
+    "severity": "S2",
+    "planTier": "developer",
+    "status": "Resolved",
+    "email": "cto@northstar-financial.com",
+    "requestId": "req_88f910a241b",
+    "assignedAgent": "Dr. Sarah Chen (Pipeline Lead)",
+    "createdAt": "2026-10-28 14:22 UTC",
+    "updatedAt": "2026-10-31 20:39 UTC",
+    "replies": [
+      {
+        "id": "rep_01",
+        "sender": "customer",
+        "authorName": "Alex Vance (Northstar)",
+        "message": "When processing a 34-page financial audit statement via the /api/v1/extract endpoint, the request intermittently times out at 30 seconds.",
+        "createdAt": "2026-10-28 14:22 UTC"
+      },
+      {
+        "id": "rep_02",
+        "sender": "agent",
+        "authorName": "Dr. Sarah Chen (Pipeline Lead)",
+        "authorRole": "Core Engine Engineer",
+        "message": "Thanks for reporting this Alex. On documents over 30 pages, multi-threaded CPU page batching can exceed the default 30s gateway timeout if table matrix clustering is enabled. We have increased worker concurrency. Could you provide the job ID so we can verify the Docling layout logs?",
+        "createdAt": "2026-10-28 16:45 UTC"
+      },
+      {
+        "id": "rep_sys_1793479141685",
+        "sender": "system",
+        "authorName": "System",
+        "message": "Ticket status updated to \"Closed\" by Dr. Sarah Chen (Core Engine).",
+        "createdAt": "2026-10-31 20:39 UTC"
+      },
+      {
+        "id": "rep_sys_1793479146823",
+        "sender": "system",
+        "authorName": "System",
+        "message": "Ticket status updated to \"Resolved\" by Dr. Sarah Chen (Core Engine).",
+        "createdAt": "2026-10-31 20:39 UTC"
+      }
+    ]
+  },
+  {
+    "id": "t_02",
+    "reference": "OCR-2026-3901",
+    "subject": "Helm chart MinIO cluster credential configuration question",
+    "description": "Deploying the air-gapped Helm chart in an offline Kubernetes cluster. We need to point worker pods to an internal MinIO S3 bucket without internet egress.",
+    "category": "self_hosted",
+    "severity": "S3",
+    "planTier": "self_hosted",
+    "status": "Resolved",
+    "email": "devops@apex-defense.org",
+    "requestId": "req_helm_71029",
+    "assignedAgent": "Marcus Brody (DevOps)",
+    "createdAt": "2026-10-25 09:15 UTC",
+    "updatedAt": "2026-10-25 11:30 UTC",
+    "replies": [
+      {
+        "id": "rep_03",
+        "sender": "customer",
+        "authorName": "David K. (Apex Defense)",
+        "message": "Deploying the air-gapped Helm chart in an offline Kubernetes cluster. We need to point worker pods to an internal MinIO S3 bucket without internet egress.",
+        "createdAt": "2026-10-25 09:15 UTC"
+      },
+      {
+        "id": "rep_04",
+        "sender": "agent",
+        "authorName": "Marcus Brody (DevOps)",
+        "authorRole": "Infrastructure Lead",
+        "message": "Resolved. In values.yaml, set minio.s3_endpoint_url: 'http://minio.storage.svc:9000' and enable s3_force_path_style: true. The OCR engine will stream entirely over cluster-internal networking with zero external DNS lookups.",
+        "createdAt": "2026-10-25 11:30 UTC"
+      },
+      {
+        "id": "rep_05",
+        "sender": "system",
+        "authorName": "System Automation",
+        "message": "Ticket marked as Resolved by Marcus Brody.",
+        "createdAt": "2026-10-25 11:30 UTC"
+      }
+    ]
+  },
+  {
+    "id": "t_03",
+    "reference": "OCR-2026-1049",
+    "subject": "Arabic & Urdu multi-column receipt character spacing",
+    "description": "We are scanning retail invoices from Lahore and Karachi. Some Urdu Nastaliq headings have trailing spaces between connected glyphs.",
+    "category": "api_bug",
+    "severity": "S1",
+    "planTier": "self_hosted",
+    "status": "Waiting on Engineering",
+    "email": "tech@pakistan-retail.pk",
+    "requestId": "req_lahore_441",
+    "assignedAgent": "Zainab Malik (NLP & Scripts)",
+    "createdAt": "2026-10-30 08:10 UTC",
+    "updatedAt": "2026-10-30 13:00 UTC",
+    "replies": [
+      {
+        "id": "rep_06",
+        "sender": "customer",
+        "authorName": "Usman Tariq",
+        "message": "We are scanning retail invoices from Lahore and Karachi. Some Urdu Nastaliq headings have trailing spaces between connected glyphs.",
+        "createdAt": "2026-10-30 08:10 UTC"
+      },
+      {
+        "id": "rep_07",
+        "sender": "agent",
+        "authorName": "Zainab Malik",
+        "authorRole": "NLP & Scripts Engineer",
+        "message": "Escalated to S1. RapidOCR's Arabic text line clusterer was splitting ligatures when font size fell below 9pt. We have patched the character bounding box merger in extract_cli.py. A hotfix build will be released today.",
+        "createdAt": "2026-10-30 13:00 UTC"
+      }
+    ]
+  },
+  {
+    "id": "t_04",
+    "reference": "OCR-2026-7284",
+    "subject": "Evaluation key credit top-up for enterprise proof of concept",
+    "description": "Our compliance team is evaluating the air-gap engine for 5,000 archival scans this week. Requesting credit allocation extension.",
+    "category": "billing_credits",
+    "severity": "S4",
+    "planTier": "developer",
+    "status": "New",
+    "email": "director@fintech-ventures.co",
+    "createdAt": "2026-10-31 16:30 UTC",
+    "updatedAt": "2026-10-31 16:30 UTC",
+    "replies": [
+      {
+        "id": "rep_08",
+        "sender": "customer",
+        "authorName": "Rachel Greene",
+        "message": "Our compliance team is evaluating the air-gap engine for 5,000 archival scans this week. Requesting credit allocation extension.",
+        "createdAt": "2026-10-31 16:30 UTC"
+      }
+    ]
+  }
+]

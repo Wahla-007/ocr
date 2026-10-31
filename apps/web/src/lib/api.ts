@@ -1,7 +1,7 @@
 import { ExtractionResult } from "./types";
 import { SAMPLE_DOCUMENTS } from "./samples";
 
-export const DEFAULT_API_URL = "http://localhost:8000";
+export const DEFAULT_API_URL = "";
 export const DEFAULT_API_KEY = "ocr_free_trial12345";
 
 export async function checkBackendHealth(baseUrl: string = DEFAULT_API_URL): Promise<boolean> {
@@ -12,7 +12,7 @@ export async function checkBackendHealth(baseUrl: string = DEFAULT_API_URL): Pro
     });
     if (!res.ok) return false;
     const data = await res.json();
-    return data.status === "ok";
+    return data.status === "ok" || data.status === "degraded";
   } catch {
     return false;
   }

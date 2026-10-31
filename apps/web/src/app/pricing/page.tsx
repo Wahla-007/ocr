@@ -22,7 +22,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-export default function PricingRateCardPage() {
+export default function PricingPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [monthlyPages, setMonthlyPages] = useState<number>(25000);
@@ -94,7 +94,7 @@ export default function PricingRateCardPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-[var(--signal)] font-bold tracking-wider uppercase">
-                The Rate Card
+                Pricing
               </span>
               <Badge variant="outline">OFFICIAL TARIFF</Badge>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/Button";
@@ -18,19 +18,12 @@ import {
   ArrowRight,
   ShieldCheck,
   Bot,
+  MessageSquare,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-
-interface TicketItem {
-  id: string;
-  reference: string;
-  subject: string;
-  category: string;
-  severity: "S1" | "S2" | "S3" | "S4";
-  planTier: "self_hosted" | "developer" | "free";
-  status: "New" | "Open" | "Waiting on Customer" | "Waiting on Engineering" | "Resolved";
-  createdAt: string;
-  lastReply: string;
-}
+import { SupportTicket } from "@/lib/tickets";
 
 export default function SupportPortalPage() {
   const [activeTab, setActiveTab] = useState<"create" | "track">("create");
@@ -41,35 +34,27 @@ export default function SupportPortalPage() {
   const [description, setDescription] = useState("");
   const [requestId, setRequestId] = useState("");
   const [hasSecretWarning, setHasSecretWarning] = useState(false);
-  const [submittedTicket, setSubmittedTicket] = useState<TicketItem | null>(null);
-
-  // Sample tracked tickets for display
-  const [myTickets, setMyTickets] = useState<TicketItem[]>([
-    {
-      id: "t_01",
-      reference: "OCR-2026-4812",
-      subject: "Intermittent timeout on 34-page financial audit PDF",
-      category: "api_bug",
-      severity: "S2",
-      planTier: "developer",
-      status: "Waiting on Customer",
-      createdAt: "2026-10-28 14:22 UTC",
-      lastReply: "Engineering requested the job ID to trace Docling layout logs.",
-    },
-    {
-      id: "t_02",
-      reference: "OCR-2026-3901",
-      subject: "Helm chart MinIO cluster credential configuration question",
-      category: "self_hosted",
-      severity: "S3",
-      planTier: "self_hosted",
-      status: "Resolved",
-      createdAt: "2026-10-25 09:15 UTC",
-      lastReply: "Resolved with MinIO s3_endpoint_url override syntax.",
-    },
-  ]);
-
+  const [submittedTicket, setSubmittedTicket] = useState<SupportTicket | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [myTickets, setMyTickets] = useState<SupportTicket[]>([]);
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
   const [searchReference, setSearchReference] = useState("");
+
+  const loadTickets = async () => {
+    try {
+      const res = await fetch("/api/v1/support/tickets");
+      if (res.ok) {
+        const data = await res.json();
+        setMyTickets(data.tickets || []);
+      }
+    } catch (err) {
+      console.warn("Could not load tickets:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadTickets();
+  }, [activeTab]);
 
   const handleDescChange = (text: string) => {
     setDescription(text);
@@ -80,27 +65,39 @@ export default function SupportPortalPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !email.trim() || !description.trim()) return;
 
-    const newTicket: TicketItem = {
-      id: `t_${Date.now()}`,
-      reference: `OCR-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      subject: subject.trim(),
-      category,
-      severity,
-      planTier: "developer",
-      status: "New",
-      createdAt: "Just now",
-      lastReply: "Ticket registered in queue. Priority scoring applied.",
-    };
+    try {
+      setIsSubmitting(true);
+      const res = await fetch("/api/v1/support/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: subject.trim(),
+          category,
+          severity,
+          email: email.trim(),
+          description: description.trim(),
+          requestId: requestId.trim() || undefined,
+          planTier: "developer",
+        }),
+      });
 
-    setSubmittedTicket(newTicket);
-    setMyTickets((prev) => [newTicket, ...prev]);
-    setSubject("");
-    setDescription("");
-    setRequestId("");
+      if (res.ok) {
+        const data = await res.json();
+        setSubmittedTicket(data.ticket);
+        setMyTickets((prev) => [data.ticket, ...prev]);
+        setSubject("");
+        setDescription("");
+        setRequestId("");
+      }
+    } catch (err) {
+      console.error("Submission failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getSeverityBadge = (sev: "S1" | "S2" | "S3" | "S4") => {
@@ -472,19 +469,21 @@ export default function SupportPortalPage() {
                 />
               </div>
 
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setActiveTab("create");
-                  setSubmittedTicket(null);
-                }}
-              >
-                Submit New Request
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    setActiveTab("create");
+                    setSubmittedTicket(null);
+                  }}
+                >
+                  Submit New Request
+                </Button>
+              </div>
             </div>
 
-            {/* Clean Ticket List (No heavy box borders) */}
+            {/* Clean Ticket List (Expandable Thread View) */}
             <div className="divide-y divide-[var(--line-hairline)] border-y border-[var(--line-hairline)]">
               {myTickets
                 .filter(
@@ -493,46 +492,129 @@ export default function SupportPortalPage() {
                     t.reference.toLowerCase().includes(searchReference.toLowerCase()) ||
                     t.subject.toLowerCase().includes(searchReference.toLowerCase())
                 )
-                .map((ticket) => (
-                  <div
-                    key={ticket.id}
-                    className="py-5 px-2 hover:bg-[var(--surface-subtle)]/40 transition-colors space-y-2 rounded-lg"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-mono text-xs font-semibold text-[var(--signal)]">
-                          {ticket.reference}
-                        </span>
-                        <span className="text-sm font-medium text-[var(--ink-primary)]">
-                          {ticket.subject}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {getSeverityBadge(ticket.severity)}
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--surface-subtle)] text-[var(--ink-secondary)]">
-                          {ticket.status}
-                        </span>
-                      </div>
-                    </div>
+                .map((ticket) => {
+                  const isExpanded = expandedTicketId === ticket.id;
+                  const latestReply = ticket.replies && ticket.replies.length > 0
+                    ? ticket.replies[ticket.replies.length - 1].message
+                    : ticket.description;
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ink-muted)] font-mono">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[var(--ink-secondary)]">
-                          {ticket.planTier === "self_hosted"
-                            ? "Enterprise Queue"
-                            : ticket.planTier === "developer"
-                            ? "Developer Priority Queue"
-                            : "Community Queue"}
-                        </span>
-                        <span>•</span>
-                        <span>{ticket.createdAt}</span>
+                  return (
+                    <div
+                      key={ticket.id}
+                      className="py-4 px-3 hover:bg-[var(--surface-subtle)]/40 transition-colors space-y-2 rounded-lg cursor-pointer"
+                      onClick={() => setExpandedTicketId(isExpanded ? null : ticket.id)}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-mono text-xs font-bold text-[var(--signal)]">
+                            {ticket.reference}
+                          </span>
+                          <span className="text-sm font-semibold text-[var(--ink-primary)]">
+                            {ticket.subject}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {getSeverityBadge(ticket.severity)}
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--surface-subtle)] text-[var(--ink-secondary)] font-bold">
+                            {ticket.status}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+                          )}
+                        </div>
                       </div>
-                      <span className="text-[var(--ink-secondary)] italic text-[11px]">
-                        Latest: {ticket.lastReply}
-                      </span>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ink-muted)] font-mono">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[var(--ink-secondary)] font-medium">
+                            {ticket.planTier === "self_hosted"
+                              ? "Enterprise SLA"
+                              : ticket.planTier === "developer"
+                              ? "Developer Priority SLA"
+                              : "Community Queue"}
+                          </span>
+                          <span>•</span>
+                          <span>{ticket.createdAt}</span>
+                          <span>•</span>
+                          <span>{ticket.replies?.length || 1} updates</span>
+                        </div>
+                        <span className="text-[var(--ink-secondary)] italic text-[11px] truncate max-w-sm">
+                          Latest: {latestReply}
+                        </span>
+                      </div>
+
+                      {/* Expanded Ticket Conversation Drawer */}
+                      {isExpanded && (
+                        <div
+                          className="pt-3 pb-2 space-y-3 border-t border-[var(--line-hairline)] animate-fade-in text-xs font-mono"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-bold text-[var(--ink-secondary)]">
+                              Inquiry Details:
+                            </span>
+                            <p className="p-3 rounded-sm bg-[var(--surface-sunken)] text-[var(--ink-primary)] leading-relaxed whitespace-pre-wrap border border-[var(--line-hairline)]">
+                              {ticket.description}
+                            </p>
+                          </div>
+
+                          {/* Full Conversation Thread */}
+                          {ticket.replies && ticket.replies.length > 0 && (
+                            <div className="space-y-2 pt-1">
+                              <span className="text-[11px] font-bold text-[var(--ink-secondary)]">
+                                Resolution &amp; Discussion Timeline:
+                              </span>
+                              <div className="space-y-2">
+                                {ticket.replies.map((rep, idx) => {
+                                  const isStaff = rep.sender === "agent";
+                                  const isSystem = rep.sender === "system";
+
+                                  if (isSystem) {
+                                    return (
+                                      <div key={rep.id || idx} className="text-center py-1">
+                                        <span className="text-[10px] text-[var(--ink-muted)] bg-[var(--surface-subtle)] px-2.5 py-0.5 rounded-sm border border-[var(--line-hairline)]">
+                                          ⚡ {rep.message} — {rep.createdAt}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+
+                                  return (
+                                    <div
+                                      key={rep.id || idx}
+                                      className={`p-3 rounded-sm space-y-1 ${
+                                        isStaff
+                                          ? "bg-[var(--surface-base)] border border-[var(--signal)] text-[var(--ink-primary)]"
+                                          : "bg-[var(--surface-subtle)] text-[var(--ink-secondary)]"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)]">
+                                        <div className="flex items-center gap-1.5 font-bold">
+                                          <span className={isStaff ? "text-[var(--signal)]" : "text-[var(--ink-primary)]"}>
+                                            {rep.authorName}
+                                          </span>
+                                          {rep.authorRole && (
+                                            <span className="px-1.5 py-0.2 rounded bg-[var(--signal-subtle)] text-[var(--signal)] border border-[var(--signal)]/30 text-[9px]">
+                                              {rep.authorRole}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="tabular-nums">{rep.createdAt}</span>
+                                      </div>
+                                      <p className="leading-relaxed whitespace-pre-wrap">{rep.message}</p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         )}

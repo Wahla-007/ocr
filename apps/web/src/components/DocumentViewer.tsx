@@ -5,6 +5,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  RotateCw,
   Eye,
   EyeOff,
   ChevronLeft,
@@ -13,6 +14,9 @@ import {
   Shield,
   FileText,
   Sliders,
+  Copy,
+  Check,
+  Percent,
 } from "lucide-react";
 import { ExtractionResult, ExtractedField, ParsedBlock } from "../lib/types";
 import { Badge } from "./ui/Badge";
@@ -38,18 +42,34 @@ export function DocumentViewer({
   uploadedPreviewUrl,
 }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState<number>(0);
   const [showFieldBboxes, setShowFieldBboxes] = useState(true);
   const [showTableBboxes, setShowTableBboxes] = useState(true);
   const [showTextBlocks, setShowTextBlocks] = useState(false);
+  const [showConfidences, setShowConfidences] = useState(true);
   const [privacyBlur, setPrivacyBlur] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [copiedFieldKey, setCopiedFieldKey] = useState<string | null>(null);
 
   const totalPages = result?.page_count || 1;
 
-  // Zoom handlers
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.15, 2.2));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.15, 0.6));
-  const handleResetZoom = () => setZoom(1);
+  // Zoom & Rotation handlers
+  const handleZoomIn = () => setZoom((prev) => Math.min(Number((prev + 0.15).toFixed(2)), 2.5));
+  const handleZoomOut = () => setZoom((prev) => Math.max(Number((prev - 0.15).toFixed(2)), 0.5));
+  const handleResetZoom = () => {
+    setZoom(1);
+    setRotation(0);
+  };
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleCopyValue = (val: string, key: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(val);
+    setCopiedFieldKey(key);
+    setTimeout(() => setCopiedFieldKey(null), 1800);
+  };
 
   // Filter fields on current page
   const fieldList = Array.isArray(result?.fields)
@@ -65,13 +85,36 @@ export function DocumentViewer({
   );
 
   const [imgFailed, setImgFailed] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     setCurrentPage(1);
     setImgFailed(false);
+    setImageDimensions(null);
   }, [result?.id, fileName]);
 
   const previewSource = !imgFailed && (result?.preview_image || uploadedPreviewUrl);
+
+  const pageSize = result?.page_sizes?.[currentPage - 1];
+  const naturalWidth = imageDimensions?.width || pageSize?.width || (previewSource ? null : 540);
+  const naturalHeight = imageDimensions?.height || pageSize?.height || (previewSource ? null : 680);
+
+  const getBboxStyle = (bbox: { x: number; y: number; width: number; height: number }) => {
+    if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
+      return {
+        left: `${(bbox.x / naturalWidth) * 100}%`,
+        top: `${(bbox.y / naturalHeight) * 100}%`,
+        width: `${(bbox.width / naturalWidth) * 100}%`,
+        height: `${(bbox.height / naturalHeight) * 100}%`,
+      };
+    }
+    return {
+      left: `${bbox.x}px`,
+      top: `${bbox.y}px`,
+      width: `${bbox.width}px`,
+      height: `${bbox.height}px`,
+    };
+  };
 
   // Polymorphic Specimen Canvas Renderers matching each specimen in the archive with pixel-perfect coordinate alignment
   const renderSpecimenCanvas = () => {
@@ -368,8 +411,61 @@ export function DocumentViewer({
       );
     }
 
-    // 4. MULTI-PAGE CORPORATE REPORT SPECIMEN
+    // 4. MULTI-PAGE CORPORATE REPORT / GENERIC DOCUMENT SPECIMEN
     if (rawType === "document") {
+      const isAuditSample = fileName.toLowerCase().includes("report") || fileName.toLowerCase().includes("audit");
+      if (!isAuditSample) {
+        // Dynamic generic document canvas showing actual extracted document information
+        const docFields = (result?.fields as any)?.document || (result?.fields as any) || {};
+        const docTitle = docFields.title || (result?.fields as any)?.title || fileName || "Document Specimen";
+        const docBrand = (result?.fields as any)?.brand || docFields.brand || "General Document";
+        const docTable = result?.tables?.[0];
+
+        return (
+          <div
+            className="w-[540px] min-h-[680px] bg-white text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-sans select-none p-6 space-y-4"
+            style={{ fontFeatureSettings: '"tnum"' }}
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold block">{docBrand}</span>
+                <h1 className="text-base font-bold text-zinc-950 mt-0.5 leading-snug">{docTitle}</h1>
+              </div>
+              <span className="text-[10px] font-mono bg-zinc-100 text-zinc-600 px-2 py-1 rounded-sm border border-zinc-200 uppercase font-semibold">
+                DOCUMENT SPECIMEN
+              </span>
+            </div>
+
+            {/* Table if detected */}
+            {docTable && docTable.rows && docTable.rows.length > 0 && (
+              <div className="border border-zinc-300 rounded-sm overflow-hidden text-xs">
+                <div className="bg-zinc-100 font-mono font-bold p-2 border-b border-zinc-300 text-[11px] grid grid-cols-3">
+                  {docTable.rows[0].map((h, i) => (
+                    <span key={i} className={i > 0 ? "text-right" : ""}>{h}</span>
+                  ))}
+                </div>
+                <div className="divide-y divide-zinc-200 max-h-[360px] overflow-y-auto">
+                  {docTable.rows.slice(1).map((row, rIdx) => (
+                    <div key={rIdx} className="grid grid-cols-3 p-2 font-mono items-center hover:bg-zinc-50">
+                      <span className="font-sans font-medium text-zinc-900 truncate">{row[0]}</span>
+                      <span className="text-right text-zinc-700 font-bold">{row[1]}</span>
+                      <span className="text-right text-xs text-zinc-500">{row[2]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Footer note */}
+            <div className="border-t border-zinc-200 pt-3 flex justify-between text-[10px] font-mono text-zinc-400">
+              <span>SPECIMEN ID: {result?.id || "doc_specimen"}</span>
+              <span>TOTAL PAGES: {totalPages}</span>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div
           className="w-[540px] h-[680px] bg-white text-zinc-900 border border-zinc-300 shadow-sm relative overflow-hidden font-sans select-none"
@@ -576,6 +672,8 @@ export function DocumentViewer({
     );
   };
 
+  const activeField = pageFields.find((f) => f.key === (hoveredFieldKey || selectedFieldKey));
+
   return (
     <div className="w-full flex flex-col h-full border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] overflow-hidden shadow-card relative registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br">
       {/* Top Light Table Control Bar */}
@@ -633,6 +731,19 @@ export function DocumentViewer({
             >
               Blocks
             </button>
+            <button
+              type="button"
+              onClick={() => setShowConfidences(!showConfidences)}
+              className={`px-1.5 py-0.5 rounded-sm text-[11px] border transition-colors flex items-center gap-0.5 ${
+                showConfidences
+                  ? "bg-[var(--surface-raised)] border-[var(--line-strong)] text-[var(--ink-primary)] font-bold"
+                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
+              }`}
+              title="Toggle Micro Confidence Badges"
+            >
+              <Percent className="w-3 h-3 text-[var(--signal)]" />
+              <span>Conf%</span>
+            </button>
           </div>
 
           {/* Privacy Blur Toggle */}
@@ -677,8 +788,17 @@ export function DocumentViewer({
             </div>
           )}
 
-          {/* Zoom Controls */}
+          {/* Zoom & Rotation Controls */}
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleRotate}
+              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
+              title="Rotate 90° Clockwise"
+              aria-label="Rotate clockwise"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
             <button
               type="button"
               onClick={handleZoomOut}
@@ -704,7 +824,7 @@ export function DocumentViewer({
               type="button"
               onClick={handleResetZoom}
               className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-              title="Reset Zoom to 100%"
+              title="Reset Zoom to 100% and Orientation"
               aria-label="Reset zoom"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -716,9 +836,9 @@ export function DocumentViewer({
       {/* Main Light Table Viewport */}
       <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center light-table-grid min-h-[460px]">
         <div
-          className="relative transition-transform duration-100 ease-out origin-top border border-[var(--line-strong)] bg-white shadow-inspection rounded-sm overflow-hidden"
+          className="relative transition-transform duration-100 ease-out origin-center border border-[var(--line-strong)] bg-white shadow-inspection rounded-sm overflow-hidden"
           style={{
-            transform: `scale(${zoom})`,
+            transform: `scale(${zoom}) rotate(${rotation}deg)`,
             maxWidth: "100%",
             filter: privacyBlur ? "blur(8px)" : "none",
           }}
@@ -727,6 +847,12 @@ export function DocumentViewer({
             <img
               src={previewSource}
               alt={fileName || "Document preview specimen"}
+              onLoad={(e) => {
+                setImageDimensions({
+                  width: e.currentTarget.naturalWidth,
+                  height: e.currentTarget.naturalHeight,
+                });
+              }}
               onError={() => setImgFailed(true)}
               className="block max-w-full h-auto select-none pointer-events-none"
               style={{ maxHeight: "720px" }}
@@ -740,7 +866,6 @@ export function DocumentViewer({
             <div className="absolute inset-0 pointer-events-auto">
               {pageFields.map((field, idx) => {
                 if (!field.bbox) return null;
-                const { x, y, width, height } = field.bbox;
                 const isSelected = selectedFieldKey === field.key;
                 const isHovered = hoveredFieldKey === field.key;
                 const isLowConfidence = field.confidence < 0.85;
@@ -751,13 +876,8 @@ export function DocumentViewer({
                     onClick={() => onSelectField(field.key)}
                     onMouseEnter={() => onHoverField(field.key)}
                     onMouseLeave={() => onHoverField(null)}
-                    style={{
-                      left: `${x}px`,
-                      top: `${y}px`,
-                      width: `${width}px`,
-                      height: `${height}px`,
-                    }}
-                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm select-none
+                    style={getBboxStyle(field.bbox)}
+                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm select-none group
                       ${
                         isSelected
                           ? "border-2 border-[#B24E2A] bg-[#C85A32]/35 ring-3 ring-[#C85A32] shadow-[0_0_12px_rgba(200,90,50,0.5)] z-30"
@@ -767,10 +887,57 @@ export function DocumentViewer({
                       }
                       ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.2)_3px,rgba(200,90,50,0.2)_6px)]" : ""}
                     `}
-                    title={`${field.label}: ${field.value}`}
-                  />
+                    title={`${field.label || field.key}: ${field.value}`}
+                  >
+                    {/* Micro confidence tag when enabled */}
+                    {showConfidences && (
+                      <span className="absolute -top-3.5 left-0 px-1 py-0 bg-[#C85A32] text-white text-[8px] font-mono font-bold rounded-[1px] tracking-tight pointer-events-none opacity-90 truncate max-w-[120px] shadow-sm">
+                        {(field.label || field.key || "Field").slice(0, 10)} {Math.round(field.confidence * 100)}%
+                      </span>
+                    )}
+                  </div>
                 );
               })}
+
+              {/* Floating Inspection Card on Hover / Selection */}
+              {activeField && activeField.bbox && (
+                <div
+                  style={{
+                    ...getBboxStyle(activeField.bbox),
+                    transform: "translateY(-110%)",
+                    minWidth: "200px",
+                    maxWidth: "280px",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute z-50 pointer-events-auto bg-[var(--surface-base)] text-[var(--ink-primary)] border-2 border-[var(--signal)] rounded-sm p-2 shadow-xl backdrop-blur-md transition-all animate-fade-in"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-[var(--line-hairline)] pb-1 mb-1">
+                    <span className="font-mono text-[10px] font-bold text-[var(--signal)] truncate">
+                      {activeField.label || activeField.key}
+                    </span>
+                    <span className="font-mono text-[9px] px-1 py-0.5 bg-[var(--surface-raised)] border border-[var(--line-hairline)] text-[var(--ink-secondary)] rounded-sm tabular-nums shrink-0">
+                      {Math.round(activeField.confidence * 100)}% match
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="font-mono text-xs font-semibold text-[var(--ink-primary)] truncate">
+                      {String(activeField.value)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyValue(String(activeField.value), activeField.key, e)}
+                      className="p-1 hover:bg-[var(--surface-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)] rounded-sm transition-colors shrink-0"
+                      title="Copy field value"
+                    >
+                      {copiedFieldKey === activeField.key ? (
+                        <Check className="w-3 h-3 text-[var(--semantic-success)]" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -779,16 +946,10 @@ export function DocumentViewer({
             <div className="absolute inset-0 pointer-events-none">
               {(result?.tables || []).filter(t => t.bbox && (t.page === undefined || t.page === currentPage)).map((table, idx) => {
                 if (!table.bbox) return null;
-                const { x, y, width, height } = table.bbox;
                 return (
                   <div
                     key={`tbl-${idx}`}
-                    style={{
-                      left: `${x}px`,
-                      top: `${y}px`,
-                      width: `${width}px`,
-                      height: `${height}px`,
-                    }}
+                    style={getBboxStyle(table.bbox)}
                     className="absolute border-2 border-dashed border-[#1D5E99] bg-[#1D5E99]/5 rounded-sm pointer-events-none z-10"
                   >
                     <span className="bg-[#1D5E99] text-white text-[9px] font-mono px-1 py-0.5 rounded-sm font-bold float-right shadow-sm">
@@ -805,16 +966,10 @@ export function DocumentViewer({
             <div className="absolute inset-0 pointer-events-none">
               {pageBlocks.map((block, idx) => {
                 if (!block.bbox) return null;
-                const { x, y, width, height } = block.bbox;
                 return (
                   <div
                     key={`block-${idx}`}
-                    style={{
-                      left: `${x}px`,
-                      top: `${y}px`,
-                      width: `${width}px`,
-                      height: `${height}px`,
-                    }}
+                    style={getBboxStyle(block.bbox)}
                     className="absolute border border-[var(--ink-muted)]/40 bg-[var(--surface-raised)]/20 pointer-events-none"
                   />
                 );

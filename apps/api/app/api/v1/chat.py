@@ -69,7 +69,7 @@ class FeedbackRequest(BaseModel):
 KB_INDEX = [
     {
         "keywords": ["key", "api key", "token", "auth", "bearer", "argon2id"],
-        "answer": "Programmatic API keys (with 'ocr_live_' prefix) are available on Developer Pro and Enterprise tiers. You can create and manage your keys on the Rate Card page. Keys are displayed once at creation and hashed using Argon2id.",
+        "answer": "Programmatic API keys (with 'ocr_live_' prefix) are available on Developer Pro and Enterprise tiers. You can create and manage your keys on the Pricing page. Keys are displayed once at creation and hashed using Argon2id.",
         "source_doc": "API Quickstart",
         "route_key": "/pricing",
     },

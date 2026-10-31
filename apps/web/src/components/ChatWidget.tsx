@@ -32,7 +32,7 @@ interface Message {
 // Curated Knowledge Base Answers extracted from /kb/*.md
 const KB_RESPONSES: Record<string, { answer: string; routeKey?: string; sourceDoc: string }> = {
   api_key: {
-    answer: "Programmatic API keys (prefixed with 'ocr_live_') are available on Developer Pro and Enterprise tiers. You can create and manage your keys on the Rate Card page. Keys are displayed once upon generation and hashed with Argon2id.",
+    answer: "Programmatic API keys (prefixed with 'ocr_live_') are available on Developer Pro and Enterprise tiers. You can create and manage your keys on the Pricing page. Keys are displayed once upon generation and hashed with Argon2id.",
     routeKey: "/pricing",
     sourceDoc: "API Quickstart",
   },

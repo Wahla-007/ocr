@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Header } from "../components/Header";
 import { DropZone } from "../components/DropZone";
@@ -11,7 +11,20 @@ import { uploadAndExtract } from "../lib/api";
 import { SAMPLE_DOCUMENTS } from "../lib/samples";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
-import { Sliders, ShieldCheck, ArrowRight, Layers, Sparkles, Check } from "lucide-react";
+import {
+  Sliders,
+  ShieldCheck,
+  ArrowRight,
+  Layers,
+  Sparkles,
+  Check,
+  UploadCloud,
+  Loader2,
+  FileText,
+  RotateCcw,
+  Keyboard,
+  Info,
+} from "lucide-react";
 
 export default function PlaygroundPage() {
   const [activeSampleId, setActiveSampleId] = useState<string>("clean-invoice");
@@ -25,9 +38,36 @@ export default function PlaygroundPage() {
 
   // Pipeline Execution State
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pipelineStep, setPipelineStep] = useState(1);
   const [outputFormat, setOutputFormat] = useState<"json" | "markdown" | "text">("json");
   const [creditsBalance, setCreditsBalance] = useState(10);
   const [itemsProcessed, setItemsProcessed] = useState(1);
+
+  // Simulated multi-stage pipeline animation when processing
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isProcessing) {
+      setPipelineStep(1);
+      interval = setInterval(() => {
+        setPipelineStep((prev) => (prev < 4 ? prev + 1 : prev));
+      }, 350);
+    } else {
+      setPipelineStep(4);
+    }
+    return () => clearInterval(interval);
+  }, [isProcessing]);
+
+  // Keyboard shortcut for ESC to clear field selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedFieldKey(null);
+        setHoveredFieldKey(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleFileSelected = async (file: File) => {
     setActiveSampleId("");
@@ -44,7 +84,7 @@ export default function PlaygroundPage() {
     }
 
     try {
-      const extracted = await uploadAndExtract(file, "ocr_free_trial12345", "http://localhost:8000", true, outputFormat);
+      const extracted = await uploadAndExtract(file, "ocr_free_trial12345", "", true, outputFormat);
       setResult(extracted);
       setCreditsBalance((c) => Math.max(0, c - (extracted.credits_charged || 2)));
       setItemsProcessed((p) => p + 1);
@@ -66,6 +106,12 @@ export default function PlaygroundPage() {
     setSelectedFieldKey(null);
   };
 
+  const handleReset = () => {
+    setSelectedFieldKey(null);
+    setHoveredFieldKey(null);
+    handleSampleSelected(SAMPLE_DOCUMENTS[0]);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--surface-base)] text-[var(--ink-primary)] transition-colors">
       <Header
@@ -75,7 +121,7 @@ export default function PlaygroundPage() {
         plan="free"
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-5">
         {/* Top Operational Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--line-strong)] pb-4">
           <div>
@@ -96,7 +142,7 @@ export default function PlaygroundPage() {
           <div className="flex items-center gap-3">
             <Link href="/pricing">
               <Button variant="outline" size="sm">
-                View Rate Card
+                View Pricing
               </Button>
             </Link>
             <Link href="/docs">
@@ -116,6 +162,96 @@ export default function PlaygroundPage() {
           setOutputFormat={setOutputFormat}
           activeSampleId={activeSampleId}
         />
+
+        {/* Live Multi-Stage Pipeline Stepper during Processing */}
+        {isProcessing && (
+          <div className="p-4 rounded-sm border-2 border-[var(--signal)] bg-[var(--surface-base)] shadow-card space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between font-mono text-xs">
+              <span className="font-bold text-[var(--signal)] flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-[var(--signal)]" />
+                LIGHT TABLE MULTI-STAGE EXTRACTION ACTIVE
+              </span>
+              <span className="tabular-nums text-[var(--ink-muted)]">Pure CPU In-Memory Execution</span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-[var(--surface-sunken)] h-1.5 rounded-sm overflow-hidden relative">
+              <div
+                className="bg-[var(--signal)] h-full transition-all duration-300"
+                style={{ width: `${Math.min(100, (pipelineStep / 4) * 100)}%` }}
+              />
+            </div>
+
+            {/* Multi-Stage Steps */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
+              {[
+                { step: 1, title: "Normalization", desc: "Geometry & DPI scaling" },
+                { step: 2, title: "RapidOCR", desc: "Text line recognition" },
+                { step: 3, title: "Table Matrix", desc: "Cellular layout cluster" },
+                { step: 4, title: "Understanding", desc: "Key-value schema bounds" },
+              ].map((s) => {
+                const isDone = pipelineStep > s.step;
+                const isCurrent = pipelineStep === s.step;
+                return (
+                  <div
+                    key={s.step}
+                    className={`p-2 rounded-sm border transition-all ${
+                      isDone
+                        ? "border-[var(--semantic-success)] bg-[var(--semantic-success-subtle)] text-[var(--semantic-success)]"
+                        : isCurrent
+                        ? "border-[var(--signal)] bg-[var(--signal-subtle)] text-[var(--signal)] font-bold ring-1 ring-[var(--signal)]"
+                        : "border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-[var(--ink-muted)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                      {isDone ? <Check className="w-3 h-3" /> : <span>0{s.step}.</span>}
+                      <span>{s.title}</span>
+                    </div>
+                    <p className="text-[10px] text-[var(--ink-secondary)] truncate mt-0.5">{s.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* User-Centric Active Document Operational Strip */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 rounded-sm border border-[var(--line-strong)] bg-[var(--surface-subtle)] text-xs font-mono select-none">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <FileText className="w-4 h-4 text-[var(--signal)] shrink-0" />
+            <span className="text-[var(--ink-muted)] uppercase text-[11px]">Current:</span>
+            <span className="font-bold text-[var(--ink-primary)] truncate max-w-[200px] sm:max-w-xs">
+              {activeFileName}
+            </span>
+            {result?.doc_type && (
+              <Badge variant="signal" className="text-[10px] uppercase">
+                {result.doc_type.replace("_", " ")}
+              </Badge>
+            )}
+            {result?.overall_confidence && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[var(--semantic-success)] font-bold text-[11px]">
+                <Check className="w-3 h-3" /> {Math.round(result.overall_confidence * 100)}% Confidence
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[var(--ink-muted)] hidden md:inline">
+              {Array.isArray(result?.fields) ? result.fields.length : (result?.raw_fields?.length || 0)} fields • {result?.tables?.length || 0} tables • {result?.latency_ms || 48}ms
+            </span>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => {
+                const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                input?.click();
+              }}
+              leftIcon={<UploadCloud className="w-3 h-3 text-[var(--signal)]" />}
+            >
+              Replace Document
+            </Button>
+          </div>
+        </div>
 
         {/* Split View: Left Light Table Document Viewer / Right Structured Results */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[640px]">
@@ -140,12 +276,13 @@ export default function PlaygroundPage() {
               onSelectField={setSelectedFieldKey}
               hoveredFieldKey={hoveredFieldKey}
               onHoverField={setHoveredFieldKey}
+              onReset={handleReset}
             />
           </div>
         </div>
 
-        {/* Archival Security & Architecture Guarantee Banner */}
-        <div className="p-4 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono select-none">
+        {/* Keyboard Shortcuts & System Guarantee Helper Bar */}
+        <div className="p-3.5 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-mono select-none">
           <div className="flex items-center gap-2 text-[var(--ink-secondary)]">
             <ShieldCheck className="w-4 h-4 text-[var(--semantic-success)] shrink-0" />
             <span>
@@ -153,8 +290,17 @@ export default function PlaygroundPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px] text-[var(--ink-muted)]">
-            <span>Free Tier: 5 Items Limit</span>
+          {/* User-Centric Keyboard Hints */}
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--ink-muted)]">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-sm text-[10px] text-[var(--ink-primary)]">Ctrl+V / ⌘V</kbd>
+              <span>Paste Screenshot</span>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-sm text-[10px] text-[var(--ink-primary)]">Esc</kbd>
+              <span>Deselect Field</span>
+            </span>
             <span>•</span>
             <Link href="/self-hosted" className="text-[var(--signal)] hover:underline font-bold">
               Air-Gapped Deployment

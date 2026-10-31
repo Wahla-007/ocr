@@ -1097,7 +1097,7 @@ func main() {
                 href="/pricing"
                 className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
               >
-                <span>Rate Card &amp; Quotas</span>
+                <span>Pricing &amp; Quotas</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
               <Link

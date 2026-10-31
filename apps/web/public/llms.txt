@@ -11,7 +11,7 @@
 ## Canonical URLs & Documentation
 - [Homepage & Light Table Playground](https://openocr.io/): Interactive document extraction interface and specimen archive.
 - [Developer Documentation & API Reference](https://openocr.io/docs): Complete RESTful API specification, endpoints, SDK code snippets, and schemas.
-- [Rate Card & Pricing](https://openocr.io/pricing): Free Explorer ($0), Developer Pro ($49/mo), Enterprise Self-Hosted ($499/mo).
+- [Pricing](https://openocr.io/pricing): Free Explorer ($0), Developer Pro ($49/mo), Enterprise Self-Hosted ($499/mo).
 - [Self-Hosted Solution](https://openocr.io/self-hosted): Docker Compose and Helm architecture schematics for air-gapped VPCs.
 - [Customer Support Portal](https://openocr.io/support): Plan-based priority issue resolution and ticket tracking.
 

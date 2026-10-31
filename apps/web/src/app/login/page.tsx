@@ -35,26 +35,42 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double submit
+    if (!email.trim() || !password) {
+      setErrorMsg("Please enter both your email address and password.");
+      return;
+    }
 
     setErrorMsg(null);
     setResendStatus(null);
     setLoading(true);
 
     try {
-      await authApi.login(email, password, rememberMe, honeypot || undefined);
-      // Validate internal destination to prevent open-redirect phishing
-      const target = validateInternalRedirect(nextParam, "/");
-      router.push(target);
+      const user = await authApi.login(email.trim(), password, rememberMe, honeypot || undefined);
+      // Specific logic: if logging in with admin credentials, automatically show the Admin Dashboard
+      if (user.is_admin) {
+        router.push("/admin/support");
+      } else {
+        // Validate internal destination to prevent open-redirect phishing
+        const target = validateInternalRedirect(nextParam, "/");
+        router.push(target);
+      }
     } catch (err: any) {
-      // Anti-enumeration: uniform generic message unless deliberate lockout
+      let displayMsg = "Invalid email or password credentials.";
+      if (typeof err?.message === "string" && err.message.trim() && err.message !== "[object Object]") {
+        displayMsg = err.message;
+      }
+
       if (err.status === 429) {
         const retry = err.retryAfter ? ` Please wait ${err.retryAfter} seconds.` : "";
         setErrorMsg(`Too many authentication attempts.${retry}`);
       } else if (err.code === "EMAIL_NOT_VERIFIED") {
         setErrorMsg("Please verify your email address before signing in.");
-      } else {
+      } else if (err.code === "ACCOUNT_LOCKED" || err.status === 423) {
+        setErrorMsg("Account is temporarily locked. Please try again in 15 minutes.");
+      } else if (err.status === 401) {
         setErrorMsg("Invalid email or password credentials.");
+      } else {
+        setErrorMsg(displayMsg);
       }
     } finally {
       setLoading(false);

@@ -83,7 +83,18 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_SECRET_KEY: str = "change-me-to-a-secure-random-secret-in-production-32-chars-min"
     AUTH_PASSWORD_PEPPER: str = ""
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    ADMIN_EMAIL: str = "admin@openocr.org"
+    ADMIN_PASSWORD: str = "Admin@OpenOCR2026!"
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://172.198.152.197:3000",
+        "http://172.198.152.197:3001",
+        "http://172.198.152.197",
+        "https://172.198.152.197",
+    ]
     NEXT_PUBLIC_APP_URL: str = "http://localhost:3000"
 
     # Billing & Safepay Gateway Settings

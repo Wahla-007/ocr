@@ -94,16 +94,27 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 
             # Check origin/referer against allowed origins if present
             origin = request.headers.get("origin")
-            if origin and origin not in settings.CORS_ORIGINS:
-                return JSONResponse(
-                    status_code=403,
-                    content={
-                        "error": {
-                            "code": "CSRF_ORIGIN_INVALID",
-                            "message": "Cross-site request rejected.",
-                        }
-                    },
+            if origin:
+                origin_clean = origin.rstrip("/")
+                allowed_clean = {o.rstrip("/") for o in settings.CORS_ORIGINS}
+                is_allowed = (
+                    origin_clean in allowed_clean
+                    or origin_clean.startswith("http://localhost:")
+                    or origin_clean.startswith("http://127.0.0.1:")
+                    or origin_clean.startswith("http://172.198.152.197:")
+                    or origin_clean == "http://172.198.152.197"
+                    or origin_clean == "https://172.198.152.197"
                 )
+                if not is_allowed:
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "error": {
+                                "code": "CSRF_ORIGIN_INVALID",
+                                "message": f"Cross-site request rejected for origin: {origin}",
+                            }
+                        },
+                    )
 
             # Accept if standard client header present or matching double-submit cookie
             header_valid = bool(

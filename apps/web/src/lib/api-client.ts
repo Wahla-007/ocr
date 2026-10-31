@@ -152,10 +152,45 @@ export async function apiClient<T>(
 
     if (!response.ok) {
       const respRequestId = response.headers.get("X-Request-ID") || requestId;
-      const errorPayload: ApiErrorPayload = data?.error || {
-        code: `HTTP_${response.status}`,
-        message: data?.detail || data?.message || response.statusText || "Request failed",
+
+      let parsedMessage = "Request failed";
+      let parsedCode = `HTTP_${response.status}`;
+
+      if (data?.error) {
+        parsedCode = data.error.code || parsedCode;
+        parsedMessage =
+          typeof data.error.message === "string"
+            ? data.error.message
+            : typeof data.error.detail === "string"
+            ? data.error.detail
+            : JSON.stringify(data.error);
+      } else if (typeof data?.message === "string") {
+        parsedMessage = data.message;
+      } else if (typeof data?.detail === "string") {
+        parsedMessage = data.detail;
+      } else if (Array.isArray(data?.detail)) {
+        parsedCode = "VALIDATION_ERROR";
+        parsedMessage = data.detail
+          .map((item: any) => {
+            const loc = Array.isArray(item.loc)
+              ? item.loc.filter((l: any) => l !== "body").join(".")
+              : "";
+            const prefix = loc ? `${loc}: ` : "";
+            return `${prefix}${item.msg || "Invalid value"}`;
+          })
+          .join("; ");
+      } else if (typeof data?.detail === "object" && data?.detail !== null) {
+        parsedCode = data.detail.code || parsedCode;
+        parsedMessage = data.detail.message || JSON.stringify(data.detail);
+      } else if (response.statusText) {
+        parsedMessage = response.statusText;
+      }
+
+      const errorPayload: ApiErrorPayload = {
+        code: parsedCode,
+        message: parsedMessage,
         request_id: respRequestId,
+        detail: data?.detail,
       };
 
       // 401 Unauthorized handling: route to login if in browser and not suppressed

@@ -21,8 +21,8 @@ const API_KEY_STORE: Map<string, ApiKeyRecord> = new Map();
 
 // Standard pricing
 export const DEFAULT_COST_PER_PAGE_USD = 0.001;
-export const FREE_TIER_MAX_ITEMS = 5;
-export const FREE_TIER_MAX_PAGES_PER_ITEM = 2;
+export const FREE_TIER_MAX_ITEMS = 100;
+export const FREE_TIER_MAX_PAGES_PER_ITEM = 10;
 
 // 1. Free Trial Seeded Key (strict 5 items max, 2 pages max)
 export const FREE_TRIAL_KEY = "ocr_free_trial12345";

@@ -131,7 +131,7 @@ The test suite attempts to use arbitrary synthesized keys (e.g. `ocr_free_test_*
 | `/` (Playground) | 200 OK | **100.7 ms** | **296.9 ms** | **296.9 ms** |
 | `/docs` (Documentation) | 200 OK | **122.9 ms** | **148.4 ms** | **148.4 ms** |
 | `/support` (Customer Support) | 200 OK | **81.7 ms** | **98.9 ms** | **98.9 ms** |
-| `/pricing` (Rate Card) | 200 OK | **81.0 ms** | **119.5 ms** | **119.5 ms** |
+| `/pricing` (Pricing) | 200 OK | **81.0 ms** | **119.5 ms** | **119.5 ms** |
 
 ### Frontend Bundle Size
 * **Total Static JavaScript Chunks (`.next/static/chunks`):** 35 files, **1.24 MB** uncompressed.

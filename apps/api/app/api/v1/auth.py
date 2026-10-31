@@ -472,11 +472,17 @@ async def login(
         extra={"user_id": user.id, "action": "login_success"},
     )
 
+    is_admin = (
+        user.email.lower() == getattr(settings, "ADMIN_EMAIL", "admin@openocr.org").strip().lower()
+        or user.plan.lower() == "admin"
+    )
+
     return AuthUserResponse(
         id=user.id,
         email=user.email,
         plan=user.plan,
         email_verified=bool(user.email_verified_at),
+        is_admin=is_admin,
         created_at=user.created_at,
         last_login_at=user.last_login_at,
     )
@@ -511,11 +517,16 @@ async def get_me(
 ):
     """Fetches details of the currently authenticated user."""
     user, _ = user_and_session
+    is_admin = (
+        user.email.lower() == getattr(settings, "ADMIN_EMAIL", "admin@openocr.org").strip().lower()
+        or user.plan.lower() == "admin"
+    )
     return AuthUserResponse(
         id=user.id,
         email=user.email,
         plan=user.plan,
         email_verified=bool(user.email_verified_at),
+        is_admin=is_admin,
         created_at=user.created_at,
         last_login_at=user.last_login_at,
     )

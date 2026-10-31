@@ -75,7 +75,7 @@ export function Header({
   const navLinks = [
     { href: "/", label: "Light Table" },
     { href: "/docs", label: "Documentation" },
-    { href: "/pricing", label: "Rate Card" },
+    { href: "/pricing", label: "Pricing" },
     { href: "/self-hosted", label: "Self-Hosted Solution" },
     { href: "/support", label: "Support" },
   ];
