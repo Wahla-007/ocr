@@ -82,7 +82,13 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:openocr_secure_pass@localhost:5432/openocr
           DATABASE_URL_SYNC: postgresql+psycopg2://postgres:openocr_secure_pass@localhost:5432/openocr
           REDIS_URL: redis://localhost:6379/0
-        run: pytest apps/api/tests
+        run: |
+          for i in {1..30}; do
+            python -c "import socket; s = socket.socket(); s.connect(('127.0.0.1', 6379)); s.close()" 2>/dev/null && break
+            echo "Waiting for redis on port 6379..."
+            sleep 1
+          done
+          pytest apps/api/tests -v --tb=short
 
       - name: Run Worker Tests
         env:
@@ -90,7 +96,7 @@ jobs:
           PGUSER: postgres
           DATABASE_URL: postgresql+asyncpg://postgres:openocr_secure_pass@localhost:5432/openocr
           REDIS_URL: redis://localhost:6379/0
-        run: pytest apps/worker/tests
+        run: pytest apps/worker/tests -v --tb=short
 
   web-lint-build:
     name: Web App Lint & Build
