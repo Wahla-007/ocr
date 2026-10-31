@@ -15,13 +15,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: openocr
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: openocr_secure_pass
           POSTGRES_DB: openocr
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -63,7 +63,9 @@ jobs:
 
       - name: Run Database Migrations
         env:
-          DATABASE_URL_SYNC: postgresql+psycopg2://openocr:openocr_secure_pass@localhost:5432/openocr
+          POSTGRES_USER: postgres
+          PGUSER: postgres
+          DATABASE_URL_SYNC: postgresql+psycopg2://postgres:openocr_secure_pass@localhost:5432/openocr
         run: |
           for i in {1..30}; do
             python -c "import socket; s = socket.socket(); s.connect(('127.0.0.1', 5432)); s.close()" 2>/dev/null && break
@@ -75,14 +77,18 @@ jobs:
 
       - name: Run API Tests
         env:
-          DATABASE_URL: postgresql+asyncpg://openocr:openocr_secure_pass@localhost:5432/openocr
-          DATABASE_URL_SYNC: postgresql+psycopg2://openocr:openocr_secure_pass@localhost:5432/openocr
+          POSTGRES_USER: postgres
+          PGUSER: postgres
+          DATABASE_URL: postgresql+asyncpg://postgres:openocr_secure_pass@localhost:5432/openocr
+          DATABASE_URL_SYNC: postgresql+psycopg2://postgres:openocr_secure_pass@localhost:5432/openocr
           REDIS_URL: redis://localhost:6379/0
         run: pytest apps/api/tests
 
       - name: Run Worker Tests
         env:
-          DATABASE_URL: postgresql+asyncpg://openocr:openocr_secure_pass@localhost:5432/openocr
+          POSTGRES_USER: postgres
+          PGUSER: postgres
+          DATABASE_URL: postgresql+asyncpg://postgres:openocr_secure_pass@localhost:5432/openocr
           REDIS_URL: redis://localhost:6379/0
         run: pytest apps/worker/tests
 
