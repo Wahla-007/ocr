@@ -88,7 +88,13 @@ jobs:
             echo "Waiting for redis on port 6379..."
             sleep 1
           done
-          pytest apps/api/tests -v --tb=short
+          pytest apps/api/tests -v --tb=short 2>&1 | tee api_test.log || {
+            echo "## API Tests Failure Log" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 80 api_test.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Run Worker Tests
         env:
