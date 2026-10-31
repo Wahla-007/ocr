@@ -101,8 +101,17 @@ jobs:
           POSTGRES_USER: postgres
           PGUSER: postgres
           DATABASE_URL: postgresql+asyncpg://postgres:openocr_secure_pass@localhost:5432/openocr
+          DATABASE_URL_SYNC: postgresql+psycopg2://postgres:openocr_secure_pass@localhost:5432/openocr
           REDIS_URL: redis://localhost:6379/0
-        run: pytest apps/worker/tests -v --tb=short
+          PYTHONPATH: .
+        run: |
+          pytest apps/worker/tests -v --tb=short 2>&1 | tee worker_test.log || {
+            echo "## Worker Tests Failure Log" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 80 worker_test.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
   web-lint-build:
     name: Web App Lint & Build
