@@ -43,7 +43,7 @@ export function DocumentViewer({
   uploadedPreviewUrl,
   isSample,
 }: DocumentViewerProps) {
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.85);
   const [rotation, setRotation] = useState<number>(0);
   const [showFieldBboxes, setShowFieldBboxes] = useState(true);
   const [showTableBboxes, setShowTableBboxes] = useState(true);

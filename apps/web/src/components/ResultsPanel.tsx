@@ -247,7 +247,7 @@ export function ResultsPanel({
           </div>
 
           {/* Tab 1: Key Fields Inspector - Full Height Scrollable List */}
-          <TabsContent value="fields" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+          <TabsContent value="fields" className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:hidden">
             {/* Search & Bulk Copy Toolbar */}
             <div className="flex items-center justify-between gap-2 shrink-0">
               <div className="relative flex-1">
@@ -347,7 +347,7 @@ export function ResultsPanel({
           </TabsContent>
 
           {/* Tab 2: Tables Inspector - Full Height */}
-          <TabsContent value="tables" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+          <TabsContent value="tables" className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:hidden">
             {tables.length === 0 ? (
               <div className="h-full flex items-center justify-center p-6 text-center">
                 <p className="text-xs text-[var(--ink-muted)] font-mono">
@@ -417,7 +417,7 @@ export function ResultsPanel({
           </TabsContent>
 
           {/* Tab 3: Plain Text - 100% Full Height Dark Code Editor (Zero Whitespace Below) */}
-          <TabsContent value="text" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+          <TabsContent value="text" className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:hidden">
             {/* Toolbar */}
             <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
               <span className="text-[var(--ink-secondary)] flex items-center gap-1.5">
@@ -451,7 +451,7 @@ export function ResultsPanel({
           </TabsContent>
 
           {/* Tab 4: Markdown - 100% Full Height with Formatted / Raw Toggle (Zero Whitespace Below) */}
-          <TabsContent value="markdown" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+          <TabsContent value="markdown" className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:hidden">
             {/* Toolbar */}
             <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
               <div className="flex items-center gap-2">
@@ -556,7 +556,7 @@ export function ResultsPanel({
           </TabsContent>
 
           {/* Tab 5: JSON Payload - 100% Full Height Dark Code Editor (Zero Whitespace Below) */}
-          <TabsContent value="json" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+          <TabsContent value="json" className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:hidden">
             {/* Toolbar */}
             <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
               <span className="text-[var(--ink-secondary)] flex items-center gap-1.5">

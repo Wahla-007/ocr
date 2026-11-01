@@ -129,15 +129,15 @@ export default function PlaygroundPage() {
         />
 
         {/* 2. BELOW THAT PAGE: LOADER (WHEN PROCESSING) OR PREVIEW & RESULTS (UPLOADED DOC OR TEST PREVIEW) */}
-        <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {isProcessing ? (
             /* While Uploading/Processing: Demo cases & test preview disappeared -> ONLY LOADER SHOWN */
             <DocumentProcessingLoader fileName={activeFileName} />
           ) : result ? (
             /* When Loaded: Split view showing either Uploaded Doc OR Initial Test Preview */
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 h-full min-h-0 overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0 overflow-hidden">
               {/* Left Column: Document Viewer (5 cols) - Snug Width, Zero Dead Whitespace */}
-              <div className="lg:col-span-5 xl:col-span-5 h-full min-h-0 flex flex-col overflow-hidden">
+              <div className="lg:col-span-5 xl:col-span-5 flex-1 min-h-0 flex flex-col overflow-hidden">
                 <DocumentViewer
                   fileName={activeFileName}
                   result={result}
@@ -151,7 +151,7 @@ export default function PlaygroundPage() {
               </div>
 
               {/* Right Column: Structured Results Panel (7 cols) - Wide Space, Never Truncated */}
-              <div className="lg:col-span-7 xl:col-span-7 h-full min-h-0 flex flex-col overflow-hidden">
+              <div className="lg:col-span-7 xl:col-span-7 flex-1 min-h-0 flex flex-col overflow-hidden">
                 <ResultsPanel
                   result={result}
                   selectedFieldKey={selectedFieldKey}
