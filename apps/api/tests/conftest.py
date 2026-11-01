@@ -65,11 +65,16 @@ async def prepare_database():
 
     # Point worker sessions to test session during test run
     import worker.tasks
+    import worker.db as worker_db
 
+    orig_worker_session = getattr(worker.tasks, "WorkerSessionLocal", None)
     worker.tasks.WorkerSessionLocal = TestSessionLocal
+    worker_db.WorkerSessionLocal.configure(bind=test_engine)
 
     yield
 
+    if orig_worker_session:
+        worker.tasks.WorkerSessionLocal = orig_worker_session
     app.dependency_overrides.clear()
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

@@ -33,6 +33,9 @@ async def prepare_database():
         await conn.run_sync(Base.metadata.create_all)
 
     # Configure worker session to share the in-memory test DB
+    import worker.tasks
+    orig_worker_session = getattr(worker.tasks, "WorkerSessionLocal", None)
+    worker.tasks.WorkerSessionLocal = TestSessionLocal
     worker_db.WorkerSessionLocal.configure(bind=test_engine)
 
     # In-memory storage mock
@@ -67,4 +70,8 @@ async def prepare_database():
 
     yield
 
+    if orig_worker_session:
+        worker.tasks.WorkerSessionLocal = orig_worker_session
     app.dependency_overrides.pop(get_db, None)
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)

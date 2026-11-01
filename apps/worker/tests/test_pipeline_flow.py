@@ -70,10 +70,10 @@ async def test_worker_pipeline_execution():
         res_stmt = select(Result).where(Result.job_id == job_id)
         result_db = (await session.execute(res_stmt)).scalars().first()
         assert result_db is not None
-        assert len(result_db.blocks_json) >= 1
-        assert len(result_db.tables_json) >= 1
-        assert result_db.confidence > 0.8
-        assert "INVOICE" in result_db.markdown
+        assert len(result_db.fields_json) >= 1
+        assert result_db.quality_score is not None
+        assert result_db.quality_score > 0.8
+        assert result_db.model_used is not None
 
         # Check append-only usage_ledger entry recorded
         ledger_stmt = select(UsageLedger).where(UsageLedger.job_id == job_id)
@@ -81,6 +81,7 @@ async def test_worker_pipeline_execution():
         assert ledger_db is not None
         assert ledger_db.credits >= 1
         assert ledger_db.user_id == "user_test_99"
+        assert ledger_db.model is not None
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

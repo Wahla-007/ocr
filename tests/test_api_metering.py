@@ -26,6 +26,29 @@ import httpx
 API_BASE_URL = os.environ.get("OPENOCR_API_URL", "http://127.0.0.1:3000")
 
 
+def _is_server_reachable(url: str) -> bool:
+    try:
+        import socket
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _is_server_reachable(API_BASE_URL),
+    reason=f"Live API server not running on {API_BASE_URL}",
+)
+
+
 def create_dummy_pdf(num_pages: int = 1) -> bytes:
     """Creates a valid in-memory PDF with the specified number of pages using PyMuPDF."""
     import pymupdf

@@ -56,4 +56,4 @@ async def test_worker_task_smoke():
 
 def test_worker_settings():
     assert worker_settings.REDIS_URL is not None
-    assert worker_settings.PARSE_ENGINE_PRIMARY == "docling"
+    assert worker_settings.PROVIDER in ["omniroute", "ollama"]
