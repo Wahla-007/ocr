@@ -279,8 +279,8 @@ export function ResultsPanel({
               </Button>
             </div>
 
-            {/* Scrollable Fields List - Fills 100% of the Available Height */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
+            {/* Scrollable Fields List - Fills 100% of the Available Height without Cutoff */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1.5 pb-8">
               {filteredFields.length === 0 ? (
                 <div className="h-full flex items-center justify-center p-6 text-center">
                   <p className="text-xs text-[var(--ink-muted)] font-mono">
@@ -315,7 +315,7 @@ export function ResultsPanel({
                               ({field.key})
                             </span>
                           </div>
-                          <p className="font-mono text-xs sm:text-sm text-[var(--ink-primary)] font-medium break-all">
+                          <p className="font-mono text-xs sm:text-sm text-[var(--ink-primary)] font-medium break-words whitespace-normal select-text">
                             {String(field.value)}
                           </p>
                         </div>

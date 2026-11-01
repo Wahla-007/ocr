@@ -114,7 +114,7 @@ export default function PlaygroundPage() {
         plan="free"
       />
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto p-2.5 sm:p-4 space-y-2.5 flex flex-col min-h-0">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto p-2 sm:p-2.5 space-y-1.5 flex flex-col h-[calc(100vh-56px)] min-h-0 overflow-hidden">
         {/* 1. BIG UPLOAD OR DROP SECTION ON TOP OF PAGE */}
         <DropZone
           onFileSelected={handleFileSelected}
@@ -129,15 +129,15 @@ export default function PlaygroundPage() {
         />
 
         {/* 2. BELOW THAT PAGE: LOADER (WHEN PROCESSING) OR PREVIEW & RESULTS (UPLOADED DOC OR TEST PREVIEW) */}
-        <div className="flex-1 min-h-[580px] h-[calc(100vh-270px)] flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
           {isProcessing ? (
             /* While Uploading/Processing: Demo cases & test preview disappeared -> ONLY LOADER SHOWN */
             <DocumentProcessingLoader fileName={activeFileName} />
           ) : result ? (
             /* When Loaded: Split view showing either Uploaded Doc OR Initial Test Preview */
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-full min-h-0">
-              {/* Left Column: Document Viewer (7 cols) - Fills Full Height with Zero Dead Whitespace */}
-              <div className="lg:col-span-7 h-full min-h-0 flex flex-col">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 h-full min-h-0 overflow-hidden">
+              {/* Left Column: Document Viewer (5 cols) - Snug Width, Zero Dead Whitespace */}
+              <div className="lg:col-span-5 xl:col-span-5 h-full min-h-0 flex flex-col overflow-hidden">
                 <DocumentViewer
                   fileName={activeFileName}
                   result={result}
@@ -150,8 +150,8 @@ export default function PlaygroundPage() {
                 />
               </div>
 
-              {/* Right Column: Structured Results Panel (5 cols) - Fills Full Height with Zero Dead Whitespace */}
-              <div className="lg:col-span-5 h-full min-h-0 flex flex-col">
+              {/* Right Column: Structured Results Panel (7 cols) - Wide Space, Never Truncated */}
+              <div className="lg:col-span-7 xl:col-span-7 h-full min-h-0 flex flex-col overflow-hidden">
                 <ResultsPanel
                   result={result}
                   selectedFieldKey={selectedFieldKey}
@@ -165,8 +165,8 @@ export default function PlaygroundPage() {
           ) : null}
         </div>
 
-        {/* Compact Footer Guarantee Strip */}
-        <div className="p-2 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono select-none shrink-0">
+        {/* Compact Single-Line Footer Guarantee Strip */}
+        <div className="px-2.5 py-1 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] flex flex-col sm:flex-row items-center justify-between gap-1 text-[10px] font-mono select-none shrink-0">
           <div className="flex items-center gap-1.5 text-[var(--ink-secondary)]">
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--semantic-success)] shrink-0" />
             <span>Air-Gap Capable • Pure In-Memory Execution • Zero Data Retention</span>

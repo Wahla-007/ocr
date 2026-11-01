@@ -901,9 +901,9 @@ export function DocumentViewer({
       </div>
 
       {/* Main Light Table Viewport - Tightly Framed with Zero Excess Whitespace */}
-      <div className="flex-1 min-h-0 overflow-auto p-2 sm:p-3 flex items-start justify-center bg-zinc-900/90 dark:bg-black/95 light-table-grid relative">
+      <div className="flex-1 min-h-0 overflow-auto p-2 flex items-center justify-center bg-zinc-900/95 dark:bg-black/95 light-table-grid relative">
         <div
-          className="relative transition-transform duration-100 ease-out origin-top border border-zinc-700/80 bg-white shadow-2xl rounded-sm overflow-hidden my-auto max-w-full"
+          className="relative transition-transform duration-100 ease-out origin-center border border-zinc-700/70 shadow-2xl rounded-sm overflow-hidden max-w-full max-h-full"
           style={{
             transform: `scale(${zoom}) rotate(${rotation}deg)`,
             filter: privacyBlur ? "blur(8px)" : "none",
@@ -920,7 +920,7 @@ export function DocumentViewer({
                 });
               }}
               onError={() => setImgFailed(true)}
-              className="block max-w-full w-auto h-auto select-none pointer-events-none"
+              className="block max-w-full max-h-full w-auto h-auto object-contain select-none pointer-events-none"
             />
           ) : (
             renderSpecimenCanvas()
