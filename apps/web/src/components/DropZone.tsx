@@ -125,14 +125,14 @@ export function DropZone({
   };
 
   return (
-    <div className="w-full space-y-1.5 shrink-0 select-none">
-      {/* Sleek Horizontal Full-Width Drop Section - High Efficiency */}
+    <div className="w-full h-full flex flex-col justify-between space-y-1.5 select-none overflow-hidden">
+      {/* Upload Drop Card - Covers approximately 1/3 of the page */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !isProcessing && fileInputRef.current?.click()}
-        className={`relative w-full border-2 border-dashed rounded-sm px-3.5 py-2.5 sm:py-3 transition-all cursor-pointer bg-[var(--surface-base)] registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br group shadow-subtle
+        className={`relative w-full flex-1 min-h-0 border-2 border-dashed rounded-sm px-4 py-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer bg-[var(--surface-base)] registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br group shadow-subtle
           ${
             isDragOver
               ? "border-[var(--signal)] bg-[var(--signal-subtle)] ring-2 ring-[var(--signal)]/40 scale-[1.001]"
@@ -156,44 +156,35 @@ export function DropZone({
           <div className="absolute inset-x-0 h-0.5 bg-[var(--signal)] animate-scan-line shadow-[0_0_8px_var(--signal)]" />
         )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          {/* Left: Icon + Title + Info */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-8 h-8 rounded-sm bg-[var(--surface-raised)] border transition-all text-[var(--ink-primary)] flex items-center justify-center shadow-subtle group-hover:scale-105 shrink-0 ${
-                isDragOver ? "border-[var(--signal)] text-[var(--signal)]" : "border-[var(--line-strong)]"
-              }`}
-            >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[var(--signal)]" />
-              ) : justPasted ? (
-                <Check className="w-4 h-4 text-[var(--semantic-success)]" />
-              ) : (
-                <UploadCloud className="w-4 h-4 text-[var(--signal)]" />
-              )}
-            </div>
-
-            <div className="space-y-0 min-w-0">
-              <h3 className="font-serif text-xs sm:text-sm font-bold text-[var(--ink-primary)] leading-tight truncate">
-                {isProcessing
-                  ? "Scanning Document under Light Table..."
-                  : isDragOver
-                  ? "Release Document to Begin Scan"
-                  : "Lay Document on Light Table — Drop File or Click Browse"}
-              </h3>
-              <p className="text-[10px] sm:text-[11px] text-[var(--ink-secondary)] truncate">
-                PDF, JPG, PNG, WEBP, TIFF • Multi-page invoices, receipts, credentials & reports
-              </p>
-            </div>
+        <div className="flex flex-col items-center justify-center space-y-1.5 max-w-xl">
+          <div
+            className={`w-9 h-9 rounded-sm bg-[var(--surface-raised)] border transition-all text-[var(--ink-primary)] flex items-center justify-center shadow-subtle group-hover:scale-105 shrink-0 ${
+              isDragOver ? "border-[var(--signal)] text-[var(--signal)]" : "border-[var(--line-strong)]"
+            }`}
+          >
+            {isProcessing ? (
+              <Loader2 className="w-4 h-4 animate-spin text-[var(--signal)]" />
+            ) : justPasted ? (
+              <Check className="w-4 h-4 text-[var(--semantic-success)]" />
+            ) : (
+              <UploadCloud className="w-4 h-4 text-[var(--signal)]" />
+            )}
           </div>
 
-          {/* Right: Prominent Browse & Upload Button + Paste Shortcut */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-[var(--surface-subtle)] border border-[var(--line-hairline)] text-[10px] font-mono text-[var(--ink-muted)]">
-              <Clipboard className="w-3 h-3 text-[var(--signal)]" />
-              <span>Press <strong className="text-[var(--ink-primary)]">Ctrl+V</strong> to paste</span>
-            </span>
+          <div className="space-y-0.5">
+            <h3 className="font-serif text-sm sm:text-base font-bold text-[var(--ink-primary)] leading-tight">
+              {isProcessing
+                ? "Scanning Document under Light Table..."
+                : isDragOver
+                ? "Release Document to Begin Extraction"
+                : "Lay Document on Light Table — Drop File or Click Browse"}
+            </h3>
+            <p className="text-[11px] text-[var(--ink-secondary)]">
+              PDF, JPG, PNG, WEBP, TIFF • Multi-page invoices, receipts, credentials & reports
+            </p>
+          </div>
 
+          <div className="pt-0.5 flex flex-wrap items-center justify-center gap-2">
             <Button
               variant="primary"
               size="xs"
@@ -207,19 +198,24 @@ export function DropZone({
             >
               Browse & Upload File
             </Button>
+
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-[var(--surface-subtle)] border border-[var(--line-hairline)] text-[10px] font-mono text-[var(--ink-muted)]">
+              <Clipboard className="w-3 h-3 text-[var(--signal)]" />
+              <span>or press <strong className="text-[var(--ink-primary)]">Ctrl+V / ⌘V</strong> to paste</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Demo Cases / Specimen Archive: ONLY shown when viewing demo/test cases; disappears when upload is given */}
+      {/* Demo Cases / Specimen Archive (when !isUploadedDoc) or Uploaded Status Banner (when isUploadedDoc) */}
       {!isUploadedDoc ? (
-        <div className="px-2.5 py-1.5 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-1 shadow-subtle">
-          <div className="flex items-center justify-between text-[11px] font-mono">
-            <span className="font-bold text-[var(--ink-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+        <div className="px-2.5 py-1 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-0.5 shadow-subtle shrink-0">
+          <div className="flex items-center justify-between text-[10px] font-mono">
+            <span className="font-bold text-[var(--ink-secondary)] uppercase tracking-wider flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[var(--signal)]" />
               Demo Cases (Test Specimen Previews):
             </span>
-            <span className="text-[10px] text-[var(--ink-muted)] hidden sm:inline">
+            <span className="text-[9px] text-[var(--ink-muted)] hidden sm:inline">
               Select any demo case to inspect test layout & schemas
             </span>
           </div>
@@ -233,7 +229,7 @@ export function DropZone({
                   type="button"
                   disabled={isProcessing}
                   onClick={() => onSampleSelected && onSampleSelected(sample)}
-                  className={`px-2 py-1 rounded-sm border transition-all text-left font-mono text-xs flex items-center justify-between gap-1 disabled:opacity-40 cursor-pointer ${
+                  className={`px-1.5 py-1 rounded-sm border transition-all text-left font-mono text-xs flex items-center justify-between gap-1 disabled:opacity-40 cursor-pointer ${
                     isActive
                       ? "border-[var(--signal)] bg-[var(--signal-subtle)] text-[var(--signal)] font-bold shadow-subtle ring-1 ring-[var(--signal)]"
                       : "border-[var(--line-strong)] bg-[var(--surface-base)] text-[var(--ink-primary)] hover:border-[var(--signal)] hover:bg-[var(--surface-raised)]"
@@ -251,8 +247,7 @@ export function DropZone({
           </div>
         </div>
       ) : (
-        /* When Upload is Given: Demo cases disappear! Show active uploaded status strip */
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 rounded-sm bg-[var(--surface-subtle)] border border-[var(--line-strong)] text-xs font-mono select-none">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 rounded-sm bg-[var(--surface-subtle)] border border-[var(--line-strong)] text-xs font-mono select-none shrink-0">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[var(--semantic-success)] animate-pulse" />
             <span className="text-[var(--ink-muted)] uppercase text-[10px]">Active Upload:</span>

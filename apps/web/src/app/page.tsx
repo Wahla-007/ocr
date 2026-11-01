@@ -115,20 +115,22 @@ export default function PlaygroundPage() {
       />
 
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-2 sm:p-2.5 space-y-1.5 flex flex-col h-[calc(100vh-56px)] min-h-0 overflow-hidden">
-        {/* 1. BIG UPLOAD OR DROP SECTION ON TOP OF PAGE */}
-        <DropZone
-          onFileSelected={handleFileSelected}
-          onSampleSelected={handleSampleSelected}
-          isProcessing={isProcessing}
-          outputFormat={outputFormat}
-          setOutputFormat={setOutputFormat}
-          activeSampleId={activeSampleId}
-          isUploadedDoc={isUploadedDoc}
-          onResetDemo={handleResetToDemo}
-          uploadedFileName={activeFileName}
-        />
+        {/* 1. UPLOAD BOX COVERING 1/3 OF THE PAGE */}
+        <div className="h-[31vh] min-h-[185px] max-h-[250px] shrink-0">
+          <DropZone
+            onFileSelected={handleFileSelected}
+            onSampleSelected={handleSampleSelected}
+            isProcessing={isProcessing}
+            outputFormat={outputFormat}
+            setOutputFormat={setOutputFormat}
+            activeSampleId={activeSampleId}
+            isUploadedDoc={isUploadedDoc}
+            onResetDemo={handleResetToDemo}
+            uploadedFileName={activeFileName}
+          />
+        </div>
 
-        {/* 2. BELOW THAT PAGE: LOADER (WHEN PROCESSING) OR PREVIEW & RESULTS (UPLOADED DOC OR TEST PREVIEW) */}
+        {/* 2. REMAINING 2/3 OF PAGE: PREVIEW & RESULTS OR LOADER */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {isProcessing ? (
             /* While Uploading/Processing: Demo cases & test preview disappeared -> ONLY LOADER SHOWN */
