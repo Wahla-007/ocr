@@ -154,6 +154,70 @@ def enrich_fields_with_boxes(
         if val is None or val == "" or val == []:
             continue
 
+        # 1. Unpack additional_fields dynamically into first-class fields
+        if key == "additional_fields" and isinstance(val, list):
+            for idx, item in enumerate(val):
+                if isinstance(item, dict):
+                    item_key = str(item.get("key", f"extra_{idx + 1}")).strip()
+                    item_val = item.get("value")
+                    if item_val is not None and str(item_val).strip() != "":
+                        add_box_meta = box_map.get(item_key)
+                        add_canvas_box = None
+                        add_box_source = None
+                        add_page_num = 1
+                        if add_box_meta:
+                            add_page_num = int(add_box_meta.get("page", 1))
+                            p_obj = page_map.get(add_page_num, pages[0] if pages else None)
+                            if p_obj:
+                                add_canvas_box = convert_box_2d_to_canvas(
+                                    add_box_meta.get("box_2d"),
+                                    p_obj.width_px,
+                                    p_obj.height_px,
+                                )
+                                if add_canvas_box:
+                                    add_canvas_box, add_box_source = snap_box_to_text_layer(
+                                        add_canvas_box,
+                                        item_val,
+                                        p_obj.text_layer,
+                                    )
+                        item_label = item_key.replace("_", " ").title()
+                        enriched_fields.append({
+                            "key": item_key,
+                            "label": item_label,
+                            "value": item_val,
+                            "confidence": 0.98,
+                            "page": add_page_num,
+                            "bbox": add_canvas_box,
+                            "box_source": add_box_source,
+                        })
+            continue
+
+        # 2. Unpack individual line_items
+        if key == "line_items" and isinstance(val, list):
+            for idx, item in enumerate(val):
+                if isinstance(item, dict):
+                    desc = str(item.get("description", f"Item {idx + 1}")).strip()
+                    amt = item.get("amount") or item.get("total") or item.get("unit_price")
+                    qty = item.get("quantity")
+                    line_summary = f"{desc} (Qty: {qty}, Amount: {amt})" if qty else f"{desc} ({amt})"
+                    enriched_fields.append({
+                        "key": f"line_item_{idx + 1}",
+                        "label": f"Line Item {idx + 1}",
+                        "value": line_summary,
+                        "confidence": 0.98,
+                        "page": 1,
+                        "bbox": None,
+                        "box_source": None,
+                    })
+            continue
+
+        # 3. Format nested dicts to human-readable strings
+        if isinstance(val, dict):
+            dict_vals = [str(v).strip() for v in val.values() if v is not None and str(v).strip() != ""]
+            val_display = ", ".join(dict_vals) if dict_vals else str(val)
+        else:
+            val_display = val
+
         # Look up bounding box
         box_meta = box_map.get(key)
         page_num = 1
@@ -176,7 +240,7 @@ def enrich_fields_with_boxes(
                     # Apply text layer snapping if digital text layer exists
                     canvas_box, box_source = snap_box_to_text_layer(
                         canvas_box,
-                        val,
+                        val_display,
                         page_obj.text_layer,
                     )
 
@@ -184,7 +248,7 @@ def enrich_fields_with_boxes(
         enriched_fields.append({
             "key": key,
             "label": label,
-            "value": val,
+            "value": val_display,
             "confidence": 0.98,
             "page": page_num,
             "bbox": canvas_box,

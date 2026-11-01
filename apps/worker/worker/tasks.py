@@ -132,12 +132,37 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
             text_lines = [f"{f['label']}: {f['value']}" for f in enriched_fields]
             reconstructed_markdown = "\n".join(text_lines)
 
+            # Build tables_json from line_items if present
+            tables_data = []
+            extracted_raw = vision_result.extracted_data or {}
+            raw_fields_dict = extracted_raw.get("fields", {}) if isinstance(extracted_raw, dict) else {}
+            line_items = raw_fields_dict.get("line_items")
+            if isinstance(line_items, list) and len(line_items) > 0:
+                header = ["Description", "Quantity", "Unit Price", "Total"]
+                rows = [header]
+                for item in line_items:
+                    if isinstance(item, dict):
+                        desc = str(item.get("description") or item.get("item") or "")
+                        qty = str(item.get("quantity") or item.get("qty") or "1")
+                        price = str(item.get("unit_price") or item.get("rate") or "")
+                        total_item = str(item.get("amount") or item.get("total") or "")
+                        rows.append([desc, qty, price, total_item])
+                if len(rows) > 1:
+                    md_rows = ["| " + " | ".join(r) + " |" for r in rows]
+                    sep = "| " + " | ".join(["---"] * len(header)) + " |"
+                    table_md = "\n".join([md_rows[0], sep] + md_rows[1:])
+                    tables_data.append({
+                        "page": 1,
+                        "rows": rows,
+                        "markdown": table_md,
+                    })
+
             # 8. Persist Result
             engine_str = f"vision:{vision_result.model}"
             result = Result(
                 job_id=job.id,
                 blocks_json=[],  # Legacy layout blocks replaced by direct vision extraction
-                tables_json=[],
+                tables_json=tables_data,
                 markdown=reconstructed_markdown,
                 fields_json=enriched_fields,
                 summary=f"Extracted {len(enriched_fields)} fields from {doc_type} using {vision_result.model}",

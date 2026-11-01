@@ -9,35 +9,163 @@
     },
     "issue_date": {
       "type": "string",
-      "description": "Date of invoice issuance in YYYY-MM-DD format"
+      "description": "Date of invoice issuance in YYYY-MM-DD or original format"
     },
     "due_date": {
       "type": "string",
-      "description": "Date payment is due in YYYY-MM-DD format"
+      "description": "Date payment is due in YYYY-MM-DD or original format"
+    },
+    "order_number": {
+      "type": "string",
+      "description": "Order number or reference ID"
+    },
+    "customer_po_number": {
+      "type": "string",
+      "description": "Customer Purchase Order (PO) number"
+    },
+    "billing_period": {
+      "type": "string",
+      "description": "Billing period or service range (e.g. 28/01/2017 - 27/01/2018)"
+    },
+    "payment_terms": {
+      "type": "string",
+      "description": "Payment terms (e.g. Net 30, Due upon receipt)"
+    },
+    "payment_instructions": {
+      "type": "string",
+      "description": "Remittance, direct debit, or payment instructions printed on invoice"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Primary product or service description (e.g. Online Services)"
     },
     "vendor_name": {
       "type": "string",
-      "description": "Name of supplier or issuing company"
+      "description": "Name of supplier or issuing vendor company"
+    },
+    "vendor_address": {
+      "type": "string",
+      "description": "Full physical or registered address of supplier/vendor"
+    },
+    "vendor_vat_id": {
+      "type": "string",
+      "description": "Vendor VAT Reg No, Tax ID, EIN, or corporate registration number"
+    },
+    "vendor_email": {
+      "type": "string",
+      "description": "Vendor contact email"
+    },
+    "vendor_phone": {
+      "type": "string",
+      "description": "Vendor telephone or contact number"
     },
     "customer_name": {
       "type": "string",
-      "description": "Name of billed client or recipient"
+      "description": "Name of billed client, sold-to, or recipient company"
+    },
+    "customer_address": {
+      "type": "string",
+      "description": "Full Sold-To address of customer"
+    },
+    "customer_vat_id": {
+      "type": "string",
+      "description": "Customer VAT ID, Tax ID, or registration number"
+    },
+    "bill_to_name": {
+      "type": "string",
+      "description": "Name in Bill-To section"
+    },
+    "bill_to_address": {
+      "type": "string",
+      "description": "Address in Bill-To section"
+    },
+    "service_usage_address": {
+      "type": "string",
+      "description": "Service usage address or shipping destination"
     },
     "subtotal": {
       "type": "number",
-      "description": "Subtotal before tax"
+      "description": "Subtotal or charges before tax"
+    },
+    "charges": {
+      "type": "number",
+      "description": "Stated charges amount"
+    },
+    "discount_amount": {
+      "type": "number",
+      "description": "Discounts amount"
+    },
+    "credits_amount": {
+      "type": "number",
+      "description": "Credits or adjustments amount"
     },
     "tax_amount": {
       "type": "number",
       "description": "Tax or VAT amount"
     },
+    "tax_details": {
+      "type": "string",
+      "description": "Tax breakdown, rate, or exemption note (e.g. VAT: Reverse Charge 0.00)"
+    },
     "total_amount": {
       "type": "number",
-      "description": "Total amount due"
+      "description": "Total amount due or charged"
     },
     "currency": {
       "type": "string",
-      "description": "Currency code (USD, EUR, GBP, PKR, etc.)"
+      "description": "Currency code or symbol (e.g. GBP, USD, EUR, PKR)"
+    },
+    "support_contact": {
+      "type": "string",
+      "description": "Customer support portal URL, help link, or contact instructions"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Any additional notes, disclaimers, or support text printed on invoice"
+    },
+    "line_items": {
+      "type": "array",
+      "description": "Itemized charges, products, or services",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of item or service"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity or hours"
+          },
+          "unit_price": {
+            "type": "number",
+            "description": "Unit price or hourly rate"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Line total charge or amount"
+          }
+        },
+        "required": ["description", "amount"]
+      }
+    },
+    "additional_fields": {
+      "type": "array",
+      "description": "Any other key-value details, reference numbers, or metadata visible on the invoice",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Descriptive field name or label"
+          },
+          "value": {
+            "type": "string",
+            "description": "Extracted text or numeric value"
+          }
+        },
+        "required": ["key", "value"]
+      }
     }
   },
   "required": ["invoice_number", "total_amount"]

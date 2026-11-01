@@ -231,7 +231,7 @@ async def understand_document_vision(
         raise RuntimeError("Vision extraction failed across all escalation attempts.")
 
     # 3. Quality score calculation
-    quality_score = calculate_quality_score(raw_fields, best_issues)
+    quality_score = calculate_quality_score(raw_fields, best_issues, doc_type=resolved_type)
 
     # 4. Bounding box coordinate conversion and text-layer snapping
     enriched_fields = enrich_fields_with_boxes(raw_fields, raw_boxes, pages)

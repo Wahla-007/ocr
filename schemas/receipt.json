@@ -5,11 +5,31 @@
   "properties": {
     "merchant_name": {
       "type": "string",
-      "description": "Name of store or merchant"
+      "description": "Name of store, restaurant, or merchant"
+    },
+    "merchant_address": {
+      "type": "string",
+      "description": "Physical address of store or branch"
+    },
+    "merchant_phone": {
+      "type": "string",
+      "description": "Telephone number of merchant"
+    },
+    "merchant_tax_id": {
+      "type": "string",
+      "description": "Merchant Tax/VAT/GST registration number"
+    },
+    "receipt_number": {
+      "type": "string",
+      "description": "Receipt or transaction number"
     },
     "receipt_date": {
       "type": "string",
-      "description": "Transaction date and time"
+      "description": "Transaction date in YYYY-MM-DD or original format"
+    },
+    "receipt_time": {
+      "type": "string",
+      "description": "Transaction time (e.g. 14:32:00)"
     },
     "subtotal": {
       "type": "number",
@@ -17,15 +37,75 @@
     },
     "tax_amount": {
       "type": "number",
-      "description": "Sales tax"
+      "description": "Sales tax or VAT"
+    },
+    "tip_amount": {
+      "type": "number",
+      "description": "Tip or gratuity amount"
+    },
+    "discount_amount": {
+      "type": "number",
+      "description": "Discounts applied"
     },
     "total_amount": {
       "type": "number",
       "description": "Final total paid"
     },
+    "currency": {
+      "type": "string",
+      "description": "Currency code (USD, GBP, EUR, PKR, etc.)"
+    },
     "payment_method": {
       "type": "string",
-      "description": "Payment method (Cash, Credit, Debit, etc.)"
+      "description": "Payment method (Cash, Visa, Mastercard, Apple Pay, etc.)"
+    },
+    "card_last_four": {
+      "type": "string",
+      "description": "Last 4 digits of payment card if printed"
+    },
+    "line_items": {
+      "type": "array",
+      "description": "Individual items purchased",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Name or description of item"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity purchased"
+          },
+          "unit_price": {
+            "type": "number",
+            "description": "Price per item"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Total price for item"
+          }
+        },
+        "required": ["description", "amount"]
+      }
+    },
+    "additional_fields": {
+      "type": "array",
+      "description": "Any other key-value details visible on receipt",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Descriptive field name"
+          },
+          "value": {
+            "type": "string",
+            "description": "Extracted text or numeric value"
+          }
+        },
+        "required": ["key", "value"]
+      }
     }
   },
   "required": ["merchant_name", "total_amount"]
