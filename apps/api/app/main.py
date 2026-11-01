@@ -1,7 +1,17 @@
 """FastAPI Main Application entry point for OpenOCR API."""
 
+import sys
+from pathlib import Path
 import time
 import uuid
+
+# Ensure repo root and apps/worker are in sys.path for worker & provider imports
+_repo_root = Path(__file__).resolve().parent.parent.parent
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
+_worker_dir = _repo_root / "apps" / "worker"
+if str(_worker_dir) not in sys.path:
+    sys.path.insert(0, str(_worker_dir))
 
 from app.api.v1 import api_v1_router
 from app.api.v1.health import router as health_router
