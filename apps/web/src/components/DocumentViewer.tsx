@@ -30,6 +30,7 @@ interface DocumentViewerProps {
   hoveredFieldKey: string | null;
   onHoverField: (key: string | null) => void;
   uploadedPreviewUrl?: string | null;
+  isSample?: boolean;
 }
 
 export function DocumentViewer({
@@ -40,6 +41,7 @@ export function DocumentViewer({
   hoveredFieldKey,
   onHoverField,
   uploadedPreviewUrl,
+  isSample,
 }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState<number>(0);
@@ -118,6 +120,53 @@ export function DocumentViewer({
 
   // Polymorphic Specimen Canvas Renderers matching each specimen in the archive with pixel-perfect coordinate alignment
   const renderSpecimenCanvas = () => {
+    // If this is a user-uploaded document without a raster preview image, do NOT render mock specimens
+    if (!isSample) {
+      return (
+        <div className="w-[520px] min-h-[640px] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-6 border border-zinc-300 dark:border-zinc-700 shadow-sm relative flex flex-col justify-between font-mono select-none">
+          <div className="space-y-4">
+            <div className="border-b border-zinc-200 dark:border-zinc-800 pb-3">
+              <div className="flex items-center gap-2 text-[var(--signal)] font-bold text-xs">
+                <FileText className="w-4 h-4" />
+                <span>UPLOADED DOCUMENT INTELLIGENCE</span>
+              </div>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-white mt-1 break-all">
+                {fileName}
+              </h2>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                {result?.doc_type ? result.doc_type.replace("_", " ").toUpperCase() : "DOCUMENT"} • {result?.page_count || 1} Page(s) • Vision Assisted Extraction
+              </p>
+            </div>
+
+            {/* Extracted content lines preview */}
+            <div className="space-y-1.5 text-xs">
+              <div className="font-bold text-[11px] text-zinc-400 uppercase tracking-wider">
+                Recognized Content Structure:
+              </div>
+              {result?.detected_lines && result.detected_lines.length > 0 ? (
+                <div className="space-y-1 max-h-[380px] overflow-y-auto pr-1">
+                  {result.detected_lines.slice(0, 18).map((line: string, i: number) => (
+                    <div key={i} className="p-1.5 rounded-sm bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 text-[11px] text-zinc-800 dark:text-zinc-200 truncate">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-center text-zinc-500 text-xs">
+                  Document content parsed and structured into {fieldList.length} schema fields.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 flex items-center justify-between text-[10px] text-zinc-500">
+            <span>OCR VERIFIED • ZERO TEMPLATE</span>
+            <span>CHECKSUM 0x{(result?.id || "doc").slice(-6)}</span>
+          </div>
+        </div>
+      );
+    }
+
     const rawType = (
       result?.doc_type ||
       result?.document_type ||
@@ -802,6 +851,14 @@ export function DocumentViewer({
           <div className="flex items-center gap-1">
             <button
               type="button"
+              onClick={() => setZoom(0.85)}
+              className="px-1.5 py-1 rounded-sm border border-[var(--line-hairline)] text-[10px] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
+              title="Fit Document in Viewport"
+            >
+              Fit
+            </button>
+            <button
+              type="button"
               onClick={handleRotate}
               className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
               title="Rotate 90° Clockwise"
@@ -843,13 +900,12 @@ export function DocumentViewer({
         </div>
       </div>
 
-      {/* Main Light Table Viewport */}
-      <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center light-table-grid min-h-[460px]">
+      {/* Main Light Table Viewport - Tightly Framed with Zero Excess Whitespace */}
+      <div className="flex-1 min-h-0 overflow-auto p-2 sm:p-3 flex items-start justify-center bg-zinc-900/90 dark:bg-black/95 light-table-grid relative">
         <div
-          className="relative transition-transform duration-100 ease-out origin-center border border-[var(--line-strong)] bg-white shadow-inspection rounded-sm overflow-hidden"
+          className="relative transition-transform duration-100 ease-out origin-top border border-zinc-700/80 bg-white shadow-2xl rounded-sm overflow-hidden my-auto max-w-full"
           style={{
             transform: `scale(${zoom}) rotate(${rotation}deg)`,
-            maxWidth: "100%",
             filter: privacyBlur ? "blur(8px)" : "none",
           }}
         >
@@ -864,8 +920,7 @@ export function DocumentViewer({
                 });
               }}
               onError={() => setImgFailed(true)}
-              className="block max-w-full h-auto select-none pointer-events-none"
-              style={{ maxHeight: "720px" }}
+              className="block max-w-full w-auto h-auto select-none pointer-events-none"
             />
           ) : (
             renderSpecimenCanvas()

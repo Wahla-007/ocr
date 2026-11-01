@@ -128,10 +128,6 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                 for p in raster_doc.pages
             ]
 
-            # Reconstruct clean text summary from extracted fields
-            text_lines = [f"{f['label']}: {f['value']}" for f in enriched_fields]
-            reconstructed_markdown = "\n".join(text_lines)
-
             # Build tables_json from line_items or transactions if present
             tables_data = []
             extracted_raw = vision_result.extracted_data or {}
@@ -181,6 +177,18 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                         "rows": tx_rows,
                         "markdown": table_md,
                     })
+
+            # Build structured Markdown representation
+            lines = [f"# {doc_type.replace('_', ' ').title()}\n"]
+            for f in enriched_fields:
+                lbl = f.get("label") or f.get("key", "").replace("_", " ").title()
+                val = f.get("value")
+                if val is not None and str(val).strip():
+                    lines.append(f"- **{lbl}:** {val}")
+            if tables_data:
+                for tbl in tables_data:
+                    lines.append(f"\n{tbl.get('markdown', '')}\n")
+            reconstructed_markdown = "\n".join(lines)
 
             # 8. Persist Result
             engine_str = f"vision:{vision_result.model}"

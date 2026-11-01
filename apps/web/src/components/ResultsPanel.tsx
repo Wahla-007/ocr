@@ -16,6 +16,8 @@ import {
   Search,
   X,
   FileSpreadsheet,
+  Eye,
+  FileCode,
 } from "lucide-react";
 import { ExtractionResult, ExtractedField, ParsedTable } from "../lib/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/Tabs";
@@ -42,10 +44,11 @@ export function ResultsPanel({
 }: ResultsPanelProps) {
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
   const [fieldQuery, setFieldQuery] = useState("");
+  const [markdownMode, setMarkdownMode] = useState<"formatted" | "raw">("formatted");
 
   if (!result) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] text-[var(--ink-muted)]">
+      <div className="w-full h-full min-h-[580px] flex flex-col items-center justify-center p-8 text-center border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] text-[var(--ink-muted)]">
         <Sliders className="w-8 h-8 mb-2 opacity-50" />
         <p className="font-serif text-base font-bold text-[var(--ink-secondary)]">
           Light Table Standby
@@ -154,10 +157,14 @@ export function ResultsPanel({
     );
   });
 
+  const textContent = result.text || result.markdown || "No text extraction available.";
+  const markdownContent = result.markdown || result.text || "No text extraction available.";
+  const jsonContent = JSON.stringify(result, null, 2);
+
   return (
     <div className="w-full flex flex-col h-full border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] overflow-hidden shadow-card">
-      {/* Top Header Summary Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-xs font-mono select-none">
+      {/* Top Header Summary Bar - High Density */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-xs font-mono select-none shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[var(--ink-primary)]">
             Intelligence Report:
@@ -167,60 +174,61 @@ export function ResultsPanel({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-[11px]">
           {result.model_used && (
-            <span className="tabular-nums text-[var(--ink-secondary)] text-[11px] hidden sm:inline">
+            <span className="tabular-nums text-[var(--ink-secondary)] hidden md:inline">
               Model: <strong className="text-[var(--ink-primary)]">{result.model_used.replace("gemini/", "")}</strong>
             </span>
           )}
           {result.quality_score !== undefined && result.quality_score !== null && (
             <>
-              <span className="text-[var(--line-strong)] hidden sm:inline">|</span>
-              <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
+              <span className="text-[var(--line-strong)] hidden md:inline">|</span>
+              <span className="tabular-nums text-[var(--ink-secondary)]">
                 Quality: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{Math.round(result.quality_score * 100)}%</strong>
               </span>
             </>
           )}
           <span className="text-[var(--line-strong)]">|</span>
-          <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
+          <span className="tabular-nums text-[var(--ink-secondary)]">
             Overall: <strong className="text-[var(--ink-primary)]">{Math.round((result.overall_confidence || 0.98) * 100)}%</strong>
           </span>
           <span className="text-[var(--line-strong)]">|</span>
-          <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
+          <span className="tabular-nums text-[var(--ink-secondary)]">
             Latency: <strong className="text-[var(--ink-primary)]">{result.latency_ms || 48}ms</strong>
           </span>
         </div>
       </div>
 
-      {/* Main Tabs Container */}
-      <div className="flex-1 flex flex-col overflow-hidden p-4">
-        <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between pb-2 border-b border-[var(--line-hairline)]">
-            <TabsList className="border-none w-auto">
-              <TabsTrigger value="fields" className="flex items-center gap-1.5">
+      {/* Main Tabs Container - Fills Remaining Height with Minimal Outer Padding */}
+      <div className="flex-1 flex flex-col overflow-hidden p-2.5 sm:p-3 min-h-0">
+        <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden min-h-0">
+          {/* Tabs Navigation Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--line-hairline)] shrink-0 gap-2">
+            <TabsList className="border-none w-auto gap-1">
+              <TabsTrigger value="fields" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
                 <Sliders className="w-3.5 h-3.5" />
                 <span>Fields ({fields.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="tables" className="flex items-center gap-1.5">
+              <TabsTrigger value="tables" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
                 <TableIcon className="w-3.5 h-3.5" />
                 <span>Tables ({tables.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="text" className="flex items-center gap-1.5">
+              <TabsTrigger value="text" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
                 <FileText className="w-3.5 h-3.5" />
                 <span>Text</span>
               </TabsTrigger>
-              <TabsTrigger value="markdown" className="flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
+              <TabsTrigger value="markdown" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
+                <FileCode className="w-3.5 h-3.5" />
                 <span>Markdown</span>
               </TabsTrigger>
-              <TabsTrigger value="json" className="flex items-center gap-1.5">
+              <TabsTrigger value="json" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
                 <Code2 className="w-3.5 h-3.5" />
                 <span>JSON</span>
               </TabsTrigger>
             </TabsList>
 
             {/* Global Actions */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <Button
                 variant="outline"
                 size="xs"
@@ -233,22 +241,22 @@ export function ResultsPanel({
                 }
                 leftIcon={<Download className="w-3 h-3" />}
               >
-                Export
+                Export JSON
               </Button>
             </div>
           </div>
 
-          {/* Tab 1: Key Fields Inspector */}
-          <TabsContent value="fields" className="flex-1 flex flex-col overflow-hidden mt-3 space-y-2">
+          {/* Tab 1: Key Fields Inspector - Full Height Scrollable List */}
+          <TabsContent value="fields" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
             {/* Search & Bulk Copy Toolbar */}
-            <div className="flex items-center justify-between gap-2 pb-1">
+            <div className="flex items-center justify-between gap-2 shrink-0">
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
                 <input
                   type="text"
                   value={fieldQuery}
                   onChange={(e) => setFieldQuery(e.target.value)}
-                  placeholder="Filter fields by name or value..."
+                  placeholder="Filter extracted fields..."
                   className="w-full pl-8 pr-7 py-1 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
                 />
                 {fieldQuery && (
@@ -267,22 +275,18 @@ export function ResultsPanel({
                 onClick={handleCopyAllFields}
                 leftIcon={copiedTab === "all_fields" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
               >
-                {copiedTab === "all_fields" ? "Copied All!" : "Copy All"}
+                {copiedTab === "all_fields" ? "Copied All" : "Copy All"}
               </Button>
             </div>
 
-            {/* Match Counter */}
-            {fieldQuery && (
-              <p className="text-[10px] font-mono text-[var(--ink-muted)]">
-                Showing {filteredFields.length} of {fields.length} fields
-              </p>
-            )}
-
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+            {/* Scrollable Fields List - Fills 100% of the Available Height */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
               {filteredFields.length === 0 ? (
-                <p className="text-xs text-[var(--ink-muted)] py-6 text-center font-mono">
-                  {fields.length === 0 ? "No structured key-value fields detected." : "No fields matching query."}
-                </p>
+                <div className="h-full flex items-center justify-center p-6 text-center">
+                  <p className="text-xs text-[var(--ink-muted)] font-mono">
+                    {fields.length === 0 ? "No structured key-value fields detected." : "No fields matching query."}
+                  </p>
+                </div>
               ) : (
                 <div className="divide-y divide-[var(--line-hairline)] border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-base)]">
                   {filteredFields.map((field) => {
@@ -305,7 +309,7 @@ export function ResultsPanel({
                         <div className="space-y-0.5 min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-mono text-[11px] font-bold text-[var(--ink-primary)]">
-                              {field.label}
+                              {field.label || field.key}
                             </span>
                             <span className="text-[10px] font-mono text-[var(--ink-muted)]">
                               ({field.key})
@@ -342,153 +346,246 @@ export function ResultsPanel({
             </div>
           </TabsContent>
 
-          {/* Tab 2: Tables Inspector */}
-          <TabsContent value="tables" className="flex-1 overflow-y-auto mt-3 space-y-4 pr-1">
+          {/* Tab 2: Tables Inspector - Full Height */}
+          <TabsContent value="tables" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
             {tables.length === 0 ? (
-              <p className="text-xs text-[var(--ink-muted)] py-6 text-center font-mono">
-                No tabular regions detected on current document pages.
-              </p>
+              <div className="h-full flex items-center justify-center p-6 text-center">
+                <p className="text-xs text-[var(--ink-muted)] font-mono">
+                  No tabular regions detected on current document pages.
+                </p>
+              </div>
             ) : (
-              tables.map((table, tIdx) => (
-                <div key={tIdx} className="space-y-2 border border-[var(--line-hairline)] p-3 rounded-sm bg-[var(--surface-base)]">
-                  <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[var(--line-hairline)]">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[var(--ink-primary)]">
-                        Table #{tIdx + 1} (Page {table.page || 1})
-                      </span>
-                      <span className="text-[11px] text-[var(--ink-muted)]">
-                        • {table.rows?.length || 0} rows
-                      </span>
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+                {tables.map((table, tIdx) => (
+                  <div key={tIdx} className="space-y-2 border border-[var(--line-hairline)] p-2.5 rounded-sm bg-[var(--surface-base)]">
+                    <div className="flex items-center justify-between text-xs font-mono pb-1.5 border-b border-[var(--line-hairline)]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[var(--ink-primary)]">
+                          Table #{tIdx + 1} (Page {table.page || 1})
+                        </span>
+                        <span className="text-[11px] text-[var(--ink-muted)]">
+                          • {table.rows?.length || 0} rows
+                        </span>
+                      </div>
+
+                      {/* Table Export Actions */}
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleCopy(convertTableToCsv(table.rows), `table_${tIdx}_csv`)}
+                          leftIcon={copiedTab === `table_${tIdx}_csv` ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
+                        >
+                          {copiedTab === `table_${tIdx}_csv` ? "Copied CSV" : "Copy CSV"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleDownload(convertTableToCsv(table.rows), `table_${tIdx + 1}.csv`, "text/csv")}
+                          leftIcon={<Download className="w-3 h-3" />}
+                        >
+                          .csv
+                        </Button>
+                      </div>
                     </div>
 
-                    {/* Table Export Actions */}
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleCopy(convertTableToCsv(table.rows), `table_${tIdx}_csv`)}
-                        leftIcon={copiedTab === `table_${tIdx}_csv` ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
-                      >
-                        {copiedTab === `table_${tIdx}_csv` ? "Copied CSV" : "Copy CSV"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleDownload(convertTableToCsv(table.rows), `table_${tIdx + 1}.csv`, "text/csv")}
-                        leftIcon={<Download className="w-3 h-3" />}
-                      >
-                        .csv
-                      </Button>
+                    <div className="overflow-x-auto max-h-[360px] overflow-y-auto border border-[var(--line-hairline)] rounded-sm">
+                      <Table>
+                        <TableBody>
+                          {table.rows?.map((row, rIdx) => (
+                            <TableRow key={rIdx} className={rIdx === 0 ? "bg-[var(--surface-subtle)] font-bold text-[var(--ink-primary)] sticky top-0 z-10" : "hover:bg-[var(--surface-subtle)]"}>
+                              {Array.isArray(row)
+                                ? row.map((cell, cIdx) => (
+                                    <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-1.5 px-2">
+                                      {cell}
+                                    </TableCell>
+                                  ))
+                                : Object.values(row).map((cell: any, cIdx) => (
+                                    <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-1.5 px-2">
+                                      {cell}
+                                    </TableCell>
+                                  ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
-
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableBody>
-                        {table.rows?.map((row, rIdx) => (
-                          <TableRow key={rIdx} className={rIdx === 0 ? "bg-[var(--surface-subtle)] font-bold text-[var(--ink-primary)]" : "hover:bg-[var(--surface-subtle)]"}>
-                            {Array.isArray(row)
-                              ? row.map((cell, cIdx) => (
-                                  <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-1.5 px-2">
-                                    {cell}
-                                  </TableCell>
-                                ))
-                              : Object.values(row).map((cell: any, cIdx) => (
-                                  <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-1.5 px-2">
-                                    {cell}
-                                  </TableCell>
-                                ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </TabsContent>
 
-          {/* Tab 3: Plain Text */}
-          <TabsContent value="text" className="flex-1 overflow-y-auto mt-3 pr-1 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)]">
-              <span className="text-[var(--ink-secondary)]">Clean Plain Text Output</span>
+          {/* Tab 3: Plain Text - 100% Full Height Dark Code Editor (Zero Whitespace Below) */}
+          <TabsContent value="text" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
+              <span className="text-[var(--ink-secondary)] flex items-center gap-1.5">
+                <span>Clean Plain Text Output</span>
+                <span className="text-[var(--ink-muted)] text-[11px]">({textContent.length} chars)</span>
+              </span>
               <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => handleCopy(result.text || result.markdown || "", "plain_text")}
+                  onClick={() => handleCopy(textContent, "plain_text")}
                   leftIcon={copiedTab === "plain_text" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
                 >
-                  {copiedTab === "plain_text" ? "Copied" : "Copy"}
+                  {copiedTab === "plain_text" ? "Copied" : "Copy Text"}
                 </Button>
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => handleDownload(result.text || result.markdown || "", `${result.doc_type || "extraction"}.txt`, "text/plain")}
+                  onClick={() => handleDownload(textContent, `${result.doc_type || "extraction"}.txt`, "text/plain")}
                   leftIcon={<Download className="w-3 h-3" />}
                 >
                   Download .txt
                 </Button>
               </div>
             </div>
-            <div className="p-3 bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm font-mono text-xs text-[var(--ink-primary)] leading-relaxed whitespace-pre-wrap select-text">
-              {result.text || result.markdown || "No text extraction available."}
+
+            {/* Full Height Editor Frame */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-3.5 bg-[#0D1117] text-[#E6EDF3] border border-[#30363D] rounded-sm font-mono text-xs leading-relaxed whitespace-pre-wrap select-text shadow-inner">
+              {textContent}
             </div>
           </TabsContent>
 
-          {/* Tab 4: Markdown */}
-          <TabsContent value="markdown" className="flex-1 overflow-y-auto mt-3 pr-1 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)]">
-              <span className="text-[var(--ink-secondary)]">Structured Markdown</span>
+          {/* Tab 4: Markdown - 100% Full Height with Formatted / Raw Toggle (Zero Whitespace Below) */}
+          <TabsContent value="markdown" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--ink-secondary)]">Structured Markdown</span>
+                <div className="inline-flex rounded-sm border border-[var(--line-hairline)] bg-[var(--surface-sunken)] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setMarkdownMode("formatted")}
+                    className={`px-2 py-0.5 text-[10px] rounded-[1px] transition-colors ${
+                      markdownMode === "formatted"
+                        ? "bg-[var(--signal)] text-white font-bold"
+                        : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                    }`}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMarkdownMode("raw")}
+                    className={`px-2 py-0.5 text-[10px] rounded-[1px] transition-colors ${
+                      markdownMode === "raw"
+                        ? "bg-[var(--signal)] text-white font-bold"
+                        : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                    }`}
+                  >
+                    Raw
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => handleCopy(result.markdown || result.text || "", "markdown")}
+                  onClick={() => handleCopy(markdownContent, "markdown")}
                   leftIcon={copiedTab === "markdown" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
                 >
-                  {copiedTab === "markdown" ? "Copied" : "Copy"}
+                  {copiedTab === "markdown" ? "Copied" : "Copy Markdown"}
                 </Button>
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => handleDownload(result.markdown || result.text || "", `${result.doc_type || "extraction"}.md`, "text/markdown")}
+                  onClick={() => handleDownload(markdownContent, `${result.doc_type || "extraction"}.md`, "text/markdown")}
                   leftIcon={<Download className="w-3 h-3" />}
                 >
                   Download .md
                 </Button>
               </div>
             </div>
-            <div className="p-3 bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm font-mono text-xs text-[var(--ink-primary)] leading-relaxed whitespace-pre-wrap select-text">
-              {result.markdown || result.text || "No text extraction available."}
-            </div>
+
+            {/* Full Height Markdown View Frame */}
+            {markdownMode === "formatted" ? (
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-sm text-xs leading-relaxed select-text space-y-3 font-sans">
+                {markdownContent.split("\n").map((line, idx) => {
+                  if (line.startsWith("# ")) {
+                    return (
+                      <h1 key={idx} className="font-serif text-lg font-bold text-[var(--ink-primary)] border-b border-[var(--line-hairline)] pb-1.5 mt-1">
+                        {line.replace("# ", "")}
+                      </h1>
+                    );
+                  }
+                  if (line.startsWith("## ")) {
+                    return (
+                      <h2 key={idx} className="font-serif text-base font-bold text-[var(--ink-primary)] mt-3">
+                        {line.replace("## ", "")}
+                      </h2>
+                    );
+                  }
+                  if (line.startsWith("- **")) {
+                    const colonIdx = line.indexOf(":**");
+                    if (colonIdx !== -1) {
+                      const label = line.slice(4, colonIdx);
+                      const val = line.slice(colonIdx + 3).trim();
+                      return (
+                        <div key={idx} className="flex items-baseline gap-2 py-0.5 text-xs font-mono">
+                          <span className="font-bold text-[var(--ink-primary)] shrink-0">• {label}:</span>
+                          <span className="text-[var(--ink-secondary)] break-all">{val}</span>
+                        </div>
+                      );
+                    }
+                  }
+                  if (line.startsWith("|") && line.endsWith("|")) {
+                    return (
+                      <div key={idx} className="font-mono text-[11px] text-[var(--ink-primary)] bg-[var(--surface-sunken)] p-1 rounded-sm overflow-x-auto whitespace-pre">
+                        {line}
+                      </div>
+                    );
+                  }
+                  if (!line.trim()) return <div key={idx} className="h-1.5" />;
+                  return (
+                    <p key={idx} className="text-xs text-[var(--ink-secondary)] leading-relaxed">
+                      {line}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0 overflow-y-auto p-3.5 bg-[#0D1117] text-[#79C0FF] border border-[#30363D] rounded-sm font-mono text-xs leading-relaxed whitespace-pre-wrap select-text shadow-inner">
+                {markdownContent}
+              </div>
+            )}
           </TabsContent>
 
-          {/* Tab 5: JSON Payload */}
-          <TabsContent value="json" className="flex-1 overflow-y-auto mt-3 pr-1 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)]">
-              <span className="text-[var(--ink-secondary)]">Comprehensive JSON Intelligence</span>
+          {/* Tab 5: JSON Payload - 100% Full Height Dark Code Editor (Zero Whitespace Below) */}
+          <TabsContent value="json" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2 space-y-2 data-[state=active]:flex">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
+              <span className="text-[var(--ink-secondary)] flex items-center gap-1.5">
+                <span>Comprehensive JSON Intelligence</span>
+                <span className="text-[var(--ink-muted)] text-[11px]">({(jsonContent.length / 1024).toFixed(1)} KB)</span>
+              </span>
               <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => handleCopy(JSON.stringify(result, null, 2), "json")}
+                  onClick={() => handleCopy(jsonContent, "json")}
                   leftIcon={copiedTab === "json" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
                 >
-                  {copiedTab === "json" ? "Copied" : "Copy"}
+                  {copiedTab === "json" ? "Copied" : "Copy JSON"}
                 </Button>
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => handleDownload(JSON.stringify(result, null, 2), `${result.doc_type || "extraction"}_result.json`, "application/json")}
+                  onClick={() => handleDownload(jsonContent, `${result.doc_type || "extraction"}_result.json`, "application/json")}
                   leftIcon={<Download className="w-3 h-3" />}
                 >
                   Download .json
                 </Button>
               </div>
             </div>
-            <div className="p-3 bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm font-mono text-xs text-[var(--ink-primary)] leading-relaxed whitespace-pre select-text">
-              {JSON.stringify(result, null, 2)}
+
+            {/* Full Height JSON Editor Frame */}
+            <div className="flex-1 min-h-0 overflow-auto p-3.5 bg-[#0D1117] text-[#7EE787] border border-[#30363D] rounded-sm font-mono text-xs leading-relaxed select-text shadow-inner whitespace-pre">
+              {jsonContent}
             </div>
           </TabsContent>
         </Tabs>
