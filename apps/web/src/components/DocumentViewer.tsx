@@ -689,6 +689,16 @@ export function DocumentViewer({
               {result.doc_type.toUpperCase()}
             </Badge>
           )}
+          {result?.model_used && (
+            <Badge variant="outline" className="text-[10px] font-mono hidden md:inline-flex">
+              {result.model_used.replace("gemini/", "")}
+            </Badge>
+          )}
+          {result?.quality_score !== undefined && result?.quality_score !== null && (
+            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+              QS: {Math.round(result.quality_score * 100)}%
+            </Badge>
+          )}
         </div>
 
         {/* Tracing Layer & View Controls */}
@@ -869,6 +879,8 @@ export function DocumentViewer({
                 const isSelected = selectedFieldKey === field.key;
                 const isHovered = hoveredFieldKey === field.key;
                 const isLowConfidence = field.confidence < 0.85;
+                const isModelSource = field.box_source === "model";
+                const borderPattern = isModelSource ? "border-dashed" : "border-solid";
 
                 return (
                   <div
@@ -877,7 +889,7 @@ export function DocumentViewer({
                     onMouseEnter={() => onHoverField(field.key)}
                     onMouseLeave={() => onHoverField(null)}
                     style={getBboxStyle(field.bbox)}
-                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm select-none group
+                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm select-none group ${borderPattern}
                       ${
                         isSelected
                           ? "border-2 border-[#B24E2A] bg-[#C85A32]/35 ring-3 ring-[#C85A32] shadow-[0_0_12px_rgba(200,90,50,0.5)] z-30"
@@ -887,12 +899,13 @@ export function DocumentViewer({
                       }
                       ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.2)_3px,rgba(200,90,50,0.2)_6px)]" : ""}
                     `}
-                    title={`${field.label || field.key}: ${field.value}`}
+                    title={`${field.label || field.key}: ${field.value} (${field.box_source || "bbox"})`}
                   >
                     {/* Micro confidence tag when enabled */}
                     {showConfidences && (
                       <span className="absolute -top-3.5 left-0 px-1 py-0 bg-[#C85A32] text-white text-[8px] font-mono font-bold rounded-[1px] tracking-tight pointer-events-none opacity-90 truncate max-w-[120px] shadow-sm">
                         {(field.label || field.key || "Field").slice(0, 10)} {Math.round(field.confidence * 100)}%
+                        {isModelSource ? " [vis]" : " [snap]"}
                       </span>
                     )}
                   </div>

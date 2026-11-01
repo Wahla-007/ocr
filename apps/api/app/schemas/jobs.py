@@ -52,6 +52,7 @@ class ExtractedField(BaseModel):
     confidence: float
     page: int | None = 1
     bbox: BoundingBox | None = None
+    box_source: str | None = None
 
 
 class Block(BaseModel):
@@ -108,3 +109,10 @@ class JobResponse(BaseModel):
     latency_ms: int | None = None
     created_at: str | None = None
     completed_at: str | None = None
+
+    # New Vision & Quality fields
+    model_used: str | None = None
+    quality_score: float | None = None
+    validation_issues: list[dict[str, Any]] | None = None
+    page_dimensions: list[dict[str, Any]] | None = None
+    engine: str | None = None

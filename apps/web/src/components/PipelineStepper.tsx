@@ -9,17 +9,26 @@ interface PipelineStepperProps {
 }
 
 const STAGES = [
-  { key: "uploading", label: "Direct S3 Upload" },
-  { key: "normalizing", label: "Normalize & Deskew" },
-  { key: "parsing", label: "Docling Layout & OCR" },
-  { key: "classifying", label: "Neural Classify" },
-  { key: "extracting", label: "Schema Extraction" },
+  { key: "uploading", label: "Upload & Ingest" },
+  { key: "rasterizing", label: "Page Rasterize" },
+  { key: "classifying", label: "Vision Classify" },
+  { key: "extracting", label: "Vision Extract" },
+  { key: "validating", label: "Validate & Snap" },
 ];
 
 export function PipelineStepper({ progress }: PipelineStepperProps) {
   if (progress.stage === "idle") return null;
 
-  const currentIdx = STAGES.findIndex((s) => s.key === progress.stage);
+  // Normalize legacy stage keys if present
+  const stageKey =
+    progress.stage === "normalizing"
+      ? "rasterizing"
+      : progress.stage === "parsing"
+      ? "extracting"
+      : progress.stage;
+
+  const currentIdx = STAGES.findIndex((s) => s.key === stageKey);
+  const isEscalating = progress.stage === "escalating";
   const isCompleted = progress.stage === "completed";
   const isError = progress.stage === "error";
 
@@ -35,7 +44,13 @@ export function PipelineStepper({ progress }: PipelineStepperProps) {
             <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
           )}
           <span className="font-semibold text-white text-sm">
-            {isCompleted ? "Extraction Complete" : isError ? "Pipeline Failed" : "Processing Document..."}
+            {isCompleted
+              ? "Extraction Complete"
+              : isError
+              ? "Pipeline Failed"
+              : isEscalating
+              ? "Escalating Model..."
+              : "Processing Document..."}
           </span>
         </div>
         <span className="text-xs font-mono text-slate-400">

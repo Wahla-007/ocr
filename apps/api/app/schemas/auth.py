@@ -33,8 +33,13 @@ class AuthUserResponse(BaseModel):
     plan: str
     email_verified: bool
     is_admin: bool = False
+    third_party_processing_allowed: bool = True
     created_at: datetime
     last_login_at: datetime | None = None
+
+
+class SettingsUpdateRequest(BaseModel):
+    third_party_processing_allowed: bool | None = None
 
 
 class SessionInfoResponse(BaseModel):

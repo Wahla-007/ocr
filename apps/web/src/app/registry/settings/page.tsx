@@ -45,9 +45,43 @@ export default function SettingsSessionsPage() {
   const [revoking, setRevoking] = useState(false);
   const [revokedMessage, setRevokedMessage] = useState<string | null>(null);
 
+  const [thirdPartyAllowed, setThirdPartyAllowed] = useState<boolean>(true);
+  const [updatingSettings, setUpdatingSettings] = useState<boolean>(false);
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+
   useEffect(() => {
-    authApi.getCurrentUser().then(setUser).catch(() => setUser(null));
+    authApi.getCurrentUser().then((u) => {
+      setUser(u);
+      if (u && u.third_party_processing_allowed !== undefined) {
+        setThirdPartyAllowed(u.third_party_processing_allowed);
+      }
+    }).catch(() => setUser(null));
+
+    authApi.getSettings().then((s) => {
+      if (s && s.third_party_processing_allowed !== undefined) {
+        setThirdPartyAllowed(s.third_party_processing_allowed);
+      }
+    }).catch(() => {});
   }, []);
+
+  const handleToggleThirdParty = async () => {
+    setUpdatingSettings(true);
+    setSettingsMessage(null);
+    try {
+      const nextVal = !thirdPartyAllowed;
+      const res = await authApi.updateSettings({ third_party_processing_allowed: nextVal });
+      setThirdPartyAllowed(res.third_party_processing_allowed);
+      setSettingsMessage(
+        res.third_party_processing_allowed
+          ? "Third-party AI vision gateway processing enabled."
+          : "Third-party AI processing disabled. Strict local air-gapped mode active."
+      );
+    } catch (err: any) {
+      setSettingsMessage(err.message || "Failed to update AI provider settings.");
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
 
   const handleRevokeAllOtherSessions = async () => {
     if (!confirm("Are you sure you want to sign out of all other devices? This will invalidate all active browser sessions except this one.")) {
@@ -193,6 +227,45 @@ export default function SettingsSessionsPage() {
               </button>
             ))}
           </div>
+        </section>
+
+        {/* Section 2.5: Third-Party AI Gateway Processing & Privacy Controls */}
+        <section className="p-5 border border-[var(--line-strong)] bg-[var(--surface-base)] rounded-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-[var(--signal)] font-bold tracking-wider uppercase">
+                  Data Privacy & AI Gateway
+                </span>
+                <Badge variant={thirdPartyAllowed ? "signal" : "outline"}>
+                  {thirdPartyAllowed ? "OMNIRoute Gateway Active" : "Strict Air-Gapped Mode"}
+                </Badge>
+              </div>
+              <h2 className="text-lg font-serif font-bold text-[var(--ink-primary)] mt-1">
+                Third-Party AI Vision Gateway Processing
+              </h2>
+              <p className="text-xs text-[var(--ink-secondary)] max-w-2xl mt-0.5 leading-relaxed">
+                When enabled, document page images are routed through the secure OmniRoute AI gateway for multimodal classification and structured field extraction with sub-second latency. When disabled, cloud LLM providers are blocked and only local air-gapped models (e.g. Ollama) are permitted.
+              </p>
+            </div>
+
+            <Button
+              variant={thirdPartyAllowed ? "outline" : "primary"}
+              size="sm"
+              loading={updatingSettings}
+              onClick={handleToggleThirdParty}
+              className="shrink-0"
+            >
+              {thirdPartyAllowed ? "Disable Third-Party AI" : "Enable Third-Party AI"}
+            </Button>
+          </div>
+
+          {settingsMessage && (
+            <div className="p-2.5 bg-[var(--surface-subtle)] border border-[var(--line-hairline)] text-xs font-mono text-[var(--ink-primary)] rounded-sm flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{settingsMessage}</span>
+            </div>
+          )}
         </section>
 
         {/* Section 3: Danger Zone */}

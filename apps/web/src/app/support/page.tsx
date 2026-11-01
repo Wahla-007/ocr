@@ -450,6 +450,17 @@ export default function SupportPortalPage() {
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
+
+              {/* Privacy & Third-Party AI Gateway Processing Policy */}
+              <div className="p-3.5 rounded-xl border border-[var(--line-hairline)] bg-[var(--surface-sunken)]/40 space-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 font-medium text-[var(--ink-primary)]">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>AI Privacy &amp; Vision Processing</span>
+                </div>
+                <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
+                  By default, documents are processed using encrypted, zero-retention requests through our third-party AI gateway (OmniRoute). For air-gapped deployments, configure local Ollama vision models, or disable third-party processing in Settings.
+                </p>
+              </div>
             </div>
           </div>
         )}

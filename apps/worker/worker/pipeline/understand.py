@@ -6,6 +6,8 @@ If known, run schema extractor; else run generic DISCOVERY.
 Rule 11: Prompt-injection defense delimiters.
 """
 
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path

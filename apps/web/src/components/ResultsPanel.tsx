@@ -148,6 +148,20 @@ export function ResultsPanel({
         </div>
 
         <div className="flex items-center gap-2">
+          {result.model_used && (
+            <span className="tabular-nums text-[var(--ink-secondary)] text-[11px] hidden sm:inline">
+              Model: <strong className="text-[var(--ink-primary)]">{result.model_used.replace("gemini/", "")}</strong>
+            </span>
+          )}
+          {result.quality_score !== undefined && result.quality_score !== null && (
+            <>
+              <span className="text-[var(--line-strong)] hidden sm:inline">|</span>
+              <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
+                Quality: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{Math.round(result.quality_score * 100)}%</strong>
+              </span>
+            </>
+          )}
+          <span className="text-[var(--line-strong)]">|</span>
           <span className="tabular-nums text-[var(--ink-secondary)] text-[11px]">
             Overall: <strong className="text-[var(--ink-primary)]">{Math.round((result.overall_confidence || 0.98) * 100)}%</strong>
           </span>

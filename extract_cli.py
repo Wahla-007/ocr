@@ -497,6 +497,88 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
         except Exception as e:
             sys.stderr.write(f"PDF probe failed: {e}\n")
 
+    # Multimodal Vision Pipeline (Stage 2 & Stage 3/4)
+    try:
+        from worker.pipeline.rasterize import rasterize_document
+        from worker.pipeline.understand import understand_document_vision
+
+        raster_doc = rasterize_document(data, mime, max_pages=max_pages)
+        if raster_doc and raster_doc.pages:
+            doc_type, enriched_fields, vision_res, issues, quality_score = (
+                await understand_document_vision(raster_doc.pages, schema_type="auto")
+            )
+            latency_ms = round((time.perf_counter() - t0) * 1000)
+            preview_img = (
+                f"data:{raster_doc.pages[0].mime_type};base64,{base64.b64encode(raster_doc.pages[0].image_bytes).decode('ascii')}"
+                if raster_doc.pages
+                else None
+            )
+            fields_dict = {f.key: f.value for f in enriched_fields}
+            md_content = (
+                vision_res.extracted_data.get("markdown", "")
+                if vision_res and vision_res.extracted_data
+                else ""
+            )
+            plain_txt = markdown_to_plain_text(md_content) if md_content else ""
+
+            return {
+                "id": f"ocr_{uuid.uuid4().hex[:24]}",
+                "pages": raster_doc.total_pages,
+                "document_type": doc_type,
+                "detected_type": doc_type,
+                "type_match": True,
+                "fields": fields_dict,
+                "raw_fields": [f.model_dump() for f in enriched_fields],
+                "quality_score": round(quality_score, 4),
+                "model_used": vision_res.model if vision_res else "vision",
+                "validation": {
+                    "is_valid": quality_score >= 0.8,
+                    "checks": [i.model_dump() for i in issues],
+                },
+                "warnings": [],
+                "usage": {"credits": raster_doc.total_pages * 2, "remaining_today": 500},
+                "brand_name": fields_dict.get("supplier_name") or fields_dict.get("vendor_name"),
+                "vendor_name": fields_dict.get("supplier_name") or fields_dict.get("vendor_name"),
+                "customer_name": fields_dict.get("customer_name") or fields_dict.get("buyer_name"),
+                "full_name": fields_dict.get("full_name"),
+                "invoice_number": fields_dict.get("invoice_number"),
+                "line_items": fields_dict.get("line_items", []),
+                "id_number": fields_dict.get("id_number") or fields_dict.get("document_number"),
+                "issue_date": fields_dict.get("issue_date") or fields_dict.get("invoice_date"),
+                "due_date": fields_dict.get("due_date"),
+                "total_amount": clean_num(
+                    fields_dict.get("total_amount") or fields_dict.get("total")
+                ),
+                "currency": fields_dict.get("currency") or "USD",
+                "tables": (
+                    vision_res.extracted_data.get("tables", [])
+                    if vision_res.extracted_data
+                    else []
+                ),
+                "blocks": [],
+                "detected_lines": [],
+                "page_sizes": [
+                    {"page": p.page_number, "width": p.width, "height": p.height}
+                    for p in raster_doc.pages
+                ],
+                "preview_image": preview_img,
+                "markdown": md_content,
+                "text": plain_txt,
+                "raw_text": plain_txt,
+                "doc_type": doc_type,
+                "doc_type_confidence": 0.98,
+                "overall_confidence": round(quality_score, 4),
+                "summary": (
+                    vision_res.extracted_data.get("summary", "")
+                    if vision_res.extracted_data
+                    else ""
+                ),
+                "latency_ms": latency_ms,
+                "page_count": raster_doc.total_pages,
+            }
+    except Exception as exc:
+        sys.stderr.write(f"Multimodal vision pipeline fallback to local parse: {exc}\n")
+
     # 1. Normalize (including auto-orientation)
     norm = normalize_document(data, mime, max_pages=max_pages)
     working_data = (

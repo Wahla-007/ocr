@@ -32,7 +32,7 @@ export default function SelfHostedSolutionPage() {
 
   const DOCKER_COMPOSE_SNIPPET = `version: "3.8"
 
-# OpenOCR Self-Hosted: Pure CPU | Air-Gapped Perimeter | Zero External Calls
+# OpenOCR Self-Hosted: Local Vision Models | Air-Gapped Perimeter | Zero External Calls
 services:
   openocr-api:
     image: openocr/api:1.0.0
@@ -47,12 +47,14 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_PROVIDER=minio
       - S3_ENDPOINT_URL=http://minio:9000
-      - LLM_PROVIDER=local_ollama
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - OLLAMA_MODEL=qwen2.5vl
     depends_on:
       - postgres
       - redis
       - minio
+      - ollama
 
   openocr-worker:
     image: openocr/worker:1.0.0
@@ -60,14 +62,29 @@ services:
     environment:
       - ENV=production
       - OPENOCR_SELF_HOSTED=true
-      - OCR_ENGINE=docling
+      - PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - OLLAMA_MODEL=qwen2.5vl
       - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - ollama
     # Strict Air-Gap: Worker has zero egress permissions
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
-      - /tmp:size=2G`;
+      - /tmp:size=2G
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+
+volumes:
+  ollama_models:`;
 
   const HELM_SNIPPET = `helm repo add openocr https://charts.openocr.io
 helm repo update

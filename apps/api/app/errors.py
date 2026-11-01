@@ -25,6 +25,9 @@ class APIError(HTTPException):
         self.message = message
 
 
+OpenOCRError = APIError
+
+
 class FileTooLargeError(APIError):
     def __init__(self, message: str = "File size exceeds the allowed limit for your plan."):
         super().__init__(

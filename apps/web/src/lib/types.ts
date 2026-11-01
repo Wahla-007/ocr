@@ -12,6 +12,7 @@ export interface ExtractedField {
   confidence: number;
   page?: number;
   bbox?: BoundingBox | null;
+  box_source?: "model" | "text_layer" | string;
 }
 
 export interface ParsedTable {
@@ -260,6 +261,10 @@ export interface ExtractionResult {
   engine_version?: string;
   schema_version?: string;
   prompt_version?: string;
+  model_used?: string;
+  quality_score?: number;
+  validation_issues?: any[];
+  page_dimensions?: any[];
   cached?: boolean;
   credits_charged?: number;
   latency_ms?: number;
@@ -267,7 +272,18 @@ export interface ExtractionResult {
 }
 
 export interface PipelineProgress {
-  stage: "idle" | "uploading" | "normalizing" | "parsing" | "classifying" | "extracting" | "completed" | "error";
+  stage:
+    | "idle"
+    | "uploading"
+    | "rasterizing"
+    | "normalizing"
+    | "parsing"
+    | "classifying"
+    | "extracting"
+    | "validating"
+    | "escalating"
+    | "completed"
+    | "error";
   progressPercent: number;
   message: string;
   elapsedMs: number;

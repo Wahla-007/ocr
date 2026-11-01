@@ -8,6 +8,7 @@ export interface AuthUser {
   plan: string;
   email_verified: boolean;
   is_admin?: boolean;
+  third_party_processing_allowed?: boolean;
   created_at: string;
   last_login_at?: string;
 }
@@ -165,6 +166,21 @@ export const authApi = {
   async revokeAllOtherSessions(): Promise<void> {
     return apiClient<void>("/v1/auth/sessions/revoke-all", {
       method: "POST",
+    });
+  },
+
+  async getSettings(): Promise<{ third_party_processing_allowed: boolean }> {
+    return apiClient<{ third_party_processing_allowed: boolean }>("/v1/auth/settings", {
+      method: "GET",
+    });
+  },
+
+  async updateSettings(body: {
+    third_party_processing_allowed?: boolean;
+  }): Promise<{ third_party_processing_allowed: boolean }> {
+    return apiClient<{ third_party_processing_allowed: boolean }>("/v1/auth/settings", {
+      method: "PATCH",
+      body: JSON.stringify(body),
     });
   },
 

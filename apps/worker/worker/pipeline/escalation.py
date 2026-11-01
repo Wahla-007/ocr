@@ -25,7 +25,7 @@ DEFAULT_ESCALATION_CHAIN = [
 MAX_ATTEMPTS_HARD_CAP = 3
 
 
-class EscalationExhaustedError(OpenOCRError):
+class EscalationExhaustedError(Exception):
     """Raised when all models in the escalation chain have failed validation."""
 
     def __init__(self, message: str, attempts: int, last_model: str):

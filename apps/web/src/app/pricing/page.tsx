@@ -68,7 +68,7 @@ export default function PricingPage() {
   const faqItems = [
     {
       q: "How does OpenOCR achieve $0.0010/page compared to AWS ($0.015) and Google ($0.05)?",
-      a: "OpenOCR runs on optimized pure CPU execution (<20MB RAM per worker) utilizing deterministic layout parsing (Docling/RapidOCR) and targeted local inference. Zero expensive GPU cloud markups.",
+      a: "OpenOCR pairs lightweight model-free rasterization with vision-capable multimodal models routed through our OmniRoute gateway, eliminating legacy heavyweight OCR engines and cloud markups.",
     },
     {
       q: "What happens when I exceed my included monthly volume?",
@@ -76,11 +76,11 @@ export default function PricingPage() {
     },
     {
       q: "Are documents retained or used for model training?",
-      a: "Never. OpenOCR stores zero document bytes in operational logs. Customer documents are strictly processed in isolated worker containers and purged per your data retention schedule.",
+      a: "Never. OpenOCR maintains a strict zero-knowledge policy with zero raw document bytes written to operational logs. Documents are processed via encrypted, zero-retention calls through our third-party AI vision gateway (OmniRoute) unless local air-gapped mode (Ollama) is selected or third-party processing is disabled in settings.",
     },
     {
       q: "Can I deploy OpenOCR entirely offline in an air-gapped network?",
-      a: "Yes. Our Self-Hosted Enterprise plan delivers complete Docker Compose and Helm distribution kits designed to run with zero outbound internet egress.",
+      a: "Yes. Our Self-Hosted Enterprise plan delivers complete Docker Compose and Helm distribution kits designed to run with local Ollama vision models and zero outbound internet egress.",
     },
   ];
 

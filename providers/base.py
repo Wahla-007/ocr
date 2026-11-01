@@ -122,6 +122,14 @@ class RasterPage(BaseModel):
     mime_type: str = "image/jpeg"
     text_layer: TextLayer | None = None
 
+    @property
+    def width(self) -> int:
+        return self.width_px
+
+    @property
+    def height(self) -> int:
+        return self.height_px
+
 
 class AttemptMetadata(BaseModel):
     attempt: int

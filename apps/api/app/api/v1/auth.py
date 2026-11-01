@@ -15,6 +15,7 @@ from app.schemas.auth import (
     ResendVerificationRequest,
     ResetPasswordRequest,
     SessionInfoResponse,
+    SettingsUpdateRequest,
     SignupRequest,
     SignupResponse,
     VerifyEmailRequest,
@@ -116,6 +117,52 @@ async def get_current_user(
 ) -> User:
     """Convenience dependency returning only the authenticated user."""
     return auth_data[0]
+
+
+async def get_optional_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Extracts authenticated user if session token or Authorization header is present, else None."""
+    try:
+        raw_token = extract_session_token(request)
+        auth_header = request.headers.get("Authorization")
+        if not raw_token and auth_header and auth_header.startswith("Bearer "):
+            raw_token = auth_header[7:].strip()
+
+        if not raw_token:
+            return None
+
+        token_hash = hash_token(raw_token)
+        stmt = (
+            select(DbSession, User)
+            .join(User, DbSession.user_id == User.id)
+            .where(
+                DbSession.session_hash == token_hash,
+                DbSession.revoked_at.is_(None),
+                DbSession.expires_at > utc_now(),
+            )
+        )
+        res = await db.execute(stmt)
+        row = res.first()
+        if row and row[1].is_active:
+            return row[1]
+
+        # Check API key if not a session
+        from app.db.models import ApiKey
+        from sqlalchemy.orm import selectinload
+        key_stmt = (
+            select(ApiKey)
+            .options(selectinload(ApiKey.user))
+            .where(ApiKey.key_hash == token_hash, ApiKey.is_active == True)
+        )
+        key_res = await db.execute(key_stmt)
+        api_key_obj = key_res.scalars().first()
+        if api_key_obj and api_key_obj.user and api_key_obj.user.is_active:
+            return api_key_obj.user
+    except Exception:
+        pass
+    return None
 
 
 @router.post("/signup", response_model=SignupResponse)
@@ -527,9 +574,39 @@ async def get_me(
         plan=user.plan,
         email_verified=bool(user.email_verified_at),
         is_admin=is_admin,
+        third_party_processing_allowed=user.third_party_processing_allowed,
         created_at=user.created_at,
         last_login_at=user.last_login_at,
     )
+
+
+@router.get("/settings")
+async def get_settings(
+    user_and_session: tuple[User, DbSession] = Depends(get_current_user_and_session),
+):
+    """Fetches user account settings, including AI provider permissions."""
+    user, _ = user_and_session
+    return {
+        "third_party_processing_allowed": user.third_party_processing_allowed,
+    }
+
+
+@router.patch("/settings")
+async def update_settings(
+    body: SettingsUpdateRequest,
+    user_and_session: tuple[User, DbSession] = Depends(get_current_user_and_session),
+    db: AsyncSession = Depends(get_db),
+):
+    """Updates user account settings."""
+    user, _ = user_and_session
+    if body.third_party_processing_allowed is not None:
+        user.third_party_processing_allowed = body.third_party_processing_allowed
+        await db.commit()
+        await db.refresh(user)
+
+    return {
+        "third_party_processing_allowed": user.third_party_processing_allowed,
+    }
 
 
 @router.get("/sessions", response_model=list[SessionInfoResponse])

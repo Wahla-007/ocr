@@ -5,14 +5,18 @@ Adheres strictly to Section 5 API contracts.
 
 import asyncio
 import hashlib
+import json
 import re
 import time
 import uuid
 from datetime import UTC, datetime
 
 import httpx
+import redis.asyncio as aioredis
+from starlette.responses import StreamingResponse
+from app.api.v1.auth import get_optional_user
 from app.config import settings
-from app.db.models import Job, Result
+from app.db.models import Job, Result, User
 from app.db.session import get_db
 from app.errors import BadRequestError, JobNotFoundError
 from app.logging import logger
@@ -93,6 +97,7 @@ def build_job_response(job: Job) -> JobResponse:
                     confidence=f.get("confidence", 0.0),
                     page=f.get("page", 1),
                     bbox=BoundingBox(**f["bbox"]) if f.get("bbox") else None,
+                    box_source=f.get("box_source"),
                 )
                 for f in res.fields_json
             ]
@@ -125,7 +130,23 @@ def build_job_response(job: Job) -> JobResponse:
             prompt=res.prompt_version,
         )
 
-        resp.page_sizes = [PageSize(page=1, width=1000.0, height=1400.0)]
+        resp.model_used = res.model_used
+        resp.quality_score = res.quality_score
+        resp.validation_issues = res.validation_issues_json
+        resp.page_dimensions = res.pages_json
+        resp.engine = res.engine_version
+
+        if res.pages_json:
+            resp.page_sizes = [
+                PageSize(
+                    page=p.get("page", 1),
+                    width=float(p.get("width", 1000.0)),
+                    height=float(p.get("height", 1400.0)),
+                )
+                for p in res.pages_json
+            ]
+        else:
+            resp.page_sizes = [PageSize(page=1, width=1000.0, height=1400.0)]
 
     return resp
 
@@ -141,12 +162,14 @@ async def extract_document(
     background_tasks: BackgroundTasks,
     wait: bool = Query(False, description="Wait for completion up to 30s"),
     format: str = Query("json", description="Output format: json, markdown, or text"),
+    schema: str = Query("auto", description="Target document schema or auto"),
     file: UploadFile | None = File(None),
     body: ExtractUrlRequest | None = None,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
     authorization: str | None = Header(None),
 ):
-    plan_name = "free" if authorization else "anonymous"
+    plan_name = "free" if authorization or user else "anonymous"
     plan = settings.get_plan_limits(plan_name)
     inject_quota_headers(response, plan)
 
@@ -192,15 +215,22 @@ async def extract_document(
         # Check if multipart sent file_key or url as form field
         raise BadRequestError("Must provide document via file upload, 'url', or 'file_key'.")
 
-    # 2. Compute SHA-256 for Idempotency and Caching (Rule 8)
-    file_hash = hashlib.sha256(content_bytes).hexdigest()
+    # 2. Compute SHA-256 for Idempotency and Caching with Prompt Version, Schema Type, and Extraction Mode
+    dedup_input = (
+        content_bytes
+        + f":{settings.PROMPT_VERSION}:{schema}:{settings.EXTRACTION_MODE}".encode("utf-8")
+    )
+    file_hash = hashlib.sha256(dedup_input).hexdigest()
     job_id = f"job_{uuid.uuid4().hex[:12]}"
 
-    # Check for existing completed job with identical content hash
+    user_id = user.id if user else None
+    user_filter = Job.user_id == user_id if user_id else Job.user_id.is_(None)
+
+    # Check for existing completed job with identical content hash for this tenant
     stmt = (
         select(Job)
         .options(selectinload(Job.result))
-        .where(Job.file_hash == file_hash, Job.status == "done")
+        .where(Job.file_hash == file_hash, Job.status == "done", user_filter)
         .order_by(Job.created_at.desc())
     )
     result = await db.execute(stmt)
@@ -208,12 +238,12 @@ async def extract_document(
 
     if existing_job and existing_job.result:
         logger.info(
-            f"Cache HIT for file_hash {file_hash}. Returning cached job result at 0 credits."
+            f"Cache HIT for file_hash {file_hash} (tenant: {user_id}). Returning cached job result at 0 credits."
         )
         # Create a new job marked as cached with 0 credits charged
         new_job = Job(
             id=job_id,
-            user_id=None,
+            user_id=user_id,
             status="done",
             file_key=file_key,
             file_hash=file_hash,
@@ -241,6 +271,10 @@ async def extract_document(
             engine_version=cached_res.engine_version,
             schema_version=cached_res.schema_version,
             prompt_version=cached_res.prompt_version,
+            model_used=cached_res.model_used,
+            quality_score=cached_res.quality_score,
+            validation_issues_json=cached_res.validation_issues_json,
+            pages_json=cached_res.pages_json,
         )
         db.add(new_result)
         new_job.result = new_result
@@ -258,7 +292,7 @@ async def extract_document(
     # 3. New Job: create in 'queued' status
     job = Job(
         id=job_id,
-        user_id=None,
+        user_id=user_id,
         status="queued",
         file_key=file_key,
         file_hash=file_hash,
@@ -316,9 +350,10 @@ async def get_job_status(
     response: Response,
     format: str = Query("json", description="Output format: json, markdown, or text"),
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
     authorization: str | None = Header(None),
 ):
-    plan_name = "free" if authorization else "anonymous"
+    plan_name = "free" if authorization or user else "anonymous"
     plan = settings.get_plan_limits(plan_name)
     inject_quota_headers(response, plan)
 
@@ -329,9 +364,113 @@ async def get_job_status(
     if not job:
         raise JobNotFoundError(id)
 
+    # Tenant check: if job has a user_id and an authenticated user requested it, ensure tenant match
+    if job.user_id and user and job.user_id != user.id and not getattr(user, "is_admin", False):
+        raise JobNotFoundError(id)
+
     job_resp = build_job_response(job)
     if format.lower() == "markdown":
         return Response(content=job_resp.markdown or "", media_type="text/markdown")
     elif format.lower() in ["text", "plain_text", "txt"]:
         return Response(content=job_resp.text or "", media_type="text/plain")
     return job_resp
+
+
+@router.get(
+    "/jobs/{id}/stream",
+    summary="Stream extraction job progress events via SSE",
+)
+async def stream_job_events(
+    id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
+    """Emits server-sent events as the worker transitions through vision pipeline stages:
+
+    rasterizing, classifying, extracting, validating, escalating, completed, failed.
+    """
+    stmt = select(Job).options(selectinload(Job.result)).where(Job.id == id)
+    res = await db.execute(stmt)
+    job = res.scalars().first()
+
+    if not job:
+        raise JobNotFoundError(id)
+
+    if job.user_id and user and job.user_id != user.id and not getattr(user, "is_admin", False):
+        raise JobNotFoundError(id)
+
+    async def event_generator():
+        # If job is already finished, yield terminal event immediately
+        if job.status in ["done", "completed"]:
+            payload = {
+                "job_id": job.id,
+                "stage": "completed",
+                "timestamp": datetime.now(UTC).isoformat(),
+                "status": "completed",
+            }
+            yield f"event: completed\ndata: {json.dumps(payload)}\n\n"
+            return
+        elif job.status == "failed":
+            payload = {
+                "job_id": job.id,
+                "stage": "failed",
+                "timestamp": datetime.now(UTC).isoformat(),
+                "status": "failed",
+                "error": job.error_code or "Job failed",
+                "error_code": job.error_code,
+            }
+            yield f"event: failed\ndata: {json.dumps(payload)}\n\n"
+            return
+
+        # Connect to Redis PubSub
+        r = aioredis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
+        pubsub = r.pubsub()
+        channel_name = f"sse:jobs:{id}"
+        await pubsub.subscribe(channel_name)
+
+        try:
+            # Yield initial state
+            yield f"event: queued\ndata: {json.dumps({'job_id': id, 'stage': 'queued', 'timestamp': datetime.now(UTC).isoformat()})}\n\n"
+
+            timeout_seconds = 120
+            start_stream = time.time()
+            while time.time() - start_stream < timeout_seconds:
+                if await request.is_disconnected():
+                    break
+
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message and message.get("type") == "message":
+                    raw_data = message.get("data")
+                    if isinstance(raw_data, bytes):
+                        raw_data = raw_data.decode("utf-8")
+
+                    stage = "message"
+                    try:
+                        parsed = json.loads(raw_data)
+                        stage = parsed.get("stage", "message")
+                    except Exception:
+                        pass
+
+                    yield f"event: {stage}\ndata: {raw_data}\n\n"
+
+                    if stage in ["completed", "failed"]:
+                        break
+                else:
+                    # Periodically yield a keepalive ping comment
+                    yield ": ping\n\n"
+                    await asyncio.sleep(0.5)
+        finally:
+            await pubsub.unsubscribe(channel_name)
+            await pubsub.close()
+            await r.aclose()
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
