@@ -29,7 +29,7 @@ logging.basicConfig(
 
 # Ensure paths
 ROOT_DIR = Path(__file__).resolve().parent
-for p in [ROOT_DIR, ROOT_DIR / "apps" / "api", ROOT_DIR / "apps" / "worker"]:
+for p in [ROOT_DIR, ROOT_DIR / "apps" / "api", ROOT_DIR / "apps" / "worker", ROOT_DIR / "providers"]:
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
@@ -513,13 +513,104 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 if raster_doc.pages
                 else None
             )
-            fields_dict = {f.key: f.value for f in enriched_fields}
+            # Construct fields_dict and raw_fields list safely handling dict and object types
+            fields_dict = {}
+            raw_fields_list = []
+            for f in enriched_fields:
+                if isinstance(f, dict):
+                    k = f.get("key")
+                    v = f.get("value")
+                    raw_fields_list.append(f)
+                else:
+                    k = getattr(f, "key", None)
+                    v = getattr(f, "value", None)
+                    raw_fields_list.append(f.model_dump() if hasattr(f, "model_dump") else dict(f))
+                if k is not None and v is not None:
+                    fields_dict[k] = v
+
+            checks_list = [
+                i if isinstance(i, dict) else (i.model_dump() if hasattr(i, "model_dump") else dict(i))
+                for i in issues
+            ]
+
+            # Construct structured tables for line items and bank transactions
+            extracted_tables: list[dict[str, Any]] = (
+                vision_res.extracted_data.get("tables", [])
+                if (vision_res and vision_res.extracted_data)
+                else []
+            )
+
+            raw_vfields = (
+                vision_res.extracted_data.get("fields", {})
+                if (vision_res and vision_res.extracted_data)
+                else {}
+            )
+            line_items = raw_vfields.get("line_items") or raw_vfields.get("items") or []
+            if line_items and isinstance(line_items, list) and not extracted_tables:
+                table_rows: list[list[str]] = [["Description", "Quantity", "Unit Price", "Total Amount"]]
+                for item in line_items:
+                    if isinstance(item, dict):
+                        desc = str(item.get("description") or item.get("name") or "Item").strip()
+                        qty = str(item.get("quantity") or item.get("qty") or "1").strip()
+                        unit_price = str(item.get("unit_price") or item.get("price") or "").strip()
+                        total = str(item.get("amount") or item.get("total") or "").strip()
+                        table_rows.append([desc, qty, unit_price, total])
+                if len(table_rows) > 1:
+                    md_table = "\n".join([
+                        "| " + " | ".join(row) + " |"
+                        for row in [table_rows[0], ["---"] * len(table_rows[0])] + table_rows[1:]
+                    ])
+                    extracted_tables.append({"page": 1, "rows": table_rows, "markdown": md_table})
+
+            transactions = raw_vfields.get("transactions") or []
+            if transactions and isinstance(transactions, list) and not extracted_tables:
+                table_rows = [["Date", "Description", "Debit", "Credit", "Balance"]]
+                for tx in transactions:
+                    if isinstance(tx, dict):
+                        t_date = str(tx.get("date") or "").strip()
+                        t_desc = str(tx.get("description") or "").strip()
+                        t_debit = str(tx.get("debit") or "").strip()
+                        t_credit = str(tx.get("credit") or "").strip()
+                        t_bal = str(tx.get("balance") or "").strip()
+                        table_rows.append([t_date, t_desc, t_debit, t_credit, t_bal])
+                if len(table_rows) > 1:
+                    md_table = "\n".join([
+                        "| " + " | ".join(row) + " |"
+                        for row in [table_rows[0], ["---"] * len(table_rows[0])] + table_rows[1:]
+                    ])
+                    extracted_tables.append({"page": 1, "rows": table_rows, "markdown": md_table})
+
             md_content = (
                 vision_res.extracted_data.get("markdown", "")
                 if vision_res and vision_res.extracted_data
                 else ""
             )
+            if not md_content:
+                lines = [f"# {doc_type.replace('_', ' ').title()}\n"]
+                for f in raw_fields_list:
+                    k = f.get("key", "")
+                    lbl = f.get("label") or k.replace("_", " ").title()
+                    v = f.get("value")
+                    if v is not None and str(v).strip():
+                        lines.append(f"- **{lbl}:** {v}")
+                if extracted_tables:
+                    for tbl in extracted_tables:
+                        lines.append(f"\n{tbl.get('markdown', '')}\n")
+                md_content = "\n".join(lines)
             plain_txt = markdown_to_plain_text(md_content) if md_content else ""
+
+            # Synthesize block elements for visual text tracing
+            synthesized_blocks = []
+            for f in raw_fields_list:
+                bbox_info = f.get("bbox")
+                if bbox_info and isinstance(bbox_info, dict):
+                    synthesized_blocks.append({
+                        "type": "field",
+                        "text": str(f.get("value", "")),
+                        "page": f.get("page", 1),
+                        "confidence": f.get("confidence", 0.98),
+                        "bbox": bbox_info,
+                    })
 
             return {
                 "id": f"ocr_{uuid.uuid4().hex[:24]}",
@@ -527,22 +618,22 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 "document_type": doc_type,
                 "detected_type": doc_type,
                 "type_match": True,
-                "fields": fields_dict,
-                "raw_fields": [f.model_dump() for f in enriched_fields],
+                "fields": raw_fields_list,
+                "raw_fields": raw_fields_list,
                 "quality_score": round(quality_score, 4),
                 "model_used": vision_res.model if vision_res else "vision",
                 "validation": {
                     "is_valid": quality_score >= 0.8,
-                    "checks": [i.model_dump() for i in issues],
+                    "checks": checks_list,
                 },
                 "warnings": [],
                 "usage": {"credits": raster_doc.total_pages * 2, "remaining_today": 500},
-                "brand_name": fields_dict.get("supplier_name") or fields_dict.get("vendor_name"),
-                "vendor_name": fields_dict.get("supplier_name") or fields_dict.get("vendor_name"),
+                "brand_name": fields_dict.get("vendor_name") or fields_dict.get("supplier_name"),
+                "vendor_name": fields_dict.get("vendor_name") or fields_dict.get("supplier_name"),
                 "customer_name": fields_dict.get("customer_name") or fields_dict.get("buyer_name"),
                 "full_name": fields_dict.get("full_name"),
                 "invoice_number": fields_dict.get("invoice_number"),
-                "line_items": fields_dict.get("line_items", []),
+                "line_items": line_items,
                 "id_number": fields_dict.get("id_number") or fields_dict.get("document_number"),
                 "issue_date": fields_dict.get("issue_date") or fields_dict.get("invoice_date"),
                 "due_date": fields_dict.get("due_date"),
@@ -550,13 +641,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     fields_dict.get("total_amount") or fields_dict.get("total")
                 ),
                 "currency": fields_dict.get("currency") or "USD",
-                "tables": (
-                    vision_res.extracted_data.get("tables", [])
-                    if vision_res.extracted_data
-                    else []
-                ),
-                "blocks": [],
-                "detected_lines": [],
+                "tables": extracted_tables,
+                "blocks": synthesized_blocks,
+                "detected_lines": [str(f.get("value")) for f in raw_fields_list if f.get("value")],
                 "page_sizes": [
                     {"page": p.page_number, "width": p.width, "height": p.height}
                     for p in raster_doc.pages
@@ -569,9 +656,8 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                 "doc_type_confidence": 0.98,
                 "overall_confidence": round(quality_score, 4),
                 "summary": (
-                    vision_res.extracted_data.get("summary", "")
-                    if vision_res.extracted_data
-                    else ""
+                    vision_res.extracted_data.get("summary")
+                    or f"Extracted {len(enriched_fields)} fields from {doc_type} with {round(quality_score * 100)}% confidence."
                 ),
                 "latency_ms": latency_ms,
                 "page_count": raster_doc.total_pages,

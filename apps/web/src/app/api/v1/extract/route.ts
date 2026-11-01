@@ -131,8 +131,18 @@ export async function POST(req: NextRequest) {
       let stdout = "";
       let stderr = "";
       try {
+        const pythonPath = [
+          resolvedRoot,
+          path.join(resolvedRoot, "apps", "worker"),
+          path.join(resolvedRoot, "providers"),
+        ].join(path.delimiter);
+
         const proc = spawn(pythonExe, [cliScript, tempFilePath, "--max-pages", String(maxPages)], {
           cwd: resolvedRoot,
+          env: {
+            ...process.env,
+            PYTHONPATH: pythonPath,
+          },
         });
 
         proc.stdout.on("data", (d) => {
