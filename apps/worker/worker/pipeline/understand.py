@@ -21,6 +21,10 @@ from providers.base import (
     ExtractionResult,
     LLMProvider,
     ParsedBlock,
+    RasterPage,
+    ValidationIssue,
+    VisionProvider,
+    VisionResult,
 )
 from providers.llm.factory import get_llm_provider
 
@@ -139,3 +143,95 @@ async def classify_and_extract(
     extraction.fields = map_fields_to_bboxes(extraction.fields, blocks)
 
     return classification, extraction
+
+
+async def understand_document_vision(
+    pages: list[RasterPage],
+    schema_type: str | None = None,
+    vision_provider: VisionProvider | None = None,
+    escalation_policy: EscalationPolicy | None = None,
+    with_boxes: bool = True,
+) -> tuple[str, list[dict[str, Any]], VisionResult, list[ValidationIssue], float]:
+    """Executes Vision Understanding Pipeline (Stage 3 & Stage 4):
+
+    - Auto-classifies doc_type if not specified.
+    - Escalates models according to EscalationPolicy on deterministic errors.
+    - Validates business rules (MRZ check digits, arithmetic balance).
+    - Computes objective quality score.
+    - Enriches fields with bounding boxes and digital PDF text-layer snapping.
+    """
+    from providers.llm.factory import get_vision_provider
+    from worker.pipeline.bbox import enrich_fields_with_boxes
+    from worker.pipeline.escalation import EscalationPolicy
+    from worker.pipeline.quality import calculate_quality_score
+    from worker.validators import validate_document_fields
+
+    provider = vision_provider or get_vision_provider()
+    policy = escalation_policy or EscalationPolicy()
+
+    # 1. Resolve Document Type
+    resolved_type = schema_type
+    if not resolved_type or resolved_type.lower() == "auto":
+        try:
+            classification = await provider.classify(pages)
+            resolved_type = classification.doc_type
+            logger.info(f"Vision model classified document as '{resolved_type}' (confidence={classification.confidence})")
+        except Exception as exc:
+            logger.warning(f"Vision classification failed, defaulting to 'invoice': {exc}")
+            resolved_type = "invoice"
+
+    # 2. Extraction with Escalation Policy Loop
+    best_vision_result: VisionResult | None = None
+    best_issues: list[ValidationIssue] = []
+    raw_fields: dict[str, Any] = {}
+    raw_boxes: list[dict[str, Any]] = []
+
+    for attempt in range(policy.max_attempts):
+        model_for_attempt = policy.get_model_for_attempt(attempt)
+        logger.info(f"Vision extraction attempt {attempt + 1}/{policy.max_attempts} with model '{model_for_attempt}'")
+
+        try:
+            vision_result = await provider.extract(
+                pages=pages,
+                doc_type=resolved_type,
+                model=model_for_attempt,
+                with_boxes=with_boxes,
+            )
+            best_vision_result = vision_result
+
+            extracted_data = vision_result.extracted_data or {}
+            raw_fields = extracted_data.get("fields", {})
+            raw_boxes = extracted_data.get("boxes", [])
+
+            # Deterministic business validation
+            issues = validate_document_fields(resolved_type, raw_fields)
+            best_issues = issues
+
+            has_error = any(i.severity == "error" for i in issues)
+            if has_error and policy.can_escalate(attempt):
+                next_model = policy.get_next_model(attempt)
+                logger.warning(
+                    f"Attempt {attempt + 1} with '{model_for_attempt}' produced validation errors; "
+                    f"escalating to '{next_model}'."
+                )
+                continue
+            else:
+                # Success or last allowed attempt
+                break
+
+        except Exception as exc:
+            logger.warning(f"Attempt {attempt + 1} failed with exception: {exc}")
+            if policy.can_escalate(attempt):
+                continue
+            raise
+
+    if best_vision_result is None:
+        raise RuntimeError("Vision extraction failed across all escalation attempts.")
+
+    # 3. Quality score calculation
+    quality_score = calculate_quality_score(raw_fields, best_issues)
+
+    # 4. Bounding box coordinate conversion and text-layer snapping
+    enriched_fields = enrich_fields_with_boxes(raw_fields, raw_boxes, pages)
+
+    return resolved_type, enriched_fields, best_vision_result, best_issues, quality_score

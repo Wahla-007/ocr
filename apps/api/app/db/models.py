@@ -62,6 +62,7 @@ class User(Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    third_party_processing_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
@@ -215,6 +216,10 @@ class Result(Base):
     engine_version: Mapped[str] = mapped_column(String(64), nullable=False)
     schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
     prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    validation_issues_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JsonType, nullable=True)
+    model_used: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    pages_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JsonType, nullable=True)
 
     job: Mapped["Job"] = relationship("Job", back_populates="result")
 
@@ -243,6 +248,11 @@ class UsageLedger(Base):
     reason: Mapped[str] = mapped_column(
         String(128), nullable=False
     )  # e.g., 'job_extraction', 'signup_grant', 'monthly_grant', 'credit_pack_purchase'
+    prompt_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completion_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    pages: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
