@@ -10,7 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     OPENOCR_SELF_HOSTED=true \
-    ONNXRUNTIME_EXECUTION_PROVIDERS="CPUExecutionProvider" \
+    PROVIDER=ollama \
     PORT=8000
 
 # Install essential native libraries for PyMuPDF and OpenCV headless

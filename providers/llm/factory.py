@@ -10,6 +10,7 @@ import os
 from providers.base import LLMProvider, VisionProvider
 from providers.llm.gemini_provider import GeminiLLMProvider
 from providers.llm.mock_provider import MockLLMProvider
+from providers.llm.ollama import OllamaVisionProvider
 from providers.llm.omniroute import OmniRouteVisionProvider
 
 logger = logging.getLogger("openocr.providers.llm")
@@ -68,16 +69,15 @@ def get_vision_provider(
             max_pages_per_chunk=resolved_chunk_size,
         )
     elif name == "ollama":
-        # Ollama local vision provider using OpenAI-compatible interface
         ollama_url = (
             base_url
             or os.environ.get("OLLAMA_BASE_URL")
             or "http://127.0.0.1:11434/v1"
         )
         ollama_model = default_model or os.environ.get("OLLAMA_MODEL", "qwen2.5vl")
-        return OmniRouteVisionProvider(
+        return OllamaVisionProvider(
             base_url=ollama_url,
-            api_key="ollama",  # Ollama accepts any non-empty key
+            api_key="ollama",
             default_model=ollama_model,
             max_pages_per_chunk=resolved_chunk_size,
         )

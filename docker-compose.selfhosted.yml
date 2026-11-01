@@ -2,11 +2,11 @@ version: '3.8'
 
 # ==============================================================================
 # OpenOCR Self-Hosted Standalone Architecture
-# Pure CPU | Air-Gapped Capable | Zero External Cloud Dependencies
+# Local Vision Models (Ollama) | Air-Gapped Capable | Zero External Cloud Dependencies
 # ==============================================================================
 
 services:
-  # 1. Standalone Core Engine (FastAPI + RapidOCR + PyMuPDF)
+  # 1. Standalone Core Engine (FastAPI + pypdfium2 + Ollama Vision)
   openocr-core:
     build:
       context: .
@@ -18,13 +18,16 @@ services:
     environment:
       - ENV=production
       - OPENOCR_SELF_HOSTED=true
-      - ONNXRUNTIME_EXECUTION_PROVIDERS=CPUExecutionProvider
+      - PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - OLLAMA_MODEL=qwen2.5vl
       - LOCAL_STORAGE_DIR=/app/data
-      - LLM_PROVIDER=local
       - MAX_PAGE_LIMIT=500
       - LOG_LEVEL=info
     volumes:
       - ./data/storage:/app/data
+    depends_on:
+      - ollama
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
       interval: 15s
@@ -40,7 +43,17 @@ services:
           cpus: '1.0'
           memory: 512M
 
-  # 2. Minimalist Research Web UI (Next.js)
+  # 2. Local Air-Gapped Vision Model Runner (Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: openocr_selfhosted_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+  # 3. Minimalist Research Web UI (Next.js)
   openocr-web:
     build:
       context: .
@@ -58,3 +71,5 @@ services:
 
 volumes:
   openocr_data:
+  ollama_models:
+
