@@ -108,6 +108,12 @@ services:
       - STORAGE_BUCKET=${STORAGE_BUCKET:-documents}
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PROVIDER=${PROVIDER:-omniroute}
+      - OMNIROUTE_BASE_URL=${OMNIROUTE_BASE_URL:-http://host.docker.internal:20128/v1}
+      - OMNIROUTE_API_KEY=${OMNIROUTE_API_KEY:-sk-openocr-worker-example-key}
+      - OMNIROUTE_MODEL_CHAIN=${OMNIROUTE_MODEL_CHAIN:-gemini/gemini-2.5-flash,gemini/gemini-2.5-pro,auto}
+      - EXTRACTION_MODE=${EXTRACTION_MODE:-two_step}
+      - PROMPT_VERSION=${PROMPT_VERSION:-v1}
     depends_on:
       postgres:
         condition: service_healthy

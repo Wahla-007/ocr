@@ -31,8 +31,8 @@ COPY extract_cli.py /app/extract_cli.py
 
 # Install python dependencies for pure local CPU execution
 RUN pip install --no-cache-dir \
-    pymupdf \
-    rapidocr-onnxruntime \
+    pypdfium2 \
+    openai \
     pillow \
     fastapi \
     uvicorn[standard] \

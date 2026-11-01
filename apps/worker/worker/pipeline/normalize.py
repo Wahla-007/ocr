@@ -48,26 +48,14 @@ def _cap_image_resolution(img: Image.Image) -> tuple[Image.Image, int, int]:
 
 
 def _normalize_image_orientation(img: Image.Image) -> tuple[Image.Image, int]:
-    """Auto-orients image using EXIF orientation metadata, and falls back to visual OCR tilt detection."""
+    """Auto-orients image using EXIF orientation metadata."""
     rotation_applied = 0
     try:
-        # ImageOps.exif_transpose applies orientation tag and returns upright image
         transposed = ImageOps.exif_transpose(img)
         if transposed:
             img = transposed
     except Exception as exc:
         logger.debug(f"EXIF transpose failed: {exc}")
-
-    try:
-        from providers.engines.docling_engine import detect_and_correct_orientation, get_ocr_engine
-
-        ocr = get_ocr_engine()
-        if ocr is not None:
-            img, rot = detect_and_correct_orientation(img, ocr)
-            if rot != 0:
-                rotation_applied = rot
-    except Exception as exc:
-        logger.debug(f"Orientation detection failed: {exc}")
 
     return img, rotation_applied
 
@@ -90,15 +78,17 @@ def normalize_document(
         raise FileTooLargeError(f"File size ({size_mb}MB) exceeds limit of {max_size_mb}MB.")
 
     # 1. Validate real MIME type via magic bytes
-    detected_mime = detect_mime_type(file_bytes[:32])
+    detected_mime = detect_mime_type(file_bytes[:32], file_bytes=file_bytes)
     if not detected_mime or detected_mime not in [
         "application/pdf",
         "image/png",
         "image/jpeg",
         "image/webp",
+        "image/tiff",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]:
         raise UnsupportedTypeError(
-            f"Unsupported MIME type: '{detected_mime or 'unknown'}'. Allowed: PDF, PNG, JPG, WEBP."
+            f"Unsupported MIME type: '{detected_mime or 'unknown'}'. Allowed: PDF, PNG, JPG, WEBP, TIFF, DOCX."
         )
 
     normalized_pages: list[NormalizedPage] = []
