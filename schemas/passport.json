@@ -7,6 +7,14 @@
       "type": "string",
       "description": "Unique passport document number"
     },
+    "passport_type": {
+      "type": "string",
+      "description": "Passport type (e.g. P, Regular, Official, Diplomatic)"
+    },
+    "country_code": {
+      "type": "string",
+      "description": "3-letter issuing country code (e.g. GBR, USA, PAK, DEU)"
+    },
     "full_name": {
       "type": "string",
       "description": "Full legal name of the passport holder"
@@ -21,15 +29,15 @@
     },
     "nationality": {
       "type": "string",
-      "description": "Country of citizenship or issuing country code"
+      "description": "Country of citizenship or nationality"
     },
     "date_of_birth": {
       "type": "string",
-      "description": "Date of birth in YYYY-MM-DD format"
+      "description": "Date of birth in YYYY-MM-DD or original format"
     },
     "place_of_birth": {
       "type": "string",
-      "description": "Place / city / country of birth"
+      "description": "Place / city / state of birth"
     },
     "gender": {
       "type": "string",
@@ -37,28 +45,54 @@
     },
     "issue_date": {
       "type": "string",
-      "description": "Date of issue in YYYY-MM-DD format"
+      "description": "Date of passport issuance in YYYY-MM-DD or original format"
     },
     "expiry_date": {
       "type": "string",
-      "description": "Date of expiration in YYYY-MM-DD format"
+      "description": "Date of passport expiration in YYYY-MM-DD or original format"
     },
     "issuing_authority": {
       "type": "string",
-      "description": "Issuing authority or passport office location"
+      "description": "Issuing office, authority, or government department"
     },
     "issuing_country": {
       "type": "string",
-      "description": "Issuing country name or 3-letter code"
+      "description": "Full name of issuing country"
+    },
+    "personal_number": {
+      "type": "string",
+      "description": "National ID number, booklet number, or personal identity number"
     },
     "mrz_line1": {
       "type": "string",
-      "description": "Machine Readable Zone line 1"
+      "description": "Machine Readable Zone line 1 (44 chars for TD3)"
     },
     "mrz_line2": {
       "type": "string",
-      "description": "Machine Readable Zone line 2"
+      "description": "Machine Readable Zone line 2 (44 chars for TD3)"
+    },
+    "endorsements": {
+      "type": "string",
+      "description": "Official observations, endorsements, or restrictions printed on passport"
+    },
+    "additional_fields": {
+      "type": "array",
+      "description": "Any other key-value details or markings visible on passport",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Field label"
+          },
+          "value": {
+            "type": "string",
+            "description": "Extracted text value"
+          }
+        },
+        "required": ["key", "value"]
+      }
     }
   },
-  "required": ["passport_number", "full_name"]
+  "required": ["passport_number", "surname"]
 }

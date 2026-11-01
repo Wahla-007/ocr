@@ -13,20 +13,124 @@
     },
     "phone": {
       "type": "string",
-      "description": "Phone number"
+      "description": "Telephone or mobile number"
+    },
+    "location": {
+      "type": "string",
+      "description": "City, State/Province, and Country of residence"
+    },
+    "linkedin_url": {
+      "type": "string",
+      "description": "LinkedIn profile link"
+    },
+    "github_url": {
+      "type": "string",
+      "description": "GitHub profile link"
+    },
+    "portfolio_url": {
+      "type": "string",
+      "description": "Personal website or portfolio URL"
     },
     "headline": {
       "type": "string",
-      "description": "Professional headline or job title"
+      "description": "Professional title or role headline (e.g. Senior Staff Software Engineer)"
     },
-    "skills": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "List of technical and soft skills"
+    "summary": {
+      "type": "string",
+      "description": "Executive summary, professional bio, or objective statement"
     },
     "total_years_experience": {
       "type": "number",
       "description": "Estimated total years of professional experience"
+    },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Key technical, domain, and soft skills"
+    },
+    "languages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Languages spoken or written"
+    },
+    "certifications": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Professional certifications or licenses"
+    },
+    "education": {
+      "type": "array",
+      "description": "Educational degrees, institutions, and dates",
+      "items": {
+        "type": "object",
+        "properties": {
+          "degree": {
+            "type": "string",
+            "description": "Degree or certificate title (e.g. B.S. Computer Science)"
+          },
+          "institution": {
+            "type": "string",
+            "description": "University, college, or school name"
+          },
+          "graduation_year": {
+            "type": "string",
+            "description": "Year of graduation or study range"
+          },
+          "grade": {
+            "type": "string",
+            "description": "GPA, honors, or class rank"
+          }
+        },
+        "required": ["degree", "institution"]
+      }
+    },
+    "work_history": {
+      "type": "array",
+      "description": "Chronological employment history",
+      "items": {
+        "type": "object",
+        "properties": {
+          "company": {
+            "type": "string",
+            "description": "Company or organization name"
+          },
+          "job_title": {
+            "type": "string",
+            "description": "Job title or position"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date or year"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date, year, or 'Present'"
+          },
+          "description": {
+            "type": "string",
+            "description": "Summary of responsibilities and achievements"
+          }
+        },
+        "required": ["company", "job_title"]
+      }
+    },
+    "additional_fields": {
+      "type": "array",
+      "description": "Any other sections, publications, awards, or volunteer experience on resume",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Field or section label"
+          },
+          "value": {
+            "type": "string",
+            "description": "Extracted text value"
+          }
+        },
+        "required": ["key", "value"]
+      }
     }
   },
   "required": ["candidate_name"]

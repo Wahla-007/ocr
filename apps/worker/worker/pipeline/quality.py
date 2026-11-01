@@ -14,9 +14,10 @@ CORE_DOC_KEYS = {
     "invoice": ["invoice_number", "total_amount"],
     "receipt": ["merchant_name", "total_amount"],
     "passport": ["passport_number", "surname"],
-    "driving_licence": ["licence_number", "name"],
+    "driving_licence": ["licence_number", "full_name"],
     "bank_statement": ["bank_name", "closing_balance"],
-    "id_card": ["id_number", "name"],
+    "id_card": ["id_number", "full_name"],
+    "resume": ["candidate_name"],
 }
 
 

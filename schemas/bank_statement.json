@@ -5,27 +5,135 @@
   "properties": {
     "bank_name": {
       "type": "string",
-      "description": "Name of financial institution"
+      "description": "Name of financial institution or bank"
+    },
+    "bank_address": {
+      "type": "string",
+      "description": "Branch or headquarters address of bank"
+    },
+    "bank_phone": {
+      "type": "string",
+      "description": "Bank telephone or customer service number"
+    },
+    "bank_website": {
+      "type": "string",
+      "description": "Bank website or portal URL"
     },
     "account_holder": {
       "type": "string",
-      "description": "Name of account owner"
+      "description": "Name of account holder or business entity"
+    },
+    "account_holder_address": {
+      "type": "string",
+      "description": "Mailing address of account holder"
     },
     "account_number": {
       "type": "string",
-      "description": "Account number"
+      "description": "Bank account number or masked account number"
+    },
+    "account_type": {
+      "type": "string",
+      "description": "Type of account (e.g. Checking, Savings, Current, Business, Money Market)"
+    },
+    "routing_number": {
+      "type": "string",
+      "description": "Routing transit number, sort code, or branch code"
+    },
+    "iban": {
+      "type": "string",
+      "description": "International Bank Account Number (IBAN)"
+    },
+    "swift_bic": {
+      "type": "string",
+      "description": "SWIFT or BIC identifier code"
     },
     "statement_period": {
       "type": "string",
-      "description": "Statement date range"
+      "description": "Statement date range (e.g. 01/01/2026 - 31/01/2026)"
+    },
+    "statement_date": {
+      "type": "string",
+      "description": "Statement generation or closing date in YYYY-MM-DD or original format"
+    },
+    "currency": {
+      "type": "string",
+      "description": "Currency code (e.g. USD, GBP, EUR, PKR)"
     },
     "opening_balance": {
       "type": "number",
-      "description": "Starting balance for the period"
+      "description": "Starting balance for statement period"
+    },
+    "total_deposits": {
+      "type": "number",
+      "description": "Total credits, deposits, or additions during period"
+    },
+    "total_withdrawals": {
+      "type": "number",
+      "description": "Total debits, withdrawals, or subtractions during period"
     },
     "closing_balance": {
       "type": "number",
-      "description": "Ending balance for the period"
+      "description": "Ending balance at close of statement period"
+    },
+    "available_balance": {
+      "type": "number",
+      "description": "Available funds or balance if stated"
+    },
+    "interest_earned": {
+      "type": "number",
+      "description": "Interest paid or earned during period"
+    },
+    "transactions": {
+      "type": "array",
+      "description": "Itemized list of transactions during the statement period",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Transaction date"
+          },
+          "description": {
+            "type": "string",
+            "description": "Transaction description, payee, or memo"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Transaction reference or check number"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Transaction amount"
+          },
+          "type": {
+            "type": "string",
+            "description": "Transaction type (credit, debit, deposit, withdrawal)"
+          },
+          "balance": {
+            "type": "number",
+            "description": "Resulting balance after transaction"
+          }
+        },
+        "required": ["date", "description", "amount"]
+      }
+    },
+    "additional_fields": {
+      "type": "array",
+      "description": "Any other key-value details, account summaries, or notes printed on statement",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Field label"
+          },
+          "value": {
+            "type": "string",
+            "description": "Extracted text or numeric value"
+          }
+        },
+        "required": ["key", "value"]
+      }
     }
   },
   "required": ["bank_name", "closing_balance"]

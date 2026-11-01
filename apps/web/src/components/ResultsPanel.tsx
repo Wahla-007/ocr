@@ -57,7 +57,27 @@ export function ResultsPanel({
     );
   }
 
-  const fields: any[] = Array.isArray(result.fields) ? (result.fields as any[]) : (result.raw_fields || []);
+  const EMPTY_FILTER = new Set([
+    "",
+    "null",
+    "none",
+    "n/a",
+    "na",
+    "not applicable",
+    "not specified",
+    "unspecified",
+    "unknown",
+    "-",
+    "--",
+    "undefined",
+  ]);
+
+  const rawFieldList = Array.isArray(result.fields) ? (result.fields as any[]) : (result.raw_fields || []);
+  const fields: any[] = rawFieldList.filter((f) => {
+    if (!f || f.value === null || f.value === undefined) return false;
+    const strVal = String(f.value).trim().toLowerCase();
+    return !EMPTY_FILTER.has(strVal);
+  });
   const tables = result.tables || [];
 
   const handleCopy = (text: string, tabName: string) => {

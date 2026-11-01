@@ -132,7 +132,7 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
             text_lines = [f"{f['label']}: {f['value']}" for f in enriched_fields]
             reconstructed_markdown = "\n".join(text_lines)
 
-            # Build tables_json from line_items if present
+            # Build tables_json from line_items or transactions if present
             tables_data = []
             extracted_raw = vision_result.extracted_data or {}
             raw_fields_dict = extracted_raw.get("fields", {}) if isinstance(extracted_raw, dict) else {}
@@ -146,7 +146,8 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                         qty = str(item.get("quantity") or item.get("qty") or "1")
                         price = str(item.get("unit_price") or item.get("rate") or "")
                         total_item = str(item.get("amount") or item.get("total") or "")
-                        rows.append([desc, qty, price, total_item])
+                        if desc or total_item:
+                            rows.append([desc, qty, price, total_item])
                 if len(rows) > 1:
                     md_rows = ["| " + " | ".join(r) + " |" for r in rows]
                     sep = "| " + " | ".join(["---"] * len(header)) + " |"
@@ -154,6 +155,30 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                     tables_data.append({
                         "page": 1,
                         "rows": rows,
+                        "markdown": table_md,
+                    })
+
+            # Transactions for bank statements
+            transactions = raw_fields_dict.get("transactions")
+            if isinstance(transactions, list) and len(transactions) > 0:
+                tx_header = ["Date", "Description", "Reference", "Amount", "Balance"]
+                tx_rows = [tx_header]
+                for tx in transactions:
+                    if isinstance(tx, dict):
+                        t_date = str(tx.get("date") or "")
+                        t_desc = str(tx.get("description") or "")
+                        t_ref = str(tx.get("reference") or "")
+                        t_amt = str(tx.get("amount") or "")
+                        t_bal = str(tx.get("balance") or "")
+                        if t_desc or t_amt:
+                            tx_rows.append([t_date, t_desc, t_ref, t_amt, t_bal])
+                if len(tx_rows) > 1:
+                    md_rows = ["| " + " | ".join(r) + " |" for r in tx_rows]
+                    sep = "| " + " | ".join(["---"] * len(tx_header)) + " |"
+                    table_md = "\n".join([md_rows[0], sep] + md_rows[1:])
+                    tables_data.append({
+                        "page": 1,
+                        "rows": tx_rows,
                         "markdown": table_md,
                     })
 

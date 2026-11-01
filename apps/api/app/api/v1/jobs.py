@@ -89,6 +89,7 @@ def build_job_response(job: Job) -> JobResponse:
         resp.doc_type_confidence = res.confidence
 
         if res.fields_json:
+            _EMPTY_VALUES = {"", "null", "none", "n/a", "na", "not applicable", "not specified", "unspecified", "unknown", "-", "--", "undefined"}
             resp.fields = [
                 ExtractedField(
                     key=f.get("key", ""),
@@ -100,6 +101,7 @@ def build_job_response(job: Job) -> JobResponse:
                     box_source=f.get("box_source"),
                 )
                 for f in res.fields_json
+                if f.get("value") is not None and str(f.get("value")).strip().lower() not in _EMPTY_VALUES
             ]
 
         if res.blocks_json:

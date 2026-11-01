@@ -133,12 +133,34 @@ def snap_box_to_text_layer(
     return model_box, "model"
 
 
+EMPTY_FIELD_INDICATORS = {
+    "", "null", "none", "n/a", "na", "not applicable", 
+    "not specified", "unspecified", "unknown", "nil", "-", "--", "undefined"
+}
+
+
+def is_empty_field_value(val: Any) -> bool:
+    """Returns True if a field value represents absent, null, empty, or placeholder data."""
+    if val is None:
+        return True
+    if isinstance(val, str):
+        cleaned = val.strip().lower()
+        if not cleaned or cleaned in EMPTY_FIELD_INDICATORS:
+            return True
+    if isinstance(val, (list, dict)) and len(val) == 0:
+        return True
+    return False
+
+
 def enrich_fields_with_boxes(
     fields: dict[str, Any],
     raw_boxes: list[dict[str, Any]],
     pages: Sequence[RasterPage],
 ) -> list[dict[str, Any]]:
-    """Enriches raw extracted key-value fields with canvas bounding boxes and box_source tags."""
+    """Enriches raw extracted key-value fields with canvas bounding boxes and box_source tags.
+    Strictly omits empty, null, placeholder, or absent fields so the user only sees
+    actual data present in the document.
+    """
     # Index pages by page_number
     page_map = {p.page_number: p for p in pages}
 
@@ -151,7 +173,7 @@ def enrich_fields_with_boxes(
     enriched_fields: list[dict[str, Any]] = []
 
     for key, val in fields.items():
-        if val is None or val == "" or val == []:
+        if is_empty_field_value(val):
             continue
 
         # 1. Unpack additional_fields dynamically into first-class fields
@@ -160,7 +182,7 @@ def enrich_fields_with_boxes(
                 if isinstance(item, dict):
                     item_key = str(item.get("key", f"extra_{idx + 1}")).strip()
                     item_val = item.get("value")
-                    if item_val is not None and str(item_val).strip() != "":
+                    if not is_empty_field_value(item_val) and not is_empty_field_value(item_key):
                         add_box_meta = box_map.get(item_key)
                         add_canvas_box = None
                         add_box_source = None
@@ -199,24 +221,84 @@ def enrich_fields_with_boxes(
                     desc = str(item.get("description", f"Item {idx + 1}")).strip()
                     amt = item.get("amount") or item.get("total") or item.get("unit_price")
                     qty = item.get("quantity")
-                    line_summary = f"{desc} (Qty: {qty}, Amount: {amt})" if qty else f"{desc} ({amt})"
-                    enriched_fields.append({
-                        "key": f"line_item_{idx + 1}",
-                        "label": f"Line Item {idx + 1}",
-                        "value": line_summary,
-                        "confidence": 0.98,
-                        "page": 1,
-                        "bbox": None,
-                        "box_source": None,
-                    })
+                    if not is_empty_field_value(desc) or not is_empty_field_value(amt):
+                        line_summary = f"{desc} (Qty: {qty}, Amount: {amt})" if qty else f"{desc} ({amt})"
+                        enriched_fields.append({
+                            "key": f"line_item_{idx + 1}",
+                            "label": f"Line Item {idx + 1}",
+                            "value": line_summary,
+                            "confidence": 0.98,
+                            "page": 1,
+                            "bbox": None,
+                            "box_source": None,
+                        })
             continue
 
-        # 3. Format nested dicts to human-readable strings
+        # 3. Unpack work history (Resumes)
+        if key == "work_history" and isinstance(val, list):
+            for idx, item in enumerate(val):
+                if isinstance(item, dict):
+                    title = item.get("job_title") or ""
+                    comp = item.get("company") or ""
+                    dates = f" ({item.get('start_date')} - {item.get('end_date')})" if item.get('start_date') else ""
+                    if title or comp:
+                        enriched_fields.append({
+                            "key": f"experience_{idx + 1}",
+                            "label": f"Experience {idx + 1}",
+                            "value": f"{title} at {comp}{dates}".strip(),
+                            "confidence": 0.98,
+                            "page": 1,
+                            "bbox": None,
+                            "box_source": None,
+                        })
+            continue
+
+        # 4. Unpack education (Resumes)
+        if key == "education" and isinstance(val, list):
+            for idx, item in enumerate(val):
+                if isinstance(item, dict):
+                    deg = item.get("degree") or ""
+                    inst = item.get("institution") or ""
+                    year = f" ({item.get('graduation_year')})" if item.get('graduation_year') else ""
+                    if deg or inst:
+                        enriched_fields.append({
+                            "key": f"education_{idx + 1}",
+                            "label": f"Education {idx + 1}",
+                            "value": f"{deg}, {inst}{year}".strip(),
+                            "confidence": 0.98,
+                            "page": 1,
+                            "bbox": None,
+                            "box_source": None,
+                        })
+            continue
+
+        # 5. Format string lists (skills, languages, certifications)
+        if key in ("skills", "languages", "certifications") and isinstance(val, list):
+            cleaned_list = [str(s).strip() for s in val if not is_empty_field_value(s)]
+            if cleaned_list:
+                enriched_fields.append({
+                    "key": key,
+                    "label": key.replace("_", " ").title(),
+                    "value": ", ".join(cleaned_list),
+                    "confidence": 0.98,
+                    "page": 1,
+                    "bbox": None,
+                    "box_source": None,
+                })
+            continue
+
+        # 6. Format nested dicts to human-readable strings
         if isinstance(val, dict):
-            dict_vals = [str(v).strip() for v in val.values() if v is not None and str(v).strip() != ""]
-            val_display = ", ".join(dict_vals) if dict_vals else str(val)
+            dict_vals = [str(v).strip() for v in val.values() if not is_empty_field_value(v)]
+            if not dict_vals:
+                continue
+            val_display = ", ".join(dict_vals)
         else:
             val_display = val
+
+        # Final check on display value
+        if is_empty_field_value(val_display):
+            continue
 
         # Look up bounding box
         box_meta = box_map.get(key)

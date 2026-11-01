@@ -5,35 +5,93 @@
   "properties": {
     "licence_number": {
       "type": "string",
-      "description": "Driving licence or permit number"
+      "description": "Unique driving licence or permit number"
     },
     "full_name": {
       "type": "string",
       "description": "Full name of the licence holder"
     },
+    "father_name_or_guardian": {
+      "type": "string",
+      "description": "Father's or guardian's name"
+    },
     "date_of_birth": {
       "type": "string",
-      "description": "Date of birth in YYYY-MM-DD format"
+      "description": "Date of birth in YYYY-MM-DD or original format"
     },
-    "issue_date": {
+    "gender": {
       "type": "string",
-      "description": "Date of licence issuance in YYYY-MM-DD format"
+      "description": "Gender or sex"
     },
-    "expiry_date": {
+    "blood_group": {
       "type": "string",
-      "description": "Date of licence expiration in YYYY-MM-DD format"
-    },
-    "vehicle_classes": {
-      "type": "string",
-      "description": "Authorized vehicle classes or categories (e.g. A, B, C, CAR, MOTORCYCLE)"
+      "description": "Blood group if indicated"
     },
     "address": {
       "type": "string",
-      "description": "Residential address on licence"
+      "description": "Full residential address on licence"
+    },
+    "issue_date": {
+      "type": "string",
+      "description": "Date of licence issuance in YYYY-MM-DD or original format"
+    },
+    "first_issue_date": {
+      "type": "string",
+      "description": "Original date of first licence issue"
+    },
+    "expiry_date": {
+      "type": "string",
+      "description": "Date of licence expiration in YYYY-MM-DD or original format"
+    },
+    "vehicle_classes": {
+      "type": "string",
+      "description": "Authorized vehicle classes or codes (e.g. A, B, C, LTV, HTV, Class C)"
+    },
+    "class_descriptions": {
+      "type": "string",
+      "description": "Description of vehicle categories allowed (e.g. Motor Car, Motorcycle, Commercial)"
+    },
+    "endorsements": {
+      "type": "string",
+      "description": "Special driving endorsements (e.g. Motorcycle, Commercial, HAZMAT)"
+    },
+    "restrictions": {
+      "type": "string",
+      "description": "Restrictions (e.g. Corrective lenses, Automatic transmission only, Daylight only)"
+    },
+    "donor_status": {
+      "type": "string",
+      "description": "Organ donor designation (e.g. Yes, No, Donor)"
     },
     "issuing_authority": {
       "type": "string",
-      "description": "Issuing state, province, or department"
+      "description": "Issuing department, police, or DMV"
+    },
+    "issuing_state_or_province": {
+      "type": "string",
+      "description": "Issuing state, province, county, or jurisdiction"
+    },
+    "issuing_country": {
+      "type": "string",
+      "description": "Country of issue"
+    },
+    "additional_fields": {
+      "type": "array",
+      "description": "Any other key-value details, codes, or markings visible on the licence",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Field label"
+          },
+          "value": {
+            "type": "string",
+            "description": "Extracted text value"
+          }
+        },
+        "required": ["key", "value"]
+      }
     }
   },
   "required": ["licence_number", "full_name"]
