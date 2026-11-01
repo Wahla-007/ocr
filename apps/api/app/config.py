@@ -135,6 +135,19 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
 
+    # Vision & OmniRoute Provider Settings
+    PROVIDER: str = "omniroute"  # 'omniroute' | 'ollama'
+    OMNIROUTE_BASE_URL: str = "http://127.0.0.1:20128/v1"
+    OMNIROUTE_API_KEY: str = "sk-openocr-worker-live-2026"
+    OMNIROUTE_MODEL_CHAIN: str = "gemini/gemini-2.5-flash,gemini/gemini-2.5-pro,auto"
+    VISION_MAX_PAGES_PER_CHUNK: int = 6
+    EXTRACTION_MODE: str = "two_step"  # 'two_step' | 'single'
+    PROMPT_VERSION: str = "v1"
+
+    # Air-Gapped / Ollama Local Vision Settings
+    OLLAMA_BASE_URL: str = "http://127.0.0.1:11434/v1"
+    OLLAMA_MODEL: str = "qwen2.5vl"
+
     SENTRY_DSN: str = ""
 
     @property
