@@ -1,16 +1,17 @@
 # OpenOCR: Universal Zero-Selection Document Extraction Platform
 
-OpenOCR is a developer-first OCR and document intelligence platform. Drop **any** document or image (PDF, PNG, JPG, WEBP) and get structured key details, layout blocks with pixel-accurate bounding boxes, parsed tables, and clean markdown—**with zero document type selection**.
+OpenOCR is a developer-first OCR and document intelligence platform. Drop **any** document or image (PDF, PNG, JPG, WEBP, TIFF, DOCX) and get structured key details, layout blocks with pixel-accurate bounding boxes, parsed tables, and clean markdown—**with zero document type selection**, powered by **OmniRoute vision models** and lightweight `pypdfium2` rendering.
 
 ---
 
 ## Architecture Overview
 
-1. **Pipeline Isolation:** Normalize &rarr; Parse &rarr; Classify &rarr; Extract &rarr; Validate.
-2. **Two-Stage Intelligence:** Deterministic layout parsing (`ParseEngine`) followed by semantic understanding (`LLMProvider`).
-3. **Vendor Agnostic:** All OCR engines (Docling, Surya, PaddleOCR) and LLMs (Gemini, Claude, GPT) are abstracted behind strict interfaces in `/providers`.
-4. **Append-Only Ledger:** Usage and credits are strictly computed from the immutable `usage_ledger`.
-5. **Prompt-Injection Defense:** Document text is treated as untrusted data with delimiters and format enforcement.
+1. **Multimodal Vision Pipeline:** Ingestion & Sandbox &rarr; Page Rasterization (pypdfium2 / Pillow) &rarr; Vision Model Extraction (OmniRoute / Ollama) &rarr; Deterministic Validation & Bbox Snapping.
+2. **Model-Free Worker:** Zero local OCR/layout model dependencies (PaddleOCR, RapidOCR, Docling removed). Worker boots in <500ms with negligible RAM footprint.
+3. **Reasoning Escalation:** Automatic multi-model escalation (`gemini-2.5-flash` &rarr; `gemini-2.5-pro` &rarr; `auto`) when business validation checks fail.
+4. **Air-Gapped Privacy Mode:** 100% offline self-hosted operation via local Ollama vision models (`qwen2.5vl` / `llama3.2-vision`) with zero external egress.
+5. **Append-Only Ledger:** Token accounting and credit consumption strictly ledger-recorded.
+6. **Prompt-Injection Defense:** All document content wrapped as untrusted data with strict schema enforcement.
 
 ---
 
