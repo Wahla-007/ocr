@@ -25,6 +25,8 @@ from PIL import Image, ImageOps, ImageSequence
 import pypdfium2 as pdfium
 from pydantic import BaseModel, Field
 
+from providers.base import RasterPage, TextLayer, WordRect
+
 logger = logging.getLogger(__name__)
 
 # Constants and limits
@@ -33,33 +35,6 @@ MAX_LONG_EDGE_PX = 2000
 MAX_PIXELS_PER_PAGE = 25_000_000  # 5000 x 5000 safety cap
 DEFAULT_JPEG_QUALITY = 85
 CONVERSION_TIMEOUT_SECONDS = 30
-
-
-class WordRect(BaseModel):
-    """Text word/token with pixel bounding box in rendered canvas coordinates (top-left origin)."""
-
-    text: str
-    x0: float
-    y0: float
-    x1: float
-    y1: float
-
-
-class TextLayer(BaseModel):
-    """Extracted digital PDF text layer, used solely for Stage 4 bounding box snapping."""
-
-    words: list[WordRect] = Field(default_factory=list)
-
-
-class RasterPage(BaseModel):
-    """A rasterized document page ready for multimodal vision LLM extraction."""
-
-    page_number: int
-    width_px: int
-    height_px: int
-    image_bytes: bytes
-    mime_type: str = "image/jpeg"
-    text_layer: TextLayer | None = None
 
 
 class RasterDocument(BaseModel):

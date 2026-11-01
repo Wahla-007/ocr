@@ -5,7 +5,7 @@ inside /providers. No vendor SDK may be imported anywhere else.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -93,6 +93,68 @@ class ExtractionResult(BaseModel):
     provider_name: str
     model_name: str
     prompt_version: str
+
+
+class ValidationIssue(BaseModel):
+    field: str
+    code: str
+    severity: str  # "error" | "warning"
+    message: str | None = None
+
+
+class WordRect(BaseModel):
+    text: str
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
+class TextLayer(BaseModel):
+    words: list[WordRect] = Field(default_factory=list)
+
+
+class RasterPage(BaseModel):
+    page_number: int
+    width_px: int
+    height_px: int
+    image_bytes: bytes
+    mime_type: str = "image/jpeg"
+    text_layer: TextLayer | None = None
+
+
+class AttemptMetadata(BaseModel):
+    attempt: int
+    model: str
+    latency_ms: float
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    status: str  # "success" | "retry" | "failed"
+    error: str | None = None  # Sanitized error message only, never document text
+
+
+class VisionResult(BaseModel):
+    extracted_data: dict[str, Any]
+    model: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: float = 0.0
+    attempts: int = 1
+    attempt_history: list[AttemptMetadata] = Field(default_factory=list)
+    raw_response: str | None = None
+
+
+class VisionProvider(Protocol):
+    """Protocol for multimodal vision LLM extractors."""
+
+    async def extract(
+        self,
+        pages: list[RasterPage],
+        json_schema: dict[str, Any],
+        model: str | None = None,
+    ) -> VisionResult:
+        """Extract structured JSON matching json_schema directly from page images."""
+        ...
 
 
 class LLMProvider(ABC):

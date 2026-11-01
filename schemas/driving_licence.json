@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DrivingLicenceSchema",
+  "type": "object",
+  "properties": {
+    "licence_number": {
+      "type": "string",
+      "description": "Driving licence or permit number"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full name of the licence holder"
+    },
+    "date_of_birth": {
+      "type": "string",
+      "description": "Date of birth in YYYY-MM-DD format"
+    },
+    "issue_date": {
+      "type": "string",
+      "description": "Date of licence issuance in YYYY-MM-DD format"
+    },
+    "expiry_date": {
+      "type": "string",
+      "description": "Date of licence expiration in YYYY-MM-DD format"
+    },
+    "vehicle_classes": {
+      "type": "string",
+      "description": "Authorized vehicle classes or categories (e.g. A, B, C, CAR, MOTORCYCLE)"
+    },
+    "address": {
+      "type": "string",
+      "description": "Residential address on licence"
+    },
+    "issuing_authority": {
+      "type": "string",
+      "description": "Issuing state, province, or department"
+    }
+  },
+  "required": ["licence_number", "full_name"]
+}
