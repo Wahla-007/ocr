@@ -172,6 +172,13 @@ body {
   background: var(--ink-muted);
 }
 
+/* Ensure inactive tab panels are completely removed from flex layout */
+[data-state="inactive"][role="tabpanel"],
+[data-state="inactive"].tabs-content,
+[hidden] {
+  display: none !important;
+}
+
 /* RTL / Urdu Document Reading Support */
 [dir="rtl"] {
   direction: rtl;

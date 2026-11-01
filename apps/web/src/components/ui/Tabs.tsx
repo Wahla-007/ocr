@@ -35,7 +35,7 @@ export const TabsContent = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    className={`focus-visible:outline-none data-[state=inactive]:hidden data-[state=inactive]:pointer-events-none ${className}`}
+    className={`focus-visible:outline-none data-[state=inactive]:!hidden data-[state=inactive]:pointer-events-none ${className}`}
     {...props}
   />
 ));

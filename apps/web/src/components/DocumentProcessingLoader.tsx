@@ -73,43 +73,42 @@ export function DocumentProcessingLoader({ fileName }: DocumentProcessingLoaderP
   }, []);
 
   return (
-    <div className="w-full h-full min-h-[580px] flex flex-col items-center justify-center border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] shadow-card p-6 relative overflow-hidden select-none">
+    <div className="w-full h-full min-h-0 flex flex-col items-center justify-center border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] shadow-card p-4 sm:p-5 relative overflow-hidden select-none">
       {/* Subtle Light Table Grid Background */}
       <div className="absolute inset-0 light-table-grid opacity-40 pointer-events-none" />
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-2xl flex flex-col items-center space-y-6 text-center">
+      <div className="relative z-10 w-full max-w-2xl flex flex-col items-center space-y-3 sm:space-y-4 text-center my-auto">
         {/* Animated Document Blueprint with Scanning Laser */}
-        <div className="relative w-44 h-56 rounded-sm bg-white dark:bg-zinc-900 border-2 border-[var(--line-strong)] shadow-2xl p-4 flex flex-col justify-between overflow-hidden">
+        <div className="relative w-28 h-36 sm:w-32 sm:h-40 rounded-sm bg-white dark:bg-zinc-900 border-2 border-[var(--line-strong)] shadow-xl p-3 flex flex-col justify-between overflow-hidden">
           {/* Laser Scanning Beam */}
           <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[var(--signal)] to-transparent animate-scan-line shadow-[0_0_12px_var(--signal)] z-20 pointer-events-none" />
 
           {/* Skeleton Document Header */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <div className="w-12 h-2.5 rounded-sm bg-zinc-300 dark:bg-zinc-700 animate-pulse" />
-              <div className="w-8 h-2 rounded-sm bg-[var(--signal)]/40 animate-pulse" />
+              <div className="w-8 h-2 rounded-sm bg-zinc-300 dark:bg-zinc-700 animate-pulse" />
+              <div className="w-6 h-1.5 rounded-sm bg-[var(--signal)]/40 animate-pulse" />
             </div>
-            <div className="w-24 h-2 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            <div className="w-16 h-1.5 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
           </div>
 
           {/* Skeleton Field Grid */}
-          <div className="grid grid-cols-2 gap-2 my-auto">
-            <div className="p-1.5 rounded-sm border border-dashed border-[var(--signal)]/40 bg-[var(--signal)]/5 space-y-1">
-              <div className="w-10 h-1.5 rounded-sm bg-[var(--signal)]/50 animate-pulse" />
-              <div className="w-14 h-2 rounded-sm bg-zinc-300 dark:bg-zinc-700 animate-pulse" />
+          <div className="grid grid-cols-2 gap-1.5 my-auto">
+            <div className="p-1 rounded-sm border border-dashed border-[var(--signal)]/40 bg-[var(--signal)]/5 space-y-0.5">
+              <div className="w-8 h-1 rounded-sm bg-[var(--signal)]/50 animate-pulse" />
+              <div className="w-10 h-1.5 rounded-sm bg-zinc-300 dark:bg-zinc-700 animate-pulse" />
             </div>
-            <div className="p-1.5 rounded-sm border border-dashed border-[var(--signal)]/40 bg-[var(--signal)]/5 space-y-1">
-              <div className="w-10 h-1.5 rounded-sm bg-[var(--signal)]/50 animate-pulse" />
-              <div className="w-14 h-2 rounded-sm bg-zinc-300 dark:bg-zinc-700 animate-pulse" />
+            <div className="p-1 rounded-sm border border-dashed border-[var(--signal)]/40 bg-[var(--signal)]/5 space-y-0.5">
+              <div className="w-8 h-1 rounded-sm bg-[var(--signal)]/50 animate-pulse" />
+              <div className="w-10 h-1.5 rounded-sm bg-zinc-300 dark:bg-zinc-700 animate-pulse" />
             </div>
           </div>
 
           {/* Skeleton Table Lines */}
-          <div className="space-y-1.5 border-t border-zinc-200 dark:border-zinc-800 pt-2">
-            <div className="w-full h-1.5 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
-            <div className="w-4/5 h-1.5 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
-            <div className="w-full h-1.5 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+          <div className="space-y-1 border-t border-zinc-200 dark:border-zinc-800 pt-1.5">
+            <div className="w-full h-1 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            <div className="w-4/5 h-1 rounded-sm bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
           </div>
 
           {/* Registration ticks */}
@@ -120,28 +119,28 @@ export function DocumentProcessingLoader({ fileName }: DocumentProcessingLoaderP
         </div>
 
         {/* Status Headings */}
-        <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--signal-subtle)] border border-[var(--signal)]/30 text-[var(--signal)] font-mono text-xs font-bold tracking-wide uppercase">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--signal-subtle)] border border-[var(--signal)]/30 text-[var(--signal)] font-mono text-[11px] font-bold tracking-wide uppercase">
+            <Loader2 className="w-3 h-3 animate-spin" />
             <span>Analyzing Document Architecture</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[var(--ink-primary)] tracking-tight">
+          <h2 className="text-base sm:text-lg font-serif font-bold text-[var(--ink-primary)] tracking-tight">
             Extracting Structured Intelligence
           </h2>
 
-          <p className="text-xs sm:text-sm text-[var(--ink-secondary)] font-mono truncate max-w-md">
+          <p className="text-xs text-[var(--ink-secondary)] font-mono truncate max-w-md">
             Analyzing: <span className="font-bold text-[var(--ink-primary)]">{fileName || "uploaded_document"}</span>
           </p>
         </div>
 
         {/* Smooth Animated Progress Bar */}
-        <div className="w-full max-w-md space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-mono text-[var(--ink-muted)]">
+        <div className="w-full max-w-md space-y-1">
+          <div className="flex items-center justify-between text-[11px] font-mono text-[var(--ink-muted)]">
             <span>Pipeline Progression</span>
             <span className="tabular-nums font-bold text-[var(--signal)]">{progressPercent}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-[var(--surface-sunken)] overflow-hidden p-0.5 border border-[var(--line-hairline)]">
+          <div className="w-full h-1.5 rounded-full bg-[var(--surface-sunken)] overflow-hidden p-0.5 border border-[var(--line-hairline)]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[var(--signal)] via-[#E07148] to-[var(--signal)] transition-all duration-500 ease-out shadow-[0_0_8px_var(--signal)]"
               style={{ width: `${progressPercent}%` }}
@@ -150,7 +149,7 @@ export function DocumentProcessingLoader({ fileName }: DocumentProcessingLoaderP
         </div>
 
         {/* Multi-Stage Stepper Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 w-full pt-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full pt-1">
           {STAGES.map((s) => {
             const isDone = activeStage > s.step;
             const isCurrent = activeStage === s.step;

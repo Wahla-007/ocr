@@ -115,8 +115,8 @@ export default function PlaygroundPage() {
       />
 
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-2 sm:p-2.5 space-y-1.5 flex flex-col h-[calc(100vh-56px)] min-h-0 overflow-hidden">
-        {/* 1. UPLOAD BOX COVERING 1/3 OF THE PAGE */}
-        <div className="h-[31vh] min-h-[185px] max-h-[250px] shrink-0">
+        {/* 1. UPLOAD BOX COVERING 1/2 OF THE PAGE */}
+        <div className="h-[48vh] min-h-[280px] shrink-0">
           <DropZone
             onFileSelected={handleFileSelected}
             onSampleSelected={handleSampleSelected}
@@ -130,7 +130,7 @@ export default function PlaygroundPage() {
           />
         </div>
 
-        {/* 2. REMAINING 2/3 OF PAGE: PREVIEW & RESULTS OR LOADER */}
+        {/* 2. REMAINING 1/2 OF PAGE: PREVIEW & RESULTS OR LOADER */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {isProcessing ? (
             /* While Uploading/Processing: Demo cases & test preview disappeared -> ONLY LOADER SHOWN */

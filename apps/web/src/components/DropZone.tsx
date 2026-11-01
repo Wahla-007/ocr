@@ -156,51 +156,51 @@ export function DropZone({
           <div className="absolute inset-x-0 h-0.5 bg-[var(--signal)] animate-scan-line shadow-[0_0_8px_var(--signal)]" />
         )}
 
-        <div className="flex flex-col items-center justify-center space-y-1.5 max-w-xl">
+        <div className="flex flex-col items-center justify-center space-y-2.5 max-w-xl">
           <div
-            className={`w-9 h-9 rounded-sm bg-[var(--surface-raised)] border transition-all text-[var(--ink-primary)] flex items-center justify-center shadow-subtle group-hover:scale-105 shrink-0 ${
+            className={`w-11 h-11 rounded-sm bg-[var(--surface-raised)] border transition-all text-[var(--ink-primary)] flex items-center justify-center shadow-subtle group-hover:scale-105 shrink-0 ${
               isDragOver ? "border-[var(--signal)] text-[var(--signal)]" : "border-[var(--line-strong)]"
             }`}
           >
             {isProcessing ? (
-              <Loader2 className="w-4 h-4 animate-spin text-[var(--signal)]" />
+              <Loader2 className="w-5 h-5 animate-spin text-[var(--signal)]" />
             ) : justPasted ? (
-              <Check className="w-4 h-4 text-[var(--semantic-success)]" />
+              <Check className="w-5 h-5 text-[var(--semantic-success)]" />
             ) : (
-              <UploadCloud className="w-4 h-4 text-[var(--signal)]" />
+              <UploadCloud className="w-5 h-5 text-[var(--signal)]" />
             )}
           </div>
 
-          <div className="space-y-0.5">
-            <h3 className="font-serif text-sm sm:text-base font-bold text-[var(--ink-primary)] leading-tight">
+          <div className="space-y-1">
+            <h3 className="font-serif text-base sm:text-lg font-bold text-[var(--ink-primary)] leading-tight">
               {isProcessing
                 ? "Scanning Document under Light Table..."
                 : isDragOver
                 ? "Release Document to Begin Extraction"
                 : "Lay Document on Light Table — Drop File or Click Browse"}
             </h3>
-            <p className="text-[11px] text-[var(--ink-secondary)]">
+            <p className="text-xs text-[var(--ink-secondary)]">
               PDF, JPG, PNG, WEBP, TIFF • Multi-page invoices, receipts, credentials & reports
             </p>
           </div>
 
-          <div className="pt-0.5 flex flex-wrap items-center justify-center gap-2">
+          <div className="pt-1 flex flex-wrap items-center justify-center gap-2.5">
             <Button
               variant="primary"
-              size="xs"
+              size="sm"
               type="button"
               disabled={isProcessing}
               onClick={(e) => {
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
+              leftIcon={<UploadCloud className="w-4 h-4" />}
             >
               Browse & Upload File
             </Button>
 
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-[var(--surface-subtle)] border border-[var(--line-hairline)] text-[10px] font-mono text-[var(--ink-muted)]">
-              <Clipboard className="w-3 h-3 text-[var(--signal)]" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-[var(--surface-subtle)] border border-[var(--line-hairline)] text-[11px] font-mono text-[var(--ink-muted)]">
+              <Clipboard className="w-3.5 h-3.5 text-[var(--signal)]" />
               <span>or press <strong className="text-[var(--ink-primary)]">Ctrl+V / ⌘V</strong> to paste</span>
             </span>
           </div>
