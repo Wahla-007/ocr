@@ -194,29 +194,33 @@ export function DropZone({
         </div>
       </div>
 
-      {/* Demo Cases / Specimen Archive - Border-free Minimal Inline Row */}
+      {/* Demo Cases / Specimen Archive - Spaced Justifiably & Responsive */}
       {!isUploadedDoc ? (
-        <div className="flex items-center justify-between px-2 py-0.5 text-xs font-mono shrink-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[#6e727a] uppercase text-[10px] tracking-wider">Demo:</span>
-            {SAMPLE_DOCUMENTS.map((sample) => {
-              const isActive = activeSampleId === sample.id;
-              return (
-                <button
-                  key={sample.id}
-                  type="button"
-                  disabled={isProcessing}
-                  onClick={() => onSampleSelected && onSampleSelected(sample)}
-                  className={`text-xs transition-colors cursor-pointer ${
-                    isActive
-                      ? "text-[#9281f7] font-semibold border-b border-[#9281f7]"
-                      : "text-[#a1a4a5] hover:text-white"
-                  }`}
-                >
-                  {sample.title.split("(")[0].trim()}
-                </button>
-              );
-            })}
+        <div className="w-full px-2 py-1 text-xs font-mono shrink-0">
+          <div className="w-full flex items-center justify-between gap-2 overflow-x-auto scrollbar-none py-0.5">
+            <span className="text-[#6e727a] uppercase text-[10px] tracking-wider font-mono font-medium shrink-0 mr-1 select-none">
+              Demo:
+            </span>
+            <div className="flex-1 flex items-center justify-between gap-1 sm:gap-2">
+              {SAMPLE_DOCUMENTS.map((sample) => {
+                const isActive = activeSampleId === sample.id;
+                return (
+                  <button
+                    key={sample.id}
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => onSampleSelected && onSampleSelected(sample)}
+                    className={`flex-1 text-center py-1 px-1.5 rounded-[4px] text-xs transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? "text-[#9281f7] font-semibold border-b-2 border-[#9281f7] bg-[#9281f7]/10"
+                        : "text-[#a1a4a5] hover:text-white hover:bg-[#0b0e14]"
+                    }`}
+                  >
+                    {sample.title.split("(")[0].trim()}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : (

@@ -198,36 +198,36 @@ export function ResultsPanel({
       {/* Main Tabs Container - Calm & Spacious */}
       <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 min-h-0">
         <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden min-h-0">
-          {/* Minimalist Tabs Navigation */}
-          <div className="flex items-center justify-between pb-2 border-b border-[#292d30] shrink-0">
-            <TabsList className="border-none w-auto gap-4 bg-transparent p-0">
+          {/* Minimalist Tabs Navigation - Spaced Justifiably Across Full Width */}
+          <div className="w-full border-b border-[#292d30] shrink-0">
+            <TabsList className="border-none w-full grid grid-cols-5 bg-transparent p-0">
               <TabsTrigger
                 value="fields"
-                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
               >
                 Fields ({fields.length})
               </TabsTrigger>
               <TabsTrigger
                 value="tables"
-                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
               >
                 Tables ({tables.length})
               </TabsTrigger>
               <TabsTrigger
                 value="text"
-                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
               >
                 Text
               </TabsTrigger>
               <TabsTrigger
                 value="markdown"
-                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
               >
                 Markdown
               </TabsTrigger>
               <TabsTrigger
                 value="json"
-                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
               >
                 JSON
               </TabsTrigger>

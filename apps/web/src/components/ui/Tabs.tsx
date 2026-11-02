@@ -11,7 +11,7 @@ export const TabsList = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={`inline-flex items-center gap-1 border-b border-[#292d30] w-full text-xs font-mono select-none ${className}`}
+    className={`w-full text-xs font-mono select-none ${className.includes("grid") || className.includes("flex") ? "" : "inline-flex items-center gap-1 border-b border-[#292d30]"} ${className}`}
     {...props}
   />
 ));
