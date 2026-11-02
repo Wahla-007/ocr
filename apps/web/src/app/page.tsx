@@ -185,7 +185,7 @@ export default function PlaygroundPage() {
         ) : (
           /* State 3: Initial Demo Exploration Mode -> Big Upload Section on top + Demo Workspace below */
           <>
-            <div className="h-[36vh] min-h-[220px] max-h-[300px] shrink-0">
+            <div className="h-[48vh] min-h-[320px] max-h-[440px] shrink-0">
               <DropZone
                 onFileSelected={handleFileSelected}
                 onSampleSelected={handleSampleSelected}

@@ -152,17 +152,17 @@ export function DropZone({
           <div className="absolute inset-x-0 h-0.5 bg-[#9281f7] animate-scan-line shadow-[0_0_8px_#9281f7]" />
         )}
 
-        <div className="flex flex-col items-center justify-center space-y-2 max-w-sm">
+        <div className="flex flex-col items-center justify-center space-y-3 max-w-md">
           {isProcessing ? (
-            <Loader2 className="w-6 h-6 animate-spin text-[#9281f7]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#9281f7]" />
           ) : justPasted ? (
-            <Check className="w-6 h-6 text-[#3ad389]" />
+            <Check className="w-8 h-8 text-[#3ad389]" />
           ) : (
-            <UploadCloud className="w-6 h-6 text-[#9281f7] group-hover:scale-105 transition-transform" />
+            <UploadCloud className="w-9 h-9 text-[#9281f7] group-hover:scale-110 transition-transform duration-200" />
           )}
 
-          <div className="space-y-0.5">
-            <h3 className="font-sans text-sm sm:text-base font-medium text-white">
+          <div className="space-y-1">
+            <h3 className="font-sans text-base sm:text-lg font-medium text-white tracking-tight">
               {isProcessing
                 ? "Extracting document..."
                 : isDragOver
@@ -170,11 +170,11 @@ export function DropZone({
                 : "Drop document here or browse"}
             </h3>
             <p className="text-xs text-[#a1a4a5]">
-              PDF, JPG, PNG, WEBP, TIFF
+              PDF, JPG, PNG, WEBP, TIFF • Multi-page &amp; tables supported
             </p>
           </div>
 
-          <div className="pt-0.5 flex items-center justify-center gap-3">
+          <div className="pt-1 flex items-center justify-center gap-3.5">
             <button
               type="button"
               disabled={isProcessing}
@@ -182,7 +182,7 @@ export function DropZone({
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="bg-transparent border border-[#292d30] text-white hover:border-white rounded-[6px] px-3.5 py-1 text-xs font-mono transition-colors"
+              className="bg-transparent border border-[#292d30] text-white hover:border-white rounded-[6px] px-4 py-1.5 text-xs font-mono transition-colors"
             >
               Upload file
             </button>
