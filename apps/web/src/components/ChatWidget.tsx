@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   MessageSquare,
   X,
@@ -74,6 +75,7 @@ function redactSensitiveInput(input: string): string {
 }
 
 export function ChatWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
@@ -194,53 +196,43 @@ export function ChatWidget() {
 
   return (
     <div className="fixed bottom-6 right-6 z-[9999] font-sans antialiased">
-      {/* High-Visibility Floating Trigger Button */}
-      {!isOpen && (
+      {/* High-Visibility Floating Trigger Button (Hidden on playground page to prevent obstructing workspace) */}
+      {!isOpen && pathname !== "/" && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="group flex items-center gap-3 px-4 py-3 rounded-full bg-[#161618] hover:bg-[#1F1F23] text-white border-2 border-[#C85A32] shadow-[0_10px_35px_rgba(200,90,50,0.4)] hover:shadow-[0_14px_45px_rgba(200,90,50,0.55)] transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95"
+          className="group flex items-center gap-2.5 px-3.5 py-2 rounded-[6px] bg-[#000000] hover:bg-[#0b0e14] text-white border border-[#292d30] hover:border-white shadow-none transition-all cursor-pointer"
           aria-label="Open OpenOCR Assistant"
         >
-          {/* Pulsing Beacon */}
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-          </span>
-
-          <div className="flex items-center gap-2">
-            <Bot className="w-4 h-4 text-[#C85A32]" />
-            <span className="font-mono text-xs font-bold tracking-wide">Assistant</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#C85A32]/25 text-[#C85A32] font-semibold border border-[#C85A32]/35">
-              AI QA
-            </span>
-          </div>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
+          <Bot className="w-3.5 h-3.5 text-[#9281f7]" />
+          <span className="font-mono text-xs text-white">Assistant</span>
         </button>
       )}
 
-      {/* Floating Chat Modal */}
+      {/* Floating Chat Modal - Resend Void Black & Iris Violet */}
       {isOpen && (
-        <div className="w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] bg-[#161618] text-[#FBF9F5] border-2 border-[#C85A32] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-xs transition-all animate-in fade-in zoom-in-95 duration-150">
+        <div className="w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[540px] bg-[#000000] text-white border border-[#292d30] rounded-[12px] shadow-2xl flex flex-col overflow-hidden text-xs transition-all animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
-          <div className="p-4 border-b border-zinc-800 bg-[#1F1F23] flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-[#292d30] bg-[#000000] flex items-center justify-between select-none">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#C85A32] text-white flex items-center justify-center font-mono font-bold text-xs shadow-sm">
+              <div className="w-6 h-6 rounded-[4px] bg-white text-black flex items-center justify-center font-mono font-bold text-xs">
                 //
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-bold text-sm text-white">OpenOCR Assistant</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="font-mono font-medium text-sm text-white">OpenOCR Assistant</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
                 </div>
-                <span className="text-[10px] text-zinc-400 font-mono block">
-                  Authoritative Documentation &amp; Support QA
+                <span className="text-[10px] text-[#6e727a] font-mono block">
+                  Documentation &amp; Support QA
                 </span>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-1 rounded-[4px] text-[#a1a4a5] hover:text-white hover:bg-[#0b0e14] transition-colors"
               aria-label="Close Assistant"
             >
               <X className="w-4 h-4" />
@@ -248,73 +240,65 @@ export function ChatWidget() {
           </div>
 
           {/* Quick Starter Chips */}
-          <div className="px-3 py-2 bg-zinc-900 border-b border-zinc-800 flex items-center gap-1.5 overflow-x-auto select-none no-scrollbar">
+          <div className="px-3 py-2 bg-[#050505] border-b border-[#292d30] flex items-center gap-1.5 overflow-x-auto select-none no-scrollbar">
             <button
               type="button"
               onClick={() => handleSend("How do I get an API key?")}
-              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-[#C85A32] hover:border-[#C85A32] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#292d30] bg-transparent text-[11px] font-mono text-[#a1a4a5] hover:text-white hover:border-white transition-colors"
             >
               API Keys
             </button>
             <button
               type="button"
               onClick={() => handleSend("How does pricing work?")}
-              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-[#C85A32] hover:border-[#C85A32] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#292d30] bg-transparent text-[11px] font-mono text-[#a1a4a5] hover:text-white hover:border-white transition-colors"
             >
               Pricing
             </button>
             <button
               type="button"
               onClick={() => handleSend("What formats are supported?")}
-              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-[#C85A32] hover:border-[#C85A32] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#292d30] bg-transparent text-[11px] font-mono text-[#a1a4a5] hover:text-white hover:border-white transition-colors"
             >
               Formats
             </button>
             <button
               type="button"
               onClick={() => handleSend("Talk to a human support engineer")}
-              className="shrink-0 px-2.5 py-1 rounded-full border border-[#C85A32]/60 bg-[#C85A32]/10 text-[10px] text-[#C85A32] font-bold hover:bg-[#C85A32]/20 transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#9281f7]/40 bg-[#9281f7]/10 text-[11px] font-mono text-[#baa7ff] hover:border-[#9281f7] transition-colors"
             >
               Talk to Human
             </button>
-            <Link
-              href="/support"
-              onClick={() => setIsOpen(false)}
-              className="shrink-0 px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800/80 text-[10px] text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1"
-            >
-              <span>Support Portal</span>
-              <ExternalLink className="w-2.5 h-2.5" />
-            </Link>
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 leading-relaxed bg-[#161618]">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 leading-relaxed bg-[#000000]">
             {messages.map((m) => (
               <div
                 key={m.id}
                 className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.sender === "bot" && (
-                  <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5 text-[#C85A32]" />
+                  <div className="w-5 h-5 rounded-full bg-[#0b0e14] border border-[#292d30] flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-3 h-3 text-[#9281f7]" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] p-3 rounded-lg ${
+                  className={`max-w-[85%] p-3 rounded-[6px] ${
                     m.sender === "user"
-                      ? "bg-[#C85A32] text-white"
-                      : "bg-[#1F1F23] border border-zinc-800 text-zinc-200"
+                      ? "bg-[#9281f7] text-black font-medium"
+                      : "bg-[#08080a] border border-[#292d30] text-[#f0f0f0]"
                   }`}
                 >
                   <p className="text-xs whitespace-pre-wrap leading-relaxed">{m.text}</p>
                   {m.sourceDoc && (
-                    <div className="mt-2 pt-1.5 border-t border-zinc-700/60 text-[10px] text-zinc-400 flex items-center justify-between">
+                    <div className="mt-2 pt-1.5 border-t border-[#292d30] text-[10px] text-[#6e727a] flex items-center justify-between font-mono">
                       <span>Source: {m.sourceDoc}</span>
                       {m.routeKey && (
                         <Link
                           href={m.routeKey}
                           onClick={() => setIsOpen(false)}
-                          className="text-[#C85A32] hover:underline flex items-center gap-0.5 font-bold"
+                          className="text-[#9281f7] hover:underline flex items-center gap-0.5"
                         >
                           <span>Open</span>
                           <ExternalLink className="w-2.5 h-2.5" />
@@ -323,22 +307,20 @@ export function ChatWidget() {
                     </div>
                   )}
                   {m.isEscalation && !showEscalationForm && (
-                    <div className="mt-2.5 pt-2 border-t border-zinc-700/60">
-                      <Button
-                        size="xs"
-                        variant="outline"
+                    <div className="mt-2.5 pt-2 border-t border-[#292d30]">
+                      <button
+                        type="button"
                         onClick={() => setShowEscalationForm(true)}
-                        leftIcon={<LifeBuoy className="w-3 h-3 text-[#C85A32]" />}
-                        className="w-full text-xs"
+                        className="w-full text-xs font-mono py-1.5 px-2 rounded-[6px] border border-[#292d30] hover:border-white text-white transition-colors"
                       >
                         Open Ticket with Support
-                      </Button>
+                      </button>
                     </div>
                   )}
                 </div>
                 {m.sender === "user" && (
-                  <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <User className="w-3.5 h-3.5 text-zinc-300" />
+                  <div className="w-5 h-5 rounded-full bg-[#292d30] flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="w-3 h-3 text-white" />
                   </div>
                 )}
               </div>
@@ -348,42 +330,45 @@ export function ChatWidget() {
             {showEscalationForm && (
               <form
                 onSubmit={handleEscalationSubmit}
-                className="p-3.5 bg-[#1F1F23] border border-[#C85A32]/60 rounded-lg space-y-3 shadow-lg"
+                className="p-3.5 bg-[#08080a] border border-[#292d30] rounded-[6px] space-y-3"
               >
-                <div className="flex items-center justify-between font-mono text-xs font-bold text-[#C85A32] uppercase">
+                <div className="flex items-center justify-between font-mono text-xs text-[#9281f7]">
                   <span>Open Engineering Ticket</span>
                   <button
                     type="button"
                     onClick={() => setShowEscalationForm(false)}
-                    className="text-zinc-400 hover:text-white"
+                    className="text-[#6e727a] hover:text-white"
                   >
                     Cancel
                   </button>
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-zinc-400 block mb-1">Contact Email:</label>
+                  <label className="text-[10px] font-mono text-[#a1a4a5] block mb-1">Contact Email:</label>
                   <input
                     type="email"
                     required
                     placeholder="engineer@company.com"
                     value={escalateEmail}
                     onChange={(e) => setEscalateEmail(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-[#C85A32]"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-[#000000] border border-[#292d30] rounded-[6px] text-white focus:outline-none focus:border-[#9281f7]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-zinc-400 block mb-1">Issue Summary:</label>
+                  <label className="text-[10px] font-mono text-[#a1a4a5] block mb-1">Issue Summary:</label>
                   <textarea
                     rows={2}
                     placeholder="Briefly describe the question or error..."
                     value={escalateDesc}
                     onChange={(e) => setEscalateDesc(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-zinc-900 border border-zinc-700 rounded text-white focus:outline-none focus:border-[#C85A32]"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-[#000000] border border-[#292d30] rounded-[6px] text-white focus:outline-none focus:border-[#9281f7]"
                   />
                 </div>
-                <Button type="submit" size="xs" variant="primary" className="w-full font-bold">
+                <button
+                  type="submit"
+                  className="w-full py-1.5 px-3 rounded-[6px] bg-[#9281f7] text-black font-mono text-xs font-medium hover:bg-[#baa7ff] transition-colors"
+                >
                   Submit Escalation Ticket
-                </Button>
+                </button>
               </form>
             )}
 
@@ -396,24 +381,22 @@ export function ChatWidget() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 border-t border-zinc-800 bg-[#1F1F23] flex items-center gap-2"
+            className="p-3 border-t border-[#292d30] bg-[#000000] flex items-center gap-2"
           >
             <input
               type="text"
-              placeholder="Ask a technical question..."
+              placeholder="Ask a question..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs font-mono bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-[#C85A32]"
+              className="flex-1 px-3 py-1.5 text-xs font-mono bg-[#050505] border border-[#292d30] rounded-[6px] text-white placeholder-[#6e727a] focus:outline-none focus:border-[#9281f7]"
             />
-            <Button
+            <button
               type="submit"
-              size="sm"
-              variant="primary"
-              className="px-3 py-2"
+              className="p-2 rounded-[6px] border border-[#292d30] hover:border-white text-[#a1a4a5] hover:text-white transition-colors"
               aria-label="Send message"
             >
               <Send className="w-3.5 h-3.5" />
-            </Button>
+            </button>
           </form>
         </div>
       )}

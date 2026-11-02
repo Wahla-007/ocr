@@ -125,21 +125,17 @@ export function DropZone({
   };
 
   return (
-    <div className="w-full h-full flex flex-col justify-between space-y-2 select-none overflow-hidden">
-      {/* Upload Drop Card - Resend Black Velvet with Violet Neon */}
+    <div className="w-full h-full flex flex-col justify-between space-y-1 select-none overflow-hidden">
+      {/* Upload Drop Card - Clean Resend Void Black & Graphite Hairline */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !isProcessing && fileInputRef.current?.click()}
-        className={`relative w-full flex-1 min-h-0 border border-[#292d30] rounded-[16px] px-6 py-4 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer bg-[#000000] group shadow-none
-          ${
-            isDragOver
-              ? "border-[#9281f7] bg-[#9281f7]/10 ring-1 ring-[#9281f7] scale-[1.001]"
-              : "hover:border-[#9281f7]/80 hover:bg-[#08080a]"
-          }
+        className={`relative w-full flex-1 min-h-0 border border-[#292d30] rounded-[6px] px-6 py-4 flex flex-col items-center justify-center text-center transition-all cursor-pointer bg-[#000000] group
+          ${isDragOver ? "border-[#9281f7] bg-[#9281f7]/5" : "hover:border-[#9281f7]/50"}
           ${isProcessing ? "pointer-events-none opacity-60" : ""}
-          ${justPasted ? "ring-2 ring-[#3ad389] border-[#3ad389]" : ""}
+          ${justPasted ? "border-[#3ad389]" : ""}
         `}
       >
         <input
@@ -151,77 +147,58 @@ export function DropZone({
           disabled={isProcessing}
         />
 
-        {/* Scan line active effect - Violet Neon */}
+        {/* Scan line active effect */}
         {isProcessing && (
-          <div className="absolute inset-x-0 h-0.5 bg-[#9281f7] animate-scan-line shadow-[0_0_12px_#9281f7]" />
+          <div className="absolute inset-x-0 h-0.5 bg-[#9281f7] animate-scan-line shadow-[0_0_8px_#9281f7]" />
         )}
 
-        <div className="flex flex-col items-center justify-center space-y-3 max-w-xl">
-          <div
-            className={`w-12 h-12 rounded-[16px] bg-[#0b0e14] border transition-all text-[#9281f7] flex items-center justify-center group-hover:scale-105 shrink-0 shadow-[0_0_12px_rgba(146,129,247,0.12)] ${
-              isDragOver ? "border-[#9281f7] text-[#baa7ff]" : "border-[#292d30]"
-            }`}
-          >
-            {isProcessing ? (
-              <Loader2 className="w-5 h-5 animate-spin text-[#9281f7]" />
-            ) : justPasted ? (
-              <Check className="w-5 h-5 text-[#3ad389]" />
-            ) : (
-              <UploadCloud className="w-5 h-5 text-[#9281f7]" />
-            )}
-          </div>
+        <div className="flex flex-col items-center justify-center space-y-2 max-w-sm">
+          {isProcessing ? (
+            <Loader2 className="w-6 h-6 animate-spin text-[#9281f7]" />
+          ) : justPasted ? (
+            <Check className="w-6 h-6 text-[#3ad389]" />
+          ) : (
+            <UploadCloud className="w-6 h-6 text-[#9281f7] group-hover:scale-105 transition-transform" />
+          )}
 
-          <div className="space-y-1">
-            <h3 className="font-sans text-base sm:text-lg font-medium text-white leading-tight">
+          <div className="space-y-0.5">
+            <h3 className="font-sans text-sm sm:text-base font-medium text-white">
               {isProcessing
-                ? "Analyzing Document Architecture..."
+                ? "Extracting document..."
                 : isDragOver
-                ? "Release Document to Begin Extraction"
-                : "Drop Document Here or Click Browse"}
+                ? "Release to extract"
+                : "Drop document here or browse"}
             </h3>
             <p className="text-xs text-[#a1a4a5]">
-              PDF, JPG, PNG, WEBP, TIFF • Multi-page invoices, receipts, credentials & reports
+              PDF, JPG, PNG, WEBP, TIFF
             </p>
           </div>
 
-          <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="pt-0.5 flex items-center justify-center gap-3">
+            <button
               type="button"
               disabled={isProcessing}
               onClick={(e) => {
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              leftIcon={<UploadCloud className="w-4 h-4" />}
-              className="bg-transparent border border-[#9281f7] text-white hover:bg-[#9281f7] hover:text-[#000000] rounded-[6px] px-4 py-2 text-xs font-mono font-medium transition-all duration-150 shadow-[0_0_12px_rgba(146,129,247,0.2)]"
+              className="bg-transparent border border-[#292d30] text-white hover:border-white rounded-[6px] px-3.5 py-1 text-xs font-mono transition-colors"
             >
-              Browse & Upload File
-            </Button>
+              Upload file
+            </button>
 
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#000000] border border-[#292d30] text-xs font-mono text-[#a1a4a5]">
-              <Clipboard className="w-3.5 h-3.5 text-[#9281f7]" />
-              <span>or press <strong className="text-white">Ctrl+V / ⌘V</strong> to paste</span>
+            <span className="text-xs font-mono text-[#6e727a]">
+              or press <span className="text-[#a1a4a5]">⌘V / Ctrl+V</span>
             </span>
           </div>
         </div>
       </div>
 
-      {/* Demo Cases / Specimen Archive (when !isUploadedDoc) or Uploaded Status Banner (when isUploadedDoc) */}
+      {/* Demo Cases / Specimen Archive - Border-free Minimal Inline Row */}
       {!isUploadedDoc ? (
-        <div className="px-3 py-2 border border-[#292d30] rounded-[16px] bg-[#000000] space-y-1.5 shrink-0">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="font-medium text-[#f0f0f0] flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#9281f7]" />
-              Demo Specimen Previews:
-            </span>
-            <span className="text-[11px] text-[#6e727a] hidden sm:inline">
-              Select any demo case to inspect structured intelligence
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
+        <div className="flex items-center justify-between px-2 py-0.5 text-xs font-mono shrink-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[#6e727a] uppercase text-[10px] tracking-wider">Demo:</span>
             {SAMPLE_DOCUMENTS.map((sample) => {
               const isActive = activeSampleId === sample.id;
               return (
@@ -230,29 +207,24 @@ export function DropZone({
                   type="button"
                   disabled={isProcessing}
                   onClick={() => onSampleSelected && onSampleSelected(sample)}
-                  className={`px-2 py-1.5 rounded-[6px] border transition-all duration-150 text-left font-mono text-xs flex items-center justify-between gap-1.5 disabled:opacity-40 cursor-pointer ${
+                  className={`text-xs transition-colors cursor-pointer ${
                     isActive
-                      ? "border-[#9281f7] bg-[#9281f7]/15 text-[#9281f7] font-semibold ring-1 ring-[#9281f7]"
-                      : "border-[#292d30] bg-[#000000] text-[#a1a4a5] hover:border-[#9281f7]/60 hover:text-white"
+                      ? "text-[#9281f7] font-semibold border-b border-[#9281f7]"
+                      : "text-[#a1a4a5] hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={isActive ? "text-[#9281f7]" : "text-[#6e727a]"}>
-                      {getSpecimenIcon(sample.docType)}
-                    </span>
-                    <span className="truncate text-[11px]">{sample.title.split("(")[0].trim()}</span>
-                  </div>
+                  {sample.title.split("(")[0].trim()}
                 </button>
               );
             })}
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 rounded-[16px] bg-[#000000] border border-[#292d30] text-xs font-mono select-none shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-[#3ad389] animate-pulse shadow-[0_0_6px_#3ad389]" />
-            <span className="text-[#a1a4a5] uppercase text-[10px]">Active Upload:</span>
-            <span className="font-medium text-white truncate max-w-sm">{uploadedFileName}</span>
+        <div className="flex items-center justify-between px-2 py-0.5 text-xs font-mono select-none shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
+            <span className="text-[#a1a4a5] text-xs">Active:</span>
+            <span className="text-white truncate max-w-sm">{uploadedFileName}</span>
           </div>
 
           {onResetDemo && (
@@ -260,10 +232,9 @@ export function DropZone({
               type="button"
               disabled={isProcessing}
               onClick={onResetDemo}
-              className="text-xs text-[#9281f7] hover:underline font-mono flex items-center gap-1.5"
+              className="text-xs text-[#9281f7] hover:underline font-mono"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Switch Back to Demo Cases</span>
+              Back to demo cases
             </button>
           )}
         </div>

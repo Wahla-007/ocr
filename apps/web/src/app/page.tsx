@@ -10,7 +10,7 @@ import { DocumentProcessingLoader } from "../components/DocumentProcessingLoader
 import { ExtractionResult } from "../lib/types";
 import { uploadAndExtract } from "../lib/api";
 import { SAMPLE_DOCUMENTS } from "../lib/samples";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, UploadCloud } from "lucide-react";
 
 export default function PlaygroundPage() {
   const [isUploadedDoc, setIsUploadedDoc] = useState(false);
@@ -114,31 +114,49 @@ export default function PlaygroundPage() {
         plan="free"
       />
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto p-2 sm:p-2.5 space-y-1.5 flex flex-col h-[calc(100vh-56px)] min-h-0 overflow-hidden">
-        {/* 1. UPLOAD BOX COVERING 1/2 OF THE PAGE */}
-        <div className="h-[48vh] min-h-[280px] shrink-0">
-          <DropZone
-            onFileSelected={handleFileSelected}
-            onSampleSelected={handleSampleSelected}
-            isProcessing={isProcessing}
-            outputFormat={outputFormat}
-            setOutputFormat={setOutputFormat}
-            activeSampleId={activeSampleId}
-            isUploadedDoc={isUploadedDoc}
-            onResetDemo={handleResetToDemo}
-            uploadedFileName={activeFileName}
-          />
-        </div>
-
-        {/* 2. REMAINING 1/2 OF PAGE: PREVIEW & RESULTS OR LOADER */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {isProcessing ? (
-            /* While Uploading/Processing: Demo cases & test preview disappeared -> ONLY LOADER SHOWN */
+      <main className="flex-1 w-full max-w-[1600px] mx-auto p-2 sm:p-2.5 space-y-2 flex flex-col h-[calc(100vh-56px)] min-h-0 overflow-hidden">
+        {isProcessing ? (
+          /* State 1: Processing / Extracting -> Only the smooth scanning loader is shown */
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <DocumentProcessingLoader fileName={activeFileName} />
-          ) : result ? (
-            /* Split View: Spacious Data Side on the LEFT (7 cols), Document Preview on the RIGHT (5 cols) */
+          </div>
+        ) : isUploadedDoc && result ? (
+          /* State 2: Uploaded Document Mode -> Sleek Top Action Bar + Full-Height Spacious Split Workspace */
+          <>
+            <div className="flex items-center justify-between px-3.5 py-1.5 border border-[#292d30] rounded-[6px] bg-[#000000] text-xs font-mono select-none shrink-0">
+              <div className="flex items-center gap-2.5 truncate min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389] shrink-0" />
+                <span className="text-[#a1a4a5] shrink-0">Active File:</span>
+                <span className="text-white font-medium truncate">{activeFileName}</span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <label className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-[#292d30] hover:border-white text-xs text-[#a1a4a5] hover:text-white cursor-pointer transition-colors">
+                  <UploadCloud className="w-3 h-3 text-[#9281f7]" />
+                  <span>Upload New</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff,image/*,application/pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleFileSelected(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResetToDemo}
+                  className="text-xs text-[#6e727a] hover:text-white transition-colors px-2 py-1"
+                >
+                  Demo Cases
+                </button>
+              </div>
+            </div>
+
+            {/* Full-Height Spacious Workspace: Left (7 cols) Data, Right (5 cols) Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-hidden">
-              {/* Left Column: Spacious Structured Results & Intelligence Panel (7 cols) */}
               <div className="lg:col-span-7 xl:col-span-7 flex-1 min-h-0 flex flex-col overflow-hidden">
                 <ResultsPanel
                   result={result}
@@ -146,11 +164,10 @@ export default function PlaygroundPage() {
                   onSelectField={setSelectedFieldKey}
                   hoveredFieldKey={hoveredFieldKey}
                   onHoverField={setHoveredFieldKey}
-                  onReset={isUploadedDoc ? undefined : handleResetToDemo}
+                  onReset={undefined}
                 />
               </div>
 
-              {/* Right Column: Document Preview Window (5 cols) */}
               <div className="lg:col-span-5 xl:col-span-5 flex-1 min-h-0 flex flex-col overflow-hidden">
                 <DocumentViewer
                   fileName={activeFileName}
@@ -160,15 +177,62 @@ export default function PlaygroundPage() {
                   hoveredFieldKey={hoveredFieldKey}
                   onHoverField={setHoveredFieldKey}
                   uploadedPreviewUrl={uploadedPreviewUrl}
-                  isSample={!isUploadedDoc && Boolean(activeSampleId)}
+                  isSample={false}
                 />
               </div>
             </div>
-          ) : null}
-        </div>
+          </>
+        ) : (
+          /* State 3: Initial Demo Exploration Mode -> Big Upload Section on top + Demo Workspace below */
+          <>
+            <div className="h-[36vh] min-h-[220px] max-h-[300px] shrink-0">
+              <DropZone
+                onFileSelected={handleFileSelected}
+                onSampleSelected={handleSampleSelected}
+                isProcessing={isProcessing}
+                outputFormat={outputFormat}
+                setOutputFormat={setOutputFormat}
+                activeSampleId={activeSampleId}
+                isUploadedDoc={false}
+                onResetDemo={handleResetToDemo}
+                uploadedFileName={activeFileName}
+              />
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              {result && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-hidden">
+                  <div className="lg:col-span-7 xl:col-span-7 flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <ResultsPanel
+                      result={result}
+                      selectedFieldKey={selectedFieldKey}
+                      onSelectField={setSelectedFieldKey}
+                      hoveredFieldKey={hoveredFieldKey}
+                      onHoverField={setHoveredFieldKey}
+                      onReset={handleResetToDemo}
+                    />
+                  </div>
+
+                  <div className="lg:col-span-5 xl:col-span-5 flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <DocumentViewer
+                      fileName={activeFileName}
+                      result={result}
+                      selectedFieldKey={selectedFieldKey}
+                      onSelectField={setSelectedFieldKey}
+                      hoveredFieldKey={hoveredFieldKey}
+                      onHoverField={setHoveredFieldKey}
+                      uploadedPreviewUrl={uploadedPreviewUrl}
+                      isSample={true}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Resend Minimal Footer Guarantee Strip */}
-        <div className="px-3 py-1.5 border border-[#292d30] rounded-[6px] bg-[#000000] flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-mono select-none shrink-0">
+        <div className="px-3 py-1 border-t border-[#292d30]/50 bg-transparent flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-mono select-none shrink-0">
           <div className="flex items-center gap-2 text-[#a1a4a5]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#3ad389] shrink-0" />
             <span>Air-Gap Capable • Pure In-Memory Execution • Zero Data Retention</span>

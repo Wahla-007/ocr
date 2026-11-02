@@ -126,7 +126,7 @@ export function Header({
 
         {/* Right Session Controls & Theme Toggle */}
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Assistant Trigger Button */}
+          {/* Assistant Trigger Button - Resend Ghost Button */}
           <button
             type="button"
             onClick={() => {
@@ -134,16 +134,13 @@ export function Header({
                 window.dispatchEvent(new CustomEvent("open-openocr-chat"));
               }
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-sm bg-[var(--signal-subtle)] border border-[var(--signal)]/50 text-[var(--signal)] hover:bg-[var(--signal)] hover:text-white transition-all font-bold group shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-[6px] bg-transparent border border-[#292d30] text-[#a1a4a5] hover:text-white hover:border-white transition-colors cursor-pointer"
             title="Open AI Assistant QA Chatbot"
             aria-label="Open Assistant Chatbot"
           >
-            <Bot className="w-3.5 h-3.5" />
+            <Bot className="w-3.5 h-3.5 text-[#9281f7]" />
             <span className="hidden xs:inline">Assistant</span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
           </button>
 
           {/* Theme Toggle */}

@@ -724,179 +724,67 @@ export function DocumentViewer({
   const activeField = pageFields.find((f) => f.key === (hoveredFieldKey || selectedFieldKey));
 
   return (
-    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[16px] bg-[#000000] overflow-hidden shadow-none relative">
-      {/* Top Light Table Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none">
-        {/* Document Identifier */}
-        <div className="flex items-center gap-2 max-w-[240px] sm:max-w-xs truncate">
-          <FileText className="w-4 h-4 text-[var(--signal)] shrink-0" />
-          <span className="font-semibold text-[var(--ink-primary)] truncate">
-            {fileName || "inspection_specimen.pdf"}
+    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[12px] bg-[#000000] overflow-hidden shadow-none relative">
+      {/* Top Document Viewer Bar - Clean & Minimal */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none shrink-0">
+        <div className="flex items-center gap-2 truncate min-w-0">
+          <FileText className="w-3.5 h-3.5 text-[#9281f7] shrink-0" />
+          <span className="font-sans font-medium text-white truncate text-xs">
+            {fileName || "document_preview.pdf"}
           </span>
-          {result?.doc_type && (
-            <Badge variant="signal" className="text-[10px]">
-              {result.doc_type.toUpperCase()}
-            </Badge>
-          )}
-          {result?.model_used && (
-            <Badge variant="outline" className="text-[10px] font-mono hidden md:inline-flex">
-              {result.model_used.replace("gemini/", "")}
-            </Badge>
-          )}
-          {result?.quality_score !== undefined && result?.quality_score !== null && (
-            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-              QS: {Math.round(result.quality_score * 100)}%
-            </Badge>
-          )}
         </div>
 
-        {/* Tracing Layer & View Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Layer Toggles */}
-          <div className="hidden sm:flex items-center gap-1 pr-2 border-r border-[var(--line-hairline)]">
-            <button
-              type="button"
-              onClick={() => setShowFieldBboxes(!showFieldBboxes)}
-              className={`px-2 py-0.5 rounded-sm text-[11px] border transition-colors ${
-                showFieldBboxes
-                  ? "bg-[var(--signal-subtle)] border-[var(--signal)] text-[var(--signal)] font-bold"
-                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
-              }`}
-              title="Toggle Field Bounding Boxes"
-            >
-              Fields
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTableBboxes(!showTableBboxes)}
-              className={`px-2 py-0.5 rounded-sm text-[11px] border transition-colors ${
-                showTableBboxes
-                  ? "bg-blue-50 border-blue-600 text-blue-700 font-bold"
-                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
-              }`}
-              title="Toggle Table Bounding Boxes"
-            >
-              Tables
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTextBlocks(!showTextBlocks)}
-              className={`px-2 py-0.5 rounded-sm text-[11px] border transition-colors ${
-                showTextBlocks
-                  ? "bg-[var(--surface-raised)] border-[var(--line-strong)] text-[var(--ink-primary)] font-bold"
-                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
-              }`}
-              title="Toggle Raw Text Blocks"
-            >
-              Blocks
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowConfidences(!showConfidences)}
-              className={`px-1.5 py-0.5 rounded-sm text-[11px] border transition-colors flex items-center gap-0.5 ${
-                showConfidences
-                  ? "bg-[var(--surface-raised)] border-[var(--line-strong)] text-[var(--ink-primary)] font-bold"
-                  : "bg-[var(--surface-base)] border-[var(--line-hairline)] text-[var(--ink-muted)]"
-              }`}
-              title="Toggle Micro Confidence Badges"
-            >
-              <Percent className="w-3 h-3 text-[var(--signal)]" />
-              <span>Conf%</span>
-            </button>
-          </div>
-
-          {/* Privacy Blur Toggle */}
-          <button
-            type="button"
-            onClick={() => setPrivacyBlur(!privacyBlur)}
-            className={`p-1.5 rounded-sm border transition-colors ${
-              privacyBlur
-                ? "bg-[var(--semantic-warning-subtle)] border-[var(--semantic-warning)] text-[var(--semantic-warning)]"
-                : "border-[var(--line-hairline)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-            }`}
-            title={privacyBlur ? "Disable Privacy Blur" : "Enable Privacy Blur (Screen-share protection)"}
-            aria-label="Toggle Privacy Blur"
-          >
-            {privacyBlur ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-          </button>
-
-          {/* Multi-Page Navigation */}
+        <div className="flex items-center gap-2 text-xs font-mono shrink-0">
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-[var(--surface-base)] border border-[var(--line-hairline)] rounded-sm">
+            <div className="flex items-center gap-1 text-[#a1a4a5] pr-2 border-r border-[#292d30]">
               <button
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="disabled:opacity-30 hover:text-[var(--signal)]"
-                aria-label="Previous Page"
+                className="disabled:opacity-30 hover:text-white p-0.5"
+                title="Previous page"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="tabular-nums text-[11px]">
-                {currentPage}/{totalPages}
-              </span>
+              <span className="tabular-nums">{currentPage}/{totalPages}</span>
               <button
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="disabled:opacity-30 hover:text-[var(--signal)]"
-                aria-label="Next Page"
+                className="disabled:opacity-30 hover:text-white p-0.5"
+                title="Next page"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          {/* Zoom & Rotation Controls */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setZoom(0.85)}
-              className="px-1.5 py-1 rounded-sm border border-[var(--line-hairline)] text-[10px] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
-              title="Fit Document in Viewport"
-            >
-              Fit
-            </button>
-            <button
-              type="button"
-              onClick={handleRotate}
-              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
-              title="Rotate 90° Clockwise"
-              aria-label="Rotate clockwise"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
-              title="Zoom Out (-15%)"
-              aria-label="Zoom out"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <span className="tabular-nums text-[11px] w-9 text-center font-bold">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-secondary)]"
-              title="Zoom In (+15%)"
-              aria-label="Zoom in"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleResetZoom}
-              className="p-1.5 rounded-sm border border-[var(--line-hairline)] hover:bg-[var(--surface-raised)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-              title="Reset Zoom to 100% and Orientation"
-              aria-label="Reset zoom"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setZoom(0.85)}
+            className="text-[#a1a4a5] hover:text-white px-2 py-0.5 transition-colors"
+          >
+            Fit
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="text-[#a1a4a5] hover:text-white p-1 transition-colors"
+            title="Zoom out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[#a1a4a5] w-9 text-center tabular-nums">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className="text-[#a1a4a5] hover:text-white p-1 transition-colors"
+            title="Zoom in"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -944,23 +832,22 @@ export function DocumentViewer({
                     onMouseEnter={() => onHoverField(field.key)}
                     onMouseLeave={() => onHoverField(null)}
                     style={getBboxStyle(field.bbox)}
-                    className={`absolute cursor-pointer transition-all duration-150 rounded-sm select-none group ${borderPattern}
+                    className={`absolute cursor-pointer transition-all duration-150 rounded-[4px] select-none group ${borderPattern}
                       ${
                         isSelected
-                          ? "border-2 border-[#B24E2A] bg-[#C85A32]/35 ring-3 ring-[#C85A32] shadow-[0_0_12px_rgba(200,90,50,0.5)] z-30"
+                          ? "border-2 border-[#9281f7] bg-[#9281f7]/25 ring-2 ring-[#9281f7]/60 shadow-[0_0_12px_rgba(146,129,247,0.35)] z-30"
                           : isHovered
-                          ? "border-2 border-[#C85A32] bg-[#C85A32]/25 ring-2 ring-[#C85A32]/60 shadow-[0_0_8px_rgba(200,90,50,0.3)] z-20"
-                          : "border-2 border-[#C85A32] bg-[#C85A32]/12 hover:border-[#B24E2A] hover:bg-[#C85A32]/25 shadow-[0_0_0_1px_rgba(200,90,50,0.2)] z-10"
+                          ? "border-2 border-[#baa7ff] bg-[#9281f7]/15 z-20"
+                          : "border border-[#9281f7]/60 bg-[#9281f7]/10 hover:border-[#9281f7] hover:bg-[#9281f7]/20 z-10"
                       }
-                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(200,90,50,0.2)_3px,rgba(200,90,50,0.2)_6px)]" : ""}
+                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(146,129,247,0.15)_3px,rgba(146,129,247,0.15)_6px)]" : ""}
                     `}
-                    title={`${field.label || field.key}: ${field.value} (${field.box_source || "bbox"})`}
+                    title={`${field.label || field.key}: ${field.value}`}
                   >
                     {/* Micro confidence tag when enabled */}
                     {showConfidences && (
-                      <span className="absolute -top-3.5 left-0 px-1 py-0 bg-[#C85A32] text-white text-[8px] font-mono font-bold rounded-[1px] tracking-tight pointer-events-none opacity-90 truncate max-w-[120px] shadow-sm">
+                      <span className="absolute -top-3.5 left-0 px-1 py-0 bg-[#9281f7] text-black text-[8px] font-mono font-bold rounded-[2px] tracking-tight pointer-events-none opacity-90 truncate max-w-[120px]">
                         {(field.label || field.key || "Field").slice(0, 10)} {Math.round(field.confidence * 100)}%
-                        {isModelSource ? " [vis]" : " [snap]"}
                       </span>
                     )}
                   </div>
@@ -977,28 +864,28 @@ export function DocumentViewer({
                     maxWidth: "280px",
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute z-50 pointer-events-auto bg-[var(--surface-base)] text-[var(--ink-primary)] border-2 border-[var(--signal)] rounded-sm p-2 shadow-xl backdrop-blur-md transition-all animate-fade-in"
+                  className="absolute z-50 pointer-events-auto bg-[#000000] text-white border border-[#292d30] rounded-[6px] p-2 shadow-2xl transition-all"
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-[var(--line-hairline)] pb-1 mb-1">
-                    <span className="font-mono text-[10px] font-bold text-[var(--signal)] truncate">
+                  <div className="flex items-center justify-between gap-2 border-b border-[#292d30] pb-1 mb-1">
+                    <span className="font-mono text-[10px] font-bold text-[#9281f7] truncate">
                       {activeField.label || activeField.key}
                     </span>
-                    <span className="font-mono text-[9px] px-1 py-0.5 bg-[var(--surface-raised)] border border-[var(--line-hairline)] text-[var(--ink-secondary)] rounded-sm tabular-nums shrink-0">
-                      {Math.round(activeField.confidence * 100)}% match
+                    <span className="font-mono text-[9px] px-1 py-0.5 bg-[#0b0e14] border border-[#292d30] text-[#a1a4a5] rounded-[4px] tabular-nums shrink-0">
+                      {Math.round(activeField.confidence * 100)}%
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-1.5">
-                    <span className="font-mono text-xs font-semibold text-[var(--ink-primary)] truncate">
+                    <span className="font-mono text-xs font-normal text-white truncate">
                       {String(activeField.value)}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleCopyValue(String(activeField.value), activeField.key, e)}
-                      className="p-1 hover:bg-[var(--surface-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)] rounded-sm transition-colors shrink-0"
+                      className="p-1 hover:bg-[#0b0e14] text-[#a1a4a5] hover:text-white rounded-[4px] transition-colors shrink-0"
                       title="Copy field value"
                     >
                       {copiedFieldKey === activeField.key ? (
-                        <Check className="w-3 h-3 text-[var(--semantic-success)]" />
+                        <Check className="w-3 h-3 text-[#3ad389]" />
                       ) : (
                         <Copy className="w-3 h-3" />
                       )}
@@ -1018,9 +905,9 @@ export function DocumentViewer({
                   <div
                     key={`tbl-${idx}`}
                     style={getBboxStyle(table.bbox)}
-                    className="absolute border-2 border-dashed border-[#1D5E99] bg-[#1D5E99]/5 rounded-sm pointer-events-none z-10"
+                    className="absolute border border-dashed border-[#70b8ff] bg-[#70b8ff]/5 rounded-[4px] pointer-events-none z-10"
                   >
-                    <span className="bg-[#1D5E99] text-white text-[9px] font-mono px-1 py-0.5 rounded-sm font-bold float-right shadow-sm">
+                    <span className="bg-[#70b8ff] text-black text-[9px] font-mono px-1 py-0.2 rounded-[2px] font-bold float-right">
                       TABLE
                     </span>
                   </div>
@@ -1038,66 +925,13 @@ export function DocumentViewer({
                   <div
                     key={`block-${idx}`}
                     style={getBboxStyle(block.bbox)}
-                    className="absolute border border-[var(--ink-muted)]/40 bg-[var(--surface-raised)]/20 pointer-events-none"
+                    className="absolute border border-[#6e727a]/40 bg-[#6e727a]/10 pointer-events-none"
                   />
                 );
               })}
             </div>
           )}
         </div>
-      </div>
-
-      {/* Accessible Semantic Region Ledger (WCAG 2.2 AA Alternative to Visual Canvas) */}
-      <div className="border-t border-[var(--line-strong)] bg-[var(--surface-subtle)] p-3 select-none">
-        <div className="flex items-center justify-between pb-1.5">
-          <span className="font-mono text-[11px] font-bold text-[var(--ink-secondary)] uppercase tracking-wider flex items-center gap-1.5">
-            <Sliders className="w-3.5 h-3.5 text-[var(--signal)]" />
-            Detected Region Ledger (Accessible Keyboard Navigation)
-          </span>
-          <span className="text-[11px] font-mono text-[var(--ink-muted)]">
-            {pageFields.length} Regions on Page {currentPage}
-          </span>
-        </div>
-
-        <ol
-          className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none"
-          role="list"
-          aria-label="Detected document regions list"
-        >
-          {pageFields.map((field) => {
-            const isSelected = selectedFieldKey === field.key;
-            const isHovered = hoveredFieldKey === field.key;
-            return (
-              <li
-                key={field.key}
-                role="listitem"
-                tabIndex={0}
-                onClick={() => onSelectField(field.key)}
-                onFocus={() => {
-                  onSelectField(field.key);
-                  onHoverField(field.key);
-                }}
-                onBlur={() => onHoverField(null)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelectField(field.key);
-                  }
-                }}
-                className={`shrink-0 px-2.5 py-1 rounded-sm border text-xs font-mono transition-all cursor-pointer select-none flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)] ${
-                  isSelected
-                    ? "bg-[var(--signal)] text-white border-[var(--signal)] font-bold shadow-subtle"
-                    : isHovered
-                    ? "bg-[var(--surface-raised)] text-[var(--ink-primary)] border-[var(--signal)]"
-                    : "bg-[var(--surface-base)] text-[var(--ink-secondary)] border-[var(--line-hairline)] hover:border-[var(--line-strong)]"
-                }`}
-              >
-                <span>{field.label}:</span>
-                <span className="font-medium text-[var(--ink-primary)] truncate max-w-[140px]">{String(field.value)}</span>
-              </li>
-            );
-          })}
-        </ol>
       </div>
     </div>
   );

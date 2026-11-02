@@ -165,116 +165,78 @@ export function ResultsPanel({
   const jsonContent = JSON.stringify(result, null, 2);
 
   return (
-    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[16px] bg-[#000000] overflow-hidden shadow-none">
-      {/* Top Header Summary Bar - Resend Void Black & Graphite Hairline */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none shrink-0">
-        <div className="flex items-center gap-2.5">
+    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[12px] bg-[#000000] overflow-hidden shadow-none">
+      {/* Top Header Summary Bar - Minimal & Clean */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none shrink-0">
+        <div className="flex items-center gap-2">
           <span className="font-sans font-medium text-white text-sm">
-            Intelligence Report
+            Extracted Data
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] border border-[#3ad389]/30 bg-[#3ad389]/10 text-[#3ad389] text-[11px] font-mono font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
-            VERIFIED
+          <span className="text-xs text-[#a1a4a5] font-mono">
+            ({fields.length} fields)
           </span>
         </div>
 
-        <div className="flex items-center gap-2.5 text-xs text-[#a1a4a5]">
-          {result.model_used && (
-            <span className="tabular-nums hidden md:inline">
-              model: <strong className="text-[#9281f7] font-mono font-normal">{result.model_used.replace("gemini/", "")}</strong>
-            </span>
-          )}
-          {result.quality_score !== undefined && result.quality_score !== null && (
-            <>
-              <span className="text-[#292d30] hidden md:inline">|</span>
-              <span className="tabular-nums">
-                quality: <strong className="text-[#3ad389] font-mono font-normal">{Math.round(result.quality_score * 100)}%</strong>
-              </span>
-            </>
-          )}
-          <span className="text-[#292d30]">|</span>
-          <span className="tabular-nums">
-            accuracy: <strong className="text-white font-mono font-normal">{Math.round((result.overall_confidence || 0.98) * 100)}%</strong>
-          </span>
-          <span className="text-[#292d30]">|</span>
-          <span className="tabular-nums">
-            latency: <strong className="text-[#9281f7] font-mono font-normal">{result.latency_ms || 48}ms</strong>
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              handleDownload(
+                JSON.stringify(result, null, 2),
+                `${result.doc_type || "extraction"}_result.json`,
+                "application/json"
+              )
+            }
+            className="flex items-center gap-1.5 text-xs font-mono text-[#a1a4a5] hover:text-white px-2.5 py-1 rounded-[6px] border border-[#292d30] hover:border-white transition-colors"
+          >
+            <Download className="w-3 h-3" />
+            <span>Export JSON</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Tabs Container - Resend Spacious Data View */}
-      <div className="flex-1 flex flex-col overflow-hidden p-3.5 sm:p-4 min-h-0">
+      {/* Main Tabs Container - Calm & Spacious */}
+      <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 min-h-0">
         <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden min-h-0">
-          {/* Tabs Navigation Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-[#292d30] shrink-0 gap-2">
-            <TabsList className="border-none w-auto gap-1.5 bg-transparent p-0">
+          {/* Minimalist Tabs Navigation */}
+          <div className="flex items-center justify-between pb-2 border-b border-[#292d30] shrink-0">
+            <TabsList className="border-none w-auto gap-4 bg-transparent p-0">
               <TabsTrigger
                 value="fields"
-                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
               >
-                <Sliders className="w-3.5 h-3.5 text-[#9281f7]" />
-                <span>Fields</span>
-                <span className="px-1.5 py-0.2 rounded-[4px] bg-[#292d30] text-[#f0f0f0] text-[10px]">
-                  {fields.length}
-                </span>
+                Fields ({fields.length})
               </TabsTrigger>
               <TabsTrigger
                 value="tables"
-                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
               >
-                <TableIcon className="w-3.5 h-3.5 text-[#70b8ff]" />
-                <span>Tables</span>
-                <span className="px-1.5 py-0.2 rounded-[4px] bg-[#292d30] text-[#f0f0f0] text-[10px]">
-                  {tables.length}
-                </span>
+                Tables ({tables.length})
               </TabsTrigger>
               <TabsTrigger
                 value="text"
-                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
               >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Text</span>
+                Text
               </TabsTrigger>
               <TabsTrigger
                 value="markdown"
-                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
               >
-                <FileCode className="w-3.5 h-3.5" />
-                <span>Markdown</span>
+                Markdown
               </TabsTrigger>
               <TabsTrigger
                 value="json"
-                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+                className="py-1 px-1 text-xs font-mono text-[#a1a4a5] hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-white data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent"
               >
-                <Code2 className="w-3.5 h-3.5 text-[#9281f7]" />
-                <span>JSON</span>
+                JSON
               </TabsTrigger>
             </TabsList>
-
-            {/* Global Actions - Ghost on Black Button */}
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() =>
-                  handleDownload(
-                    JSON.stringify(result, null, 2),
-                    `${result.doc_type || "extraction"}_result.json`,
-                    "application/json"
-                  )
-                }
-                leftIcon={<Download className="w-3.5 h-3.5" />}
-                className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-all duration-150"
-              >
-                Export JSON
-              </Button>
-            </div>
           </div>
 
-          {/* Tab 1: Key Fields Inspector - Spacious Resend Cards */}
-          <TabsContent value="fields" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-3 space-y-3 data-[state=inactive]:!hidden">
-            {/* Search & Bulk Copy Toolbar */}
+          {/* Tab 1: Key Fields - Borderless Spacious List */}
+          <TabsContent value="fields" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2.5 space-y-2.5 data-[state=inactive]:!hidden">
+            {/* Minimal Search & Bulk Copy Toolbar */}
             <div className="flex items-center justify-between gap-3 shrink-0">
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#6e727a] pointer-events-none" />
@@ -282,96 +244,89 @@ export function ResultsPanel({
                   type="text"
                   value={fieldQuery}
                   onChange={(e) => setFieldQuery(e.target.value)}
-                  placeholder="Filter extracted fields..."
-                  className="w-full pl-9 pr-8 py-2 text-xs font-mono bg-[#000000] border border-[#292d30] rounded-[6px] text-[#ffffff] placeholder:text-[#6e727a] focus:outline-none focus:border-[#9281f7] focus:ring-1 focus:ring-[#9281f7] transition-all"
+                  placeholder="Filter fields..."
+                  className="w-full pl-8 pr-7 py-1.5 text-xs font-mono bg-[#050505] border border-[#292d30] rounded-[6px] text-white placeholder:text-[#6e727a] focus:outline-none focus:border-[#9281f7] transition-all"
                 />
                 {fieldQuery && (
                   <button
                     type="button"
                     onClick={() => setFieldQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a1a4a5] hover:text-[#ffffff]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a1a4a5] hover:text-white"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
-              <Button
-                variant="outline"
-                size="xs"
+              <button
+                type="button"
                 onClick={handleCopyAllFields}
-                leftIcon={copiedTab === "all_fields" ? <Check className="w-3.5 h-3.5 text-[#3ad389]" /> : <Copy className="w-3.5 h-3.5" />}
-                className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-2 transition-all duration-150"
+                className="text-xs font-mono text-[#a1a4a5] hover:text-white px-2 py-1 transition-colors"
               >
-                {copiedTab === "all_fields" ? "Copied All" : "Copy All"}
-              </Button>
+                {copiedTab === "all_fields" ? "Copied" : "Copy all"}
+              </button>
             </div>
 
-            {/* Scrollable Fields List - Spacious Resend Field Cards */}
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 pb-8">
+            {/* Scrollable Fields List - Borderless Clean Rows */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-6 divide-y divide-[#292d30]/50">
               {filteredFields.length === 0 ? (
                 <div className="h-full flex items-center justify-center p-8 text-center">
                   <p className="text-xs text-[#a1a4a5] font-mono">
-                    {fields.length === 0 ? "No structured key-value fields detected." : "No fields matching query."}
+                    {fields.length === 0 ? "No structured fields detected." : "No fields matching query."}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {filteredFields.map((field) => {
-                    const isSelected = selectedFieldKey === field.key;
-                    const isHovered = hoveredFieldKey === field.key;
-                    return (
-                      <div
-                        key={field.key}
-                        onClick={() => onSelectField(field.key)}
-                        onMouseEnter={() => onHoverField(field.key)}
-                        onMouseLeave={() => onHoverField(null)}
-                        className={`p-4 rounded-[6px] border transition-all duration-150 cursor-pointer flex flex-col justify-between gap-2 ${
-                          isSelected
-                            ? "border-[#9281f7] bg-[#9281f7]/10 ring-1 ring-[#9281f7]"
-                            : isHovered
-                            ? "border-[#9281f7]/70 bg-[#0b0e14]"
-                            : "border-[#292d30] bg-[#000000] hover:border-[#9281f7]/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                            <span className="text-xs font-sans font-medium text-[#f0f0f0] tracking-wide">
-                              {field.label || field.key}
-                            </span>
-                            <span className="font-mono text-[11px] text-[#9281f7] bg-[#9281f7]/10 px-2 py-0.5 rounded-[4px] border border-[#9281f7]/25">
-                              {field.key}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2.5 shrink-0">
-                            {getConfidenceBadge(field.confidence)}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopy(String(field.value), field.key);
-                              }}
-                              className="p-1.5 text-[#a1a4a5] hover:text-[#ffffff] rounded-[6px] border border-transparent hover:border-[#292d30] hover:bg-[#0b0e14] transition-all"
-                              title="Copy field value"
-                            >
-                              {copiedTab === field.key ? (
-                                <Check className="w-3.5 h-3.5 text-[#3ad389]" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="pt-1">
-                          <p className="font-mono text-sm sm:text-base text-[#ffffff] font-normal leading-relaxed break-words select-text">
-                            {String(field.value)}
-                          </p>
-                        </div>
+                filteredFields.map((field) => {
+                  const isSelected = selectedFieldKey === field.key;
+                  const isHovered = hoveredFieldKey === field.key;
+                  return (
+                    <div
+                      key={field.key}
+                      onClick={() => onSelectField(field.key)}
+                      onMouseEnter={() => onHoverField(field.key)}
+                      onMouseLeave={() => onHoverField(null)}
+                      className={`py-3 px-2.5 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 group ${
+                        isSelected
+                          ? "bg-[#9281f7]/10 border-l-2 border-l-[#9281f7]"
+                          : isHovered
+                          ? "bg-[#0b0e14]"
+                          : "hover:bg-[#08080a]"
+                      }`}
+                    >
+                      {/* Left: Label and Key */}
+                      <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389] shrink-0" />
+                        <span className="text-xs font-sans font-medium text-[#f0f0f0]">
+                          {field.label || field.key}
+                        </span>
+                        <span className="font-mono text-[11px] text-[#6e727a]">
+                          {field.key}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Right: Value & Copy */}
+                      <div className="flex items-center gap-3 justify-between sm:justify-end min-w-0 flex-1">
+                        <span className="font-mono text-sm text-white font-normal break-words select-text sm:text-right">
+                          {String(field.value)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(String(field.value), field.key);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-[#6e727a] hover:text-white transition-opacity shrink-0"
+                          title="Copy value"
+                        >
+                          {copiedTab === field.key ? (
+                            <Check className="w-3.5 h-3.5 text-[#3ad389]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </TabsContent>
@@ -387,7 +342,7 @@ export function ResultsPanel({
             ) : (
               <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
                 {tables.map((table, tIdx) => (
-                  <div key={tIdx} className="space-y-3 border border-[#292d30] p-4 rounded-[16px] bg-[#000000]">
+                  <div key={tIdx} className="space-y-2.5 bg-[#000000]">
                     <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30]">
                       <div className="flex items-center gap-2">
                         <span className="font-sans font-medium text-white">
@@ -453,7 +408,7 @@ export function ResultsPanel({
             {/* Toolbar */}
             <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30] shrink-0">
               <span className="text-[#a1a4a5] flex items-center gap-2">
-                <span className="text-white font-sans font-medium">Plain Text Output</span>
+                <span className="text-white font-sans font-medium">Plain Text</span>
                 <span className="text-[#6e727a] text-[11px]">({textContent.length} chars)</span>
               </span>
               <div className="flex items-center gap-2">
@@ -478,8 +433,8 @@ export function ResultsPanel({
               </div>
             </div>
 
-            {/* Resend Code Window Frame */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#000000] text-[#f0f0f0] border border-[#292d30] rounded-[16px] font-mono text-xs leading-relaxed whitespace-pre-wrap select-text">
+            {/* Seamless Code Surface */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#050505] text-[#f0f0f0] rounded-[6px] font-mono text-xs leading-relaxed whitespace-pre-wrap select-text">
               {textContent}
             </div>
           </TabsContent>
@@ -489,7 +444,7 @@ export function ResultsPanel({
             {/* Toolbar */}
             <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30] shrink-0">
               <div className="flex items-center gap-3">
-                <span className="text-white font-sans font-medium">Structured Markdown</span>
+                <span className="text-white font-sans font-medium">Markdown</span>
                 <div className="inline-flex rounded-[6px] border border-[#292d30] bg-[#000000] p-0.5">
                   <button
                     type="button"
@@ -540,7 +495,7 @@ export function ResultsPanel({
 
             {/* Markdown Frame */}
             {markdownMode === "formatted" ? (
-              <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-[#000000] border border-[#292d30] rounded-[16px] text-xs leading-relaxed select-text space-y-3 font-sans">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#050505] rounded-[6px] text-xs leading-relaxed select-text space-y-3 font-sans">
                 {markdownContent.split("\n").map((line, idx) => {
                   if (line.startsWith("# ")) {
                     return (
@@ -585,7 +540,7 @@ export function ResultsPanel({
                 })}
               </div>
             ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#000000] text-[#9281f7] border border-[#292d30] rounded-[16px] font-mono text-xs leading-relaxed whitespace-pre-wrap select-text">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#050505] text-[#9281f7] rounded-[6px] font-mono text-xs leading-relaxed whitespace-pre-wrap select-text">
                 {markdownContent}
               </div>
             )}
@@ -622,7 +577,7 @@ export function ResultsPanel({
             </div>
 
             {/* Resend JSON Code Window */}
-            <div className="flex-1 min-h-0 overflow-auto p-4 bg-[#000000] text-[#baa7ff] border border-[#292d30] rounded-[16px] font-mono text-xs leading-relaxed select-text whitespace-pre">
+            <div className="flex-1 min-h-0 overflow-auto p-4 bg-[#050505] text-[#baa7ff] rounded-[6px] font-mono text-xs leading-relaxed select-text whitespace-pre">
               {jsonContent}
             </div>
           </TabsContent>
