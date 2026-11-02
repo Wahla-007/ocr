@@ -724,9 +724,9 @@ export function DocumentViewer({
   const activeField = pageFields.find((f) => f.key === (hoveredFieldKey || selectedFieldKey));
 
   return (
-    <div className="w-full flex flex-col h-full border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] overflow-hidden shadow-card relative registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br">
+    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[16px] bg-[#000000] overflow-hidden shadow-none relative">
       {/* Top Light Table Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-xs font-mono select-none">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none">
         {/* Document Identifier */}
         <div className="flex items-center gap-2 max-w-[240px] sm:max-w-xs truncate">
           <FileText className="w-4 h-4 text-[var(--signal)] shrink-0" />
@@ -900,8 +900,8 @@ export function DocumentViewer({
         </div>
       </div>
 
-      {/* Main Light Table Viewport - Tightly Framed with Zero Excess Whitespace */}
-      <div className="flex-1 min-h-0 overflow-auto p-2 flex items-center justify-center bg-zinc-900/95 dark:bg-black/95 light-table-grid relative">
+      {/* Main Light Table Viewport - Resend Void Black Background */}
+      <div className="flex-1 min-h-0 overflow-auto p-2 flex items-center justify-center bg-[#000000] relative">
         <div
           className="relative transition-transform duration-100 ease-out origin-center border border-zinc-700/70 shadow-2xl rounded-sm overflow-hidden max-w-full max-h-full"
           style={{

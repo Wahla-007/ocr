@@ -136,9 +136,21 @@ export default function PlaygroundPage() {
             /* While Uploading/Processing: Demo cases & test preview disappeared -> ONLY LOADER SHOWN */
             <DocumentProcessingLoader fileName={activeFileName} />
           ) : result ? (
-            /* When Loaded: Split view showing either Uploaded Doc OR Initial Test Preview */
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0 overflow-hidden">
-              {/* Left Column: Document Viewer (5 cols) - Snug Width, Zero Dead Whitespace */}
+            /* Split View: Spacious Data Side on the LEFT (7 cols), Document Preview on the RIGHT (5 cols) */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-hidden">
+              {/* Left Column: Spacious Structured Results & Intelligence Panel (7 cols) */}
+              <div className="lg:col-span-7 xl:col-span-7 flex-1 min-h-0 flex flex-col overflow-hidden">
+                <ResultsPanel
+                  result={result}
+                  selectedFieldKey={selectedFieldKey}
+                  onSelectField={setSelectedFieldKey}
+                  hoveredFieldKey={hoveredFieldKey}
+                  onHoverField={setHoveredFieldKey}
+                  onReset={isUploadedDoc ? undefined : handleResetToDemo}
+                />
+              </div>
+
+              {/* Right Column: Document Preview Window (5 cols) */}
               <div className="lg:col-span-5 xl:col-span-5 flex-1 min-h-0 flex flex-col overflow-hidden">
                 <DocumentViewer
                   fileName={activeFileName}
@@ -151,35 +163,23 @@ export default function PlaygroundPage() {
                   isSample={!isUploadedDoc && Boolean(activeSampleId)}
                 />
               </div>
-
-              {/* Right Column: Structured Results Panel (7 cols) - Wide Space, Never Truncated */}
-              <div className="lg:col-span-7 xl:col-span-7 flex-1 min-h-0 flex flex-col overflow-hidden">
-                <ResultsPanel
-                  result={result}
-                  selectedFieldKey={selectedFieldKey}
-                  onSelectField={setSelectedFieldKey}
-                  hoveredFieldKey={hoveredFieldKey}
-                  onHoverField={setHoveredFieldKey}
-                  onReset={isUploadedDoc ? undefined : handleResetToDemo}
-                />
-              </div>
             </div>
           ) : null}
         </div>
 
-        {/* Compact Single-Line Footer Guarantee Strip */}
-        <div className="px-2.5 py-1 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] flex flex-col sm:flex-row items-center justify-between gap-1 text-[10px] font-mono select-none shrink-0">
-          <div className="flex items-center gap-1.5 text-[var(--ink-secondary)]">
-            <ShieldCheck className="w-3.5 h-3.5 text-[var(--semantic-success)] shrink-0" />
+        {/* Resend Minimal Footer Guarantee Strip */}
+        <div className="px-3 py-1.5 border border-[#292d30] rounded-[6px] bg-[#000000] flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-mono select-none shrink-0">
+          <div className="flex items-center gap-2 text-[#a1a4a5]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#3ad389] shrink-0" />
             <span>Air-Gap Capable • Pure In-Memory Execution • Zero Data Retention</span>
           </div>
 
-          <div className="flex items-center gap-3 text-[var(--ink-muted)]">
+          <div className="flex items-center gap-3 text-[#6e727a]">
             <span className="hidden sm:inline">Ctrl+V / ⌘V Paste Screenshot</span>
             <span className="hidden sm:inline">•</span>
             <span>Esc to Deselect</span>
             <span>•</span>
-            <Link href="/self-hosted" className="text-[var(--signal)] hover:underline font-bold">
+            <Link href="/self-hosted" className="text-[#9281f7] hover:underline font-medium">
               Self-Hosted
             </Link>
           </div>

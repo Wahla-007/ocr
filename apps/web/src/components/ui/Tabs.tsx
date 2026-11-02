@@ -11,7 +11,7 @@ export const TabsList = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={`inline-flex items-center gap-1 border-b border-[var(--line-hairline)] w-full text-xs font-mono select-none ${className}`}
+    className={`inline-flex items-center gap-1 border-b border-[#292d30] w-full text-xs font-mono select-none ${className}`}
     {...props}
   />
 ));
@@ -23,7 +23,7 @@ export const TabsTrigger = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
-    className={`px-3 py-2 -mb-px font-medium transition-colors border-b-2 border-transparent text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] data-[state=active]:border-[var(--signal)] data-[state=active]:text-[var(--ink-primary)] data-[state=active]:font-bold focus-visible:outline-none focus-visible:text-[var(--signal)] ${className}`}
+    className={`px-3 py-1.5 -mb-px font-mono text-xs transition-colors border-b-2 border-transparent text-[#a1a4a5] hover:text-[#ffffff] data-[state=active]:border-[#9281f7] data-[state=active]:text-[#ffffff] data-[state=active]:font-semibold focus-visible:outline-none ${className}`}
     {...props}
   />
 ));

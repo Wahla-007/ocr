@@ -81,7 +81,7 @@ export function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[var(--line-strong)] bg-[var(--surface-base)]/95 backdrop-blur-[4px] px-4 sm:px-8 py-2.5 transition-colors select-none">
+    <header className="sticky top-0 z-40 w-full border-b border-[#292d30] bg-[#000000]/95 backdrop-blur-[25px] px-4 sm:px-8 py-2.5 transition-colors select-none">
       <div className="max-w-[1720px] mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Tag */}
         <div className="flex items-center gap-6 sm:gap-8">
@@ -90,14 +90,14 @@ export function Header({
             className="flex items-center gap-2.5 text-left hover:opacity-85 transition-opacity cursor-pointer group"
             title="OpenOCR Home"
           >
-            <div className="h-6 w-6 rounded-sm bg-[var(--ink-primary)] text-[var(--surface-base)] flex items-center justify-center font-mono font-bold text-xs shadow-subtle">
+            <div className="h-6 w-6 rounded-[4px] bg-white text-black flex items-center justify-center font-mono font-bold text-xs shadow-none">
               //
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-base tracking-tight text-[var(--ink-primary)]">
+              <span className="font-serif font-bold text-base tracking-tight text-white">
                 OpenOCR
               </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm border border-[var(--line-hairline)] text-[var(--ink-muted)] bg-[var(--surface-subtle)]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[6px] border border-[#292d30] text-[#a1a4a5] bg-[#000000]">
                 v1.2
               </span>
             </div>
@@ -111,10 +111,10 @@ export function Header({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-1.5 rounded-sm text-xs font-mono tracking-tight transition-colors ${
+                  className={`px-3 py-1.5 rounded-[6px] text-xs font-mono tracking-tight transition-colors ${
                     active
-                      ? "text-[var(--signal)] font-bold bg-[var(--signal-subtle)] border border-[var(--signal)]"
-                      : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)] border border-transparent"
+                      ? "text-[#9281f7] font-semibold bg-[#9281f7]/10 border border-[#9281f7]/30"
+                      : "text-[#a1a4a5] hover:text-white hover:bg-[#0b0e14] border border-transparent"
                   }`}
                 >
                   {link.label}

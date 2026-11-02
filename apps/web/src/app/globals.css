@@ -8,38 +8,58 @@
    ========================================================================== */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  /* LIGHT THEME: Warm Archival Paper */
-  --surface-base: #FBF9F5;
-  --surface-subtle: #F4EFEB;
-  --surface-raised: #EDE7E1;
-  --surface-sunken: #E5DFD7;
-  --surface-overlay: rgba(251, 249, 245, 0.94);
+  /* RESEND TOKENS — Black Velvet with Violet Neon */
+  --color-void-black: #000000;
+  --color-graphite-hairline: #292d30;
+  --color-white: #ffffff;
+  --color-bone-white: #f0f0f0;
+  --color-ash-gray: #a1a4a5;
+  --color-smoke-gray: #abafb4;
+  --color-iron: #6e727a;
+  --color-charcoal: #464a4d;
+  --color-iris-violet: #9281f7;
+  --color-iris-violet-glow: #baa7ff;
+  --color-signal-blue: #3b9eff;
+  --color-sky-blue: #70b8ff;
+  --color-pulse-green: #3ad389;
+  --color-alarm-red: #ff9592;
+  --color-crimson: #ff6465;
+  --color-amber: #ffca16;
+  --color-amber-glow: #ffd60a;
+  --color-surface-gradient: #0b0e14;
 
-  --ink-primary: #1E1E1E;
-  --ink-secondary: #4A4844;
-  --ink-muted: #73706B;
+  /* Resend Theme Surfaces & Ink */
+  --surface-base: #000000;
+  --surface-subtle: #08080a;
+  --surface-raised: #0f1014;
+  --surface-sunken: #000000;
+  --surface-overlay: rgba(0, 0, 0, 0.95);
 
-  --line-hairline: #E2DDD5;
-  --line-strong: #C4BEB4;
+  --ink-primary: #ffffff;
+  --ink-secondary: #f0f0f0;
+  --ink-muted: #a1a4a5;
 
-  --signal: #C85A32;
-  --signal-hover: #B24E2A;
-  --signal-subtle: #F8EDE7;
-  --signal-contrast: #FFFFFF;
+  --line-hairline: #292d30;
+  --line-strong: #383d42;
 
-  --semantic-success: #1B7F4B;
-  --semantic-success-subtle: #EDF7F1;
-  --semantic-warning: #946200;
-  --semantic-warning-subtle: #FDF7E7;
-  --semantic-error: #B42318;
-  --semantic-error-subtle: #FEF3F2;
-  --semantic-info: #1D5E99;
-  --semantic-info-subtle: #EEF5FC;
+  --signal: #9281f7;
+  --signal-hover: #baa7ff;
+  --signal-subtle: rgba(146, 129, 247, 0.12);
+  --signal-contrast: #000000;
 
-  --focus-ring: #C85A32;
-  --focus-ring-offset: #FBF9F5;
+  --semantic-success: #3ad389;
+  --semantic-success-subtle: rgba(58, 211, 137, 0.12);
+  --semantic-warning: #ffca16;
+  --semantic-warning-subtle: rgba(255, 202, 22, 0.12);
+  --semantic-error: #ff9592;
+  --semantic-error-subtle: rgba(255, 149, 146, 0.12);
+  --semantic-info: #70b8ff;
+  --semantic-info-subtle: rgba(112, 184, 255, 0.12);
+
+  --focus-ring: #9281f7;
+  --focus-ring-offset: #000000;
 
   /* Typography Scales */
   --font-display-2xl: clamp(2.25rem, 4vw + 1rem, 3.5rem);
@@ -51,43 +71,43 @@
   --font-ui-xs: 0.6875rem;
 
   /* Font Fallbacks */
-  --font-serif: "Newsreader", "Fraunces", Georgia, Cambria, serif;
-  --font-sans: "Plus Jakarta Sans", "General Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-serif: "Domaine", "Newsreader", "Georgia", serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Commit Mono", "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-arabic: "Noto Naskh Arabic", "Gulzar", serif;
 }
 
 html.dark, [data-theme="dark"] {
-  /* DARK THEME: Deep Technical Drafting Ink */
-  --surface-base: #111113;
-  --surface-subtle: #17171A;
-  --surface-raised: #1F1F24;
-  --surface-sunken: #0C0C0E;
-  --surface-overlay: rgba(17, 17, 19, 0.92);
+  /* RESEND: Black Velvet with Violet Neon */
+  --surface-base: #000000;
+  --surface-subtle: #08080a;
+  --surface-raised: #0f1014;
+  --surface-sunken: #000000;
+  --surface-overlay: rgba(0, 0, 0, 0.95);
 
-  --ink-primary: #EDEDEC;
-  --ink-secondary: #A3A19D;
-  --ink-muted: #73716C;
+  --ink-primary: #ffffff;
+  --ink-secondary: #f0f0f0;
+  --ink-muted: #a1a4a5;
 
-  --line-hairline: #27272D;
-  --line-strong: #3F3E46;
+  --line-hairline: #292d30;
+  --line-strong: #383d42;
 
-  --signal: #E07148;
-  --signal-hover: #EB8159;
-  --signal-subtle: #2B1811;
-  --signal-contrast: #111113;
+  --signal: #9281f7;
+  --signal-hover: #baa7ff;
+  --signal-subtle: rgba(146, 129, 247, 0.12);
+  --signal-contrast: #000000;
 
-  --semantic-success: #32B36D;
-  --semantic-success-subtle: #0E291B;
-  --semantic-warning: #E0A020;
-  --semantic-warning-subtle: #2E2105;
-  --semantic-error: #F04438;
-  --semantic-error-subtle: #331110;
-  --semantic-info: #388BFD;
-  --semantic-info-subtle: #0B223D;
+  --semantic-success: #3ad389;
+  --semantic-success-subtle: rgba(58, 211, 137, 0.12);
+  --semantic-warning: #ffca16;
+  --semantic-warning-subtle: rgba(255, 202, 22, 0.12);
+  --semantic-error: #ff9592;
+  --semantic-error-subtle: rgba(255, 149, 146, 0.12);
+  --semantic-info: #70b8ff;
+  --semantic-info-subtle: rgba(112, 184, 255, 0.12);
 
-  --focus-ring: #E07148;
-  --focus-ring-offset: #111113;
+  --focus-ring: #9281f7;
+  --focus-ring-offset: #000000;
 }
 
 /* Base Body Styles */

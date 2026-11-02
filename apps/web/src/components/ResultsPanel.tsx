@@ -128,21 +128,24 @@ export function ResultsPanel({
     const pct = Math.round(c * 100);
     if (c >= 0.9) {
       return (
-        <span className="px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[10px] font-semibold border border-emerald-500/20 tabular-nums">
-          {pct}%
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] border border-[#292d30] bg-[#000000] text-xs font-mono text-[#f0f0f0]">
+          <span className="w-2 h-2 rounded-full bg-[#3ad389] shadow-[0_0_6px_#3ad389]" />
+          <span>{pct}%</span>
         </span>
       );
     }
     if (c >= 0.75) {
       return (
-        <span className="px-1.5 py-0.5 rounded-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono text-[10px] font-semibold border border-amber-500/20 tabular-nums">
-          {pct}%
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] border border-[#292d30] bg-[#000000] text-xs font-mono text-[#f0f0f0]">
+          <span className="w-2 h-2 rounded-full bg-[#ffca16] shadow-[0_0_6px_#ffca16]" />
+          <span>{pct}%</span>
         </span>
       );
     }
     return (
-      <span className="px-1.5 py-0.5 rounded-sm bg-rose-500/10 text-rose-700 dark:text-rose-400 font-mono text-[10px] font-semibold border border-rose-500/20 tabular-nums">
-        {pct}%
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] border border-[#292d30] bg-[#000000] text-xs font-mono text-[#f0f0f0]">
+        <span className="w-2 h-2 rounded-full bg-[#ff9592] shadow-[0_0_6px_#ff9592]" />
+        <span>{pct}%</span>
       </span>
     );
   };
@@ -162,73 +165,95 @@ export function ResultsPanel({
   const jsonContent = JSON.stringify(result, null, 2);
 
   return (
-    <div className="w-full flex flex-col h-full border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] overflow-hidden shadow-card">
-      {/* Top Header Summary Bar - High Density */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--line-hairline)] bg-[var(--surface-subtle)] text-xs font-mono select-none shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-[var(--ink-primary)]">
-            Intelligence Report:
+    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[16px] bg-[#000000] overflow-hidden shadow-none">
+      {/* Top Header Summary Bar - Resend Void Black & Graphite Hairline */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none shrink-0">
+        <div className="flex items-center gap-2.5">
+          <span className="font-sans font-medium text-white text-sm">
+            Intelligence Report
           </span>
-          <span className="archival-stamp text-[var(--semantic-success)]">
-            <Check className="w-3 h-3" /> VERIFIED
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] border border-[#3ad389]/30 bg-[#3ad389]/10 text-[#3ad389] text-[11px] font-mono font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
+            VERIFIED
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px]">
+        <div className="flex items-center gap-2.5 text-xs text-[#a1a4a5]">
           {result.model_used && (
-            <span className="tabular-nums text-[var(--ink-secondary)] hidden md:inline">
-              Model: <strong className="text-[var(--ink-primary)]">{result.model_used.replace("gemini/", "")}</strong>
+            <span className="tabular-nums hidden md:inline">
+              model: <strong className="text-[#9281f7] font-mono font-normal">{result.model_used.replace("gemini/", "")}</strong>
             </span>
           )}
           {result.quality_score !== undefined && result.quality_score !== null && (
             <>
-              <span className="text-[var(--line-strong)] hidden md:inline">|</span>
-              <span className="tabular-nums text-[var(--ink-secondary)]">
-                Quality: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{Math.round(result.quality_score * 100)}%</strong>
+              <span className="text-[#292d30] hidden md:inline">|</span>
+              <span className="tabular-nums">
+                quality: <strong className="text-[#3ad389] font-mono font-normal">{Math.round(result.quality_score * 100)}%</strong>
               </span>
             </>
           )}
-          <span className="text-[var(--line-strong)]">|</span>
-          <span className="tabular-nums text-[var(--ink-secondary)]">
-            Overall: <strong className="text-[var(--ink-primary)]">{Math.round((result.overall_confidence || 0.98) * 100)}%</strong>
+          <span className="text-[#292d30]">|</span>
+          <span className="tabular-nums">
+            accuracy: <strong className="text-white font-mono font-normal">{Math.round((result.overall_confidence || 0.98) * 100)}%</strong>
           </span>
-          <span className="text-[var(--line-strong)]">|</span>
-          <span className="tabular-nums text-[var(--ink-secondary)]">
-            Latency: <strong className="text-[var(--ink-primary)]">{result.latency_ms || 48}ms</strong>
+          <span className="text-[#292d30]">|</span>
+          <span className="tabular-nums">
+            latency: <strong className="text-[#9281f7] font-mono font-normal">{result.latency_ms || 48}ms</strong>
           </span>
         </div>
       </div>
 
-      {/* Main Tabs Container - Fills Remaining Height with Minimal Outer Padding */}
-      <div className="flex-1 flex flex-col overflow-hidden p-2.5 sm:p-3 min-h-0">
+      {/* Main Tabs Container - Resend Spacious Data View */}
+      <div className="flex-1 flex flex-col overflow-hidden p-3.5 sm:p-4 min-h-0">
         <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Tabs Navigation Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-[var(--line-hairline)] shrink-0 gap-2">
-            <TabsList className="border-none w-auto gap-1">
-              <TabsTrigger value="fields" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Fields ({fields.length})</span>
+          <div className="flex items-center justify-between pb-3 border-b border-[#292d30] shrink-0 gap-2">
+            <TabsList className="border-none w-auto gap-1.5 bg-transparent p-0">
+              <TabsTrigger
+                value="fields"
+                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+              >
+                <Sliders className="w-3.5 h-3.5 text-[#9281f7]" />
+                <span>Fields</span>
+                <span className="px-1.5 py-0.2 rounded-[4px] bg-[#292d30] text-[#f0f0f0] text-[10px]">
+                  {fields.length}
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="tables" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
-                <TableIcon className="w-3.5 h-3.5" />
-                <span>Tables ({tables.length})</span>
+              <TabsTrigger
+                value="tables"
+                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+              >
+                <TableIcon className="w-3.5 h-3.5 text-[#70b8ff]" />
+                <span>Tables</span>
+                <span className="px-1.5 py-0.2 rounded-[4px] bg-[#292d30] text-[#f0f0f0] text-[10px]">
+                  {tables.length}
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="text" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
+              <TabsTrigger
+                value="text"
+                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+              >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Text</span>
               </TabsTrigger>
-              <TabsTrigger value="markdown" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
+              <TabsTrigger
+                value="markdown"
+                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+              >
                 <FileCode className="w-3.5 h-3.5" />
                 <span>Markdown</span>
               </TabsTrigger>
-              <TabsTrigger value="json" className="flex items-center gap-1.5 py-1 px-2.5 text-xs">
-                <Code2 className="w-3.5 h-3.5" />
+              <TabsTrigger
+                value="json"
+                className="flex items-center gap-2 py-1.5 px-3 text-xs font-mono text-[#a1a4a5] hover:text-[#ffffff] transition-colors rounded-[6px] data-[state=active]:text-[#ffffff] data-[state=active]:border-b-2 data-[state=active]:border-[#9281f7] data-[state=active]:bg-[#0b0e14]"
+              >
+                <Code2 className="w-3.5 h-3.5 text-[#9281f7]" />
                 <span>JSON</span>
               </TabsTrigger>
             </TabsList>
 
-            {/* Global Actions */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Global Actions - Ghost on Black Button */}
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="xs"
@@ -239,33 +264,34 @@ export function ResultsPanel({
                     "application/json"
                   )
                 }
-                leftIcon={<Download className="w-3 h-3" />}
+                leftIcon={<Download className="w-3.5 h-3.5" />}
+                className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-all duration-150"
               >
                 Export JSON
               </Button>
             </div>
           </div>
 
-          {/* Tab 1: Key Fields Inspector - Full Height Scrollable List */}
-          <TabsContent value="fields" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:!hidden">
+          {/* Tab 1: Key Fields Inspector - Spacious Resend Cards */}
+          <TabsContent value="fields" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-3 space-y-3 data-[state=inactive]:!hidden">
             {/* Search & Bulk Copy Toolbar */}
-            <div className="flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center justify-between gap-3 shrink-0">
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#6e727a] pointer-events-none" />
                 <input
                   type="text"
                   value={fieldQuery}
                   onChange={(e) => setFieldQuery(e.target.value)}
                   placeholder="Filter extracted fields..."
-                  className="w-full pl-8 pr-7 py-1 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
+                  className="w-full pl-9 pr-8 py-2 text-xs font-mono bg-[#000000] border border-[#292d30] rounded-[6px] text-[#ffffff] placeholder:text-[#6e727a] focus:outline-none focus:border-[#9281f7] focus:ring-1 focus:ring-[#9281f7] transition-all"
                 />
                 {fieldQuery && (
                   <button
                     type="button"
                     onClick={() => setFieldQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a1a4a5] hover:text-[#ffffff]"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -273,22 +299,23 @@ export function ResultsPanel({
                 variant="outline"
                 size="xs"
                 onClick={handleCopyAllFields}
-                leftIcon={copiedTab === "all_fields" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
+                leftIcon={copiedTab === "all_fields" ? <Check className="w-3.5 h-3.5 text-[#3ad389]" /> : <Copy className="w-3.5 h-3.5" />}
+                className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-2 transition-all duration-150"
               >
                 {copiedTab === "all_fields" ? "Copied All" : "Copy All"}
               </Button>
             </div>
 
-            {/* Scrollable Fields List - Fills 100% of the Available Height without Cutoff */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1.5 pb-8">
+            {/* Scrollable Fields List - Spacious Resend Field Cards */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 pb-8">
               {filteredFields.length === 0 ? (
-                <div className="h-full flex items-center justify-center p-6 text-center">
-                  <p className="text-xs text-[var(--ink-muted)] font-mono">
+                <div className="h-full flex items-center justify-center p-8 text-center">
+                  <p className="text-xs text-[#a1a4a5] font-mono">
                     {fields.length === 0 ? "No structured key-value fields detected." : "No fields matching query."}
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-[var(--line-hairline)] border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-base)]">
+                <div className="space-y-2.5">
                   {filteredFields.map((field) => {
                     const isSelected = selectedFieldKey === field.key;
                     const isHovered = hoveredFieldKey === field.key;
@@ -298,45 +325,48 @@ export function ResultsPanel({
                         onClick={() => onSelectField(field.key)}
                         onMouseEnter={() => onHoverField(field.key)}
                         onMouseLeave={() => onHoverField(null)}
-                        className={`p-2.5 text-xs transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                        className={`p-4 rounded-[6px] border transition-all duration-150 cursor-pointer flex flex-col justify-between gap-2 ${
                           isSelected
-                            ? "bg-[var(--signal-subtle)] border-l-2 border-l-[var(--signal)] ring-1 ring-[var(--signal)]/30"
+                            ? "border-[#9281f7] bg-[#9281f7]/10 ring-1 ring-[#9281f7]"
                             : isHovered
-                            ? "bg-[var(--surface-raised)]"
-                            : "hover:bg-[var(--surface-subtle)]"
+                            ? "border-[#9281f7]/70 bg-[#0b0e14]"
+                            : "border-[#292d30] bg-[#000000] hover:border-[#9281f7]/40"
                         }`}
                       >
-                        <div className="space-y-0.5 min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono text-[11px] font-bold text-[var(--ink-primary)]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                            <span className="text-xs font-sans font-medium text-[#f0f0f0] tracking-wide">
                               {field.label || field.key}
                             </span>
-                            <span className="text-[10px] font-mono text-[var(--ink-muted)]">
-                              ({field.key})
+                            <span className="font-mono text-[11px] text-[#9281f7] bg-[#9281f7]/10 px-2 py-0.5 rounded-[4px] border border-[#9281f7]/25">
+                              {field.key}
                             </span>
                           </div>
-                          <p className="font-mono text-xs sm:text-sm text-[var(--ink-primary)] font-medium break-words whitespace-normal select-text">
-                            {String(field.value)}
-                          </p>
+
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            {getConfidenceBadge(field.confidence)}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(String(field.value), field.key);
+                              }}
+                              className="p-1.5 text-[#a1a4a5] hover:text-[#ffffff] rounded-[6px] border border-transparent hover:border-[#292d30] hover:bg-[#0b0e14] transition-all"
+                              title="Copy field value"
+                            >
+                              {copiedTab === field.key ? (
+                                <Check className="w-3.5 h-3.5 text-[#3ad389]" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          {getConfidenceBadge(field.confidence)}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopy(String(field.value), field.key);
-                            }}
-                            className="p-1 text-[var(--ink-muted)] hover:text-[var(--ink-primary)] rounded-sm hover:bg-[var(--surface-raised)] transition-colors"
-                            title="Copy field value"
-                          >
-                            {copiedTab === field.key ? (
-                              <Check className="w-3.5 h-3.5 text-[var(--semantic-success)]" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
+                        <div className="pt-1">
+                          <p className="font-mono text-sm sm:text-base text-[#ffffff] font-normal leading-relaxed break-words select-text">
+                            {String(field.value)}
+                          </p>
                         </div>
                       </div>
                     );
@@ -347,34 +377,35 @@ export function ResultsPanel({
           </TabsContent>
 
           {/* Tab 2: Tables Inspector - Full Height */}
-          <TabsContent value="tables" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:!hidden">
+          <TabsContent value="tables" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-3 space-y-3 data-[state=inactive]:!hidden">
             {tables.length === 0 ? (
-              <div className="h-full flex items-center justify-center p-6 text-center">
-                <p className="text-xs text-[var(--ink-muted)] font-mono">
+              <div className="h-full flex items-center justify-center p-8 text-center">
+                <p className="text-xs text-[#a1a4a5] font-mono">
                   No tabular regions detected on current document pages.
                 </p>
               </div>
             ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
                 {tables.map((table, tIdx) => (
-                  <div key={tIdx} className="space-y-2 border border-[var(--line-hairline)] p-2.5 rounded-sm bg-[var(--surface-base)]">
-                    <div className="flex items-center justify-between text-xs font-mono pb-1.5 border-b border-[var(--line-hairline)]">
+                  <div key={tIdx} className="space-y-3 border border-[#292d30] p-4 rounded-[16px] bg-[#000000]">
+                    <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30]">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[var(--ink-primary)]">
-                          Table #{tIdx + 1} (Page {table.page || 1})
+                        <span className="font-sans font-medium text-white">
+                          Table #{tIdx + 1}
                         </span>
-                        <span className="text-[11px] text-[var(--ink-muted)]">
-                          • {table.rows?.length || 0} rows
+                        <span className="text-[11px] text-[#a1a4a5]">
+                          (Page {table.page || 1} • {table.rows?.length || 0} rows)
                         </span>
                       </div>
 
-                      {/* Table Export Actions */}
-                      <div className="flex items-center gap-1.5">
+                      {/* Table Export Actions - Ghost Buttons */}
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="xs"
                           onClick={() => handleCopy(convertTableToCsv(table.rows), `table_${tIdx}_csv`)}
-                          leftIcon={copiedTab === `table_${tIdx}_csv` ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
+                          leftIcon={copiedTab === `table_${tIdx}_csv` ? <Check className="w-3.5 h-3.5 text-[#3ad389]" /> : <Copy className="w-3.5 h-3.5" />}
+                          className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-2.5 py-1 text-xs transition-colors"
                         >
                           {copiedTab === `table_${tIdx}_csv` ? "Copied CSV" : "Copy CSV"}
                         </Button>
@@ -382,26 +413,27 @@ export function ResultsPanel({
                           variant="outline"
                           size="xs"
                           onClick={() => handleDownload(convertTableToCsv(table.rows), `table_${tIdx + 1}.csv`, "text/csv")}
-                          leftIcon={<Download className="w-3 h-3" />}
+                          leftIcon={<Download className="w-3.5 h-3.5" />}
+                          className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-2.5 py-1 text-xs transition-colors"
                         >
                           .csv
                         </Button>
                       </div>
                     </div>
 
-                    <div className="overflow-x-auto max-h-[360px] overflow-y-auto border border-[var(--line-hairline)] rounded-sm">
+                    <div className="overflow-x-auto max-h-[380px] overflow-y-auto border border-[#292d30] rounded-[6px]">
                       <Table>
                         <TableBody>
                           {table.rows?.map((row, rIdx) => (
-                            <TableRow key={rIdx} className={rIdx === 0 ? "bg-[var(--surface-subtle)] font-bold text-[var(--ink-primary)] sticky top-0 z-10" : "hover:bg-[var(--surface-subtle)]"}>
+                            <TableRow key={rIdx} className={rIdx === 0 ? "bg-[#0b0e14] font-medium text-white sticky top-0 z-10 border-b border-[#292d30]" : "border-b border-[#292d30]/60 hover:bg-[#0b0e14]/50"}>
                               {Array.isArray(row)
                                 ? row.map((cell, cIdx) => (
-                                    <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-1.5 px-2">
+                                    <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-2 px-3 text-[#f0f0f0]">
                                       {cell}
                                     </TableCell>
                                   ))
                                 : Object.values(row).map((cell: any, cIdx) => (
-                                    <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-1.5 px-2">
+                                    <TableCell key={cIdx} className="font-mono tabular-nums text-xs py-2 px-3 text-[#f0f0f0]">
                                       {cell}
                                     </TableCell>
                                   ))}
@@ -416,20 +448,21 @@ export function ResultsPanel({
             )}
           </TabsContent>
 
-          {/* Tab 3: Plain Text - 100% Full Height Dark Code Editor (Zero Whitespace Below) */}
-          <TabsContent value="text" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:!hidden">
+          {/* Tab 3: Plain Text - Resend Code Window */}
+          <TabsContent value="text" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-3 space-y-3 data-[state=inactive]:!hidden">
             {/* Toolbar */}
-            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
-              <span className="text-[var(--ink-secondary)] flex items-center gap-1.5">
-                <span>Clean Plain Text Output</span>
-                <span className="text-[var(--ink-muted)] text-[11px]">({textContent.length} chars)</span>
+            <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30] shrink-0">
+              <span className="text-[#a1a4a5] flex items-center gap-2">
+                <span className="text-white font-sans font-medium">Plain Text Output</span>
+                <span className="text-[#6e727a] text-[11px]">({textContent.length} chars)</span>
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="xs"
                   onClick={() => handleCopy(textContent, "plain_text")}
-                  leftIcon={copiedTab === "plain_text" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
+                  leftIcon={copiedTab === "plain_text" ? <Check className="w-3.5 h-3.5 text-[#3ad389]" /> : <Copy className="w-3.5 h-3.5" />}
+                  className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-colors"
                 >
                   {copiedTab === "plain_text" ? "Copied" : "Copy Text"}
                 </Button>
@@ -437,33 +470,34 @@ export function ResultsPanel({
                   variant="outline"
                   size="xs"
                   onClick={() => handleDownload(textContent, `${result.doc_type || "extraction"}.txt`, "text/plain")}
-                  leftIcon={<Download className="w-3 h-3" />}
+                  leftIcon={<Download className="w-3.5 h-3.5" />}
+                  className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-colors"
                 >
                   Download .txt
                 </Button>
               </div>
             </div>
 
-            {/* Full Height Editor Frame */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-3.5 bg-[#0D1117] text-[#E6EDF3] border border-[#30363D] rounded-sm font-mono text-xs leading-relaxed whitespace-pre-wrap select-text shadow-inner">
+            {/* Resend Code Window Frame */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#000000] text-[#f0f0f0] border border-[#292d30] rounded-[16px] font-mono text-xs leading-relaxed whitespace-pre-wrap select-text">
               {textContent}
             </div>
           </TabsContent>
 
-          {/* Tab 4: Markdown - 100% Full Height with Formatted / Raw Toggle (Zero Whitespace Below) */}
-          <TabsContent value="markdown" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:!hidden">
+          {/* Tab 4: Markdown - Resend Code Window with Preview / Raw Toggle */}
+          <TabsContent value="markdown" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-3 space-y-3 data-[state=inactive]:!hidden">
             {/* Toolbar */}
-            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[var(--ink-secondary)]">Structured Markdown</span>
-                <div className="inline-flex rounded-sm border border-[var(--line-hairline)] bg-[var(--surface-sunken)] p-0.5">
+            <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30] shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-sans font-medium">Structured Markdown</span>
+                <div className="inline-flex rounded-[6px] border border-[#292d30] bg-[#000000] p-0.5">
                   <button
                     type="button"
                     onClick={() => setMarkdownMode("formatted")}
-                    className={`px-2 py-0.5 text-[10px] rounded-[1px] transition-colors ${
+                    className={`px-2.5 py-0.5 text-[11px] font-mono rounded-[4px] transition-colors ${
                       markdownMode === "formatted"
-                        ? "bg-[var(--signal)] text-white font-bold"
-                        : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                        ? "bg-[#9281f7] text-[#000000] font-semibold"
+                        : "text-[#a1a4a5] hover:text-[#ffffff]"
                     }`}
                   >
                     Preview
@@ -471,10 +505,10 @@ export function ResultsPanel({
                   <button
                     type="button"
                     onClick={() => setMarkdownMode("raw")}
-                    className={`px-2 py-0.5 text-[10px] rounded-[1px] transition-colors ${
+                    className={`px-2.5 py-0.5 text-[11px] font-mono rounded-[4px] transition-colors ${
                       markdownMode === "raw"
-                        ? "bg-[var(--signal)] text-white font-bold"
-                        : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                        ? "bg-[#9281f7] text-[#000000] font-semibold"
+                        : "text-[#a1a4a5] hover:text-[#ffffff]"
                     }`}
                   >
                     Raw
@@ -482,12 +516,13 @@ export function ResultsPanel({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="xs"
                   onClick={() => handleCopy(markdownContent, "markdown")}
-                  leftIcon={copiedTab === "markdown" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
+                  leftIcon={copiedTab === "markdown" ? <Check className="w-3.5 h-3.5 text-[#3ad389]" /> : <Copy className="w-3.5 h-3.5" />}
+                  className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-colors"
                 >
                   {copiedTab === "markdown" ? "Copied" : "Copy Markdown"}
                 </Button>
@@ -495,27 +530,28 @@ export function ResultsPanel({
                   variant="outline"
                   size="xs"
                   onClick={() => handleDownload(markdownContent, `${result.doc_type || "extraction"}.md`, "text/markdown")}
-                  leftIcon={<Download className="w-3 h-3" />}
+                  leftIcon={<Download className="w-3.5 h-3.5" />}
+                  className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-colors"
                 >
                   Download .md
                 </Button>
               </div>
             </div>
 
-            {/* Full Height Markdown View Frame */}
+            {/* Markdown Frame */}
             {markdownMode === "formatted" ? (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-sm text-xs leading-relaxed select-text space-y-3 font-sans">
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-[#000000] border border-[#292d30] rounded-[16px] text-xs leading-relaxed select-text space-y-3 font-sans">
                 {markdownContent.split("\n").map((line, idx) => {
                   if (line.startsWith("# ")) {
                     return (
-                      <h1 key={idx} className="font-serif text-lg font-bold text-[var(--ink-primary)] border-b border-[var(--line-hairline)] pb-1.5 mt-1">
+                      <h1 key={idx} className="font-serif text-lg font-bold text-white border-b border-[#292d30] pb-2 mt-1">
                         {line.replace("# ", "")}
                       </h1>
                     );
                   }
                   if (line.startsWith("## ")) {
                     return (
-                      <h2 key={idx} className="font-serif text-base font-bold text-[var(--ink-primary)] mt-3">
+                      <h2 key={idx} className="font-serif text-base font-bold text-white mt-3">
                         {line.replace("## ", "")}
                       </h2>
                     );
@@ -527,48 +563,49 @@ export function ResultsPanel({
                       const val = line.slice(colonIdx + 3).trim();
                       return (
                         <div key={idx} className="flex items-baseline gap-2 py-0.5 text-xs font-mono">
-                          <span className="font-bold text-[var(--ink-primary)] shrink-0">• {label}:</span>
-                          <span className="text-[var(--ink-secondary)] break-all">{val}</span>
+                          <span className="font-medium text-[#9281f7] shrink-0">• {label}:</span>
+                          <span className="text-[#f0f0f0] break-all">{val}</span>
                         </div>
                       );
                     }
                   }
                   if (line.startsWith("|") && line.endsWith("|")) {
                     return (
-                      <div key={idx} className="font-mono text-[11px] text-[var(--ink-primary)] bg-[var(--surface-sunken)] p-1 rounded-sm overflow-x-auto whitespace-pre">
+                      <div key={idx} className="font-mono text-[11px] text-[#f0f0f0] bg-[#0b0e14] border border-[#292d30] p-1.5 rounded-[6px] overflow-x-auto whitespace-pre">
                         {line}
                       </div>
                     );
                   }
                   if (!line.trim()) return <div key={idx} className="h-1.5" />;
                   return (
-                    <p key={idx} className="text-xs text-[var(--ink-secondary)] leading-relaxed">
+                    <p key={idx} className="text-xs text-[#a1a4a5] leading-relaxed">
                       {line}
                     </p>
                   );
                 })}
               </div>
             ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto p-3.5 bg-[#0D1117] text-[#79C0FF] border border-[#30363D] rounded-sm font-mono text-xs leading-relaxed whitespace-pre-wrap select-text shadow-inner">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#000000] text-[#9281f7] border border-[#292d30] rounded-[16px] font-mono text-xs leading-relaxed whitespace-pre-wrap select-text">
                 {markdownContent}
               </div>
             )}
           </TabsContent>
 
-          {/* Tab 5: JSON Payload - 100% Full Height Dark Code Editor (Zero Whitespace Below) */}
-          <TabsContent value="json" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-1.5 space-y-1.5 data-[state=inactive]:!hidden">
+          {/* Tab 5: JSON Payload - Resend Code Window */}
+          <TabsContent value="json" className="flex-1 min-h-0 flex flex-col overflow-hidden pt-3 space-y-3 data-[state=inactive]:!hidden">
             {/* Toolbar */}
-            <div className="flex items-center justify-between text-xs font-mono pb-1 border-b border-[var(--line-hairline)] shrink-0">
-              <span className="text-[var(--ink-secondary)] flex items-center gap-1.5">
-                <span>Comprehensive JSON Intelligence</span>
-                <span className="text-[var(--ink-muted)] text-[11px]">({(jsonContent.length / 1024).toFixed(1)} KB)</span>
+            <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-[#292d30] shrink-0">
+              <span className="text-[#a1a4a5] flex items-center gap-2">
+                <span className="text-white font-sans font-medium">JSON Intelligence</span>
+                <span className="text-[#6e727a] text-[11px]">({(jsonContent.length / 1024).toFixed(1)} KB)</span>
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="xs"
                   onClick={() => handleCopy(jsonContent, "json")}
-                  leftIcon={copiedTab === "json" ? <Check className="w-3 h-3 text-[var(--semantic-success)]" /> : <Copy className="w-3 h-3" />}
+                  leftIcon={copiedTab === "json" ? <Check className="w-3.5 h-3.5 text-[#3ad389]" /> : <Copy className="w-3.5 h-3.5" />}
+                  className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-colors"
                 >
                   {copiedTab === "json" ? "Copied" : "Copy JSON"}
                 </Button>
@@ -576,15 +613,16 @@ export function ResultsPanel({
                   variant="outline"
                   size="xs"
                   onClick={() => handleDownload(jsonContent, `${result.doc_type || "extraction"}_result.json`, "application/json")}
-                  leftIcon={<Download className="w-3 h-3" />}
+                  leftIcon={<Download className="w-3.5 h-3.5" />}
+                  className="bg-transparent border border-[#292d30] text-[#f0f0f0] hover:border-[#ffffff] hover:text-[#ffffff] rounded-[6px] px-3 py-1.5 transition-colors"
                 >
                   Download .json
                 </Button>
               </div>
             </div>
 
-            {/* Full Height JSON Editor Frame */}
-            <div className="flex-1 min-h-0 overflow-auto p-3.5 bg-[#0D1117] text-[#7EE787] border border-[#30363D] rounded-sm font-mono text-xs leading-relaxed select-text shadow-inner whitespace-pre">
+            {/* Resend JSON Code Window */}
+            <div className="flex-1 min-h-0 overflow-auto p-4 bg-[#000000] text-[#baa7ff] border border-[#292d30] rounded-[16px] font-mono text-xs leading-relaxed select-text whitespace-pre">
               {jsonContent}
             </div>
           </TabsContent>
