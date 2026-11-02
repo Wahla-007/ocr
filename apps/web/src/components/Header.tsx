@@ -73,7 +73,6 @@ export function Header({
   };
 
   const navLinks = [
-    { href: "/", label: "Light Table" },
     { href: "/docs", label: "Documentation" },
     { href: "/pricing", label: "Pricing" },
     { href: "/self-hosted", label: "Self-Hosted Solution" },
@@ -83,21 +82,22 @@ export function Header({
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#292d30] bg-[#000000]/95 backdrop-blur-[25px] px-4 sm:px-8 py-2.5 transition-colors select-none">
       <div className="max-w-[1720px] mx-auto flex items-center justify-between gap-4">
-        {/* Brand Logo & Tag */}
+        {/* Brand Logo - Button for Light Table Studio */}
         <div className="flex items-center gap-6 sm:gap-8">
           <Link
             href="/"
-            className="flex items-center gap-2.5 text-left hover:opacity-85 transition-opacity cursor-pointer group"
-            title="OpenOCR Home"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 -ml-2 rounded-[6px] border border-transparent hover:border-[#292d30] hover:bg-[#0b0e14] active:bg-[#14171f] text-left transition-all cursor-pointer group select-none"
+            title="Light Table Studio (Home)"
+            aria-label="Open Light Table Studio"
           >
-            <div className="h-6 w-6 rounded-[4px] bg-white text-black flex items-center justify-center font-mono font-bold text-xs shadow-none">
+            <div className="h-6 w-6 rounded-[4px] bg-white text-black flex items-center justify-center font-mono font-bold text-xs shadow-none group-hover:bg-[#9281f7] group-hover:text-black transition-colors">
               //
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-base tracking-tight text-white">
+              <span className="font-serif font-bold text-base tracking-tight text-white group-hover:text-white transition-colors">
                 OpenOCR
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[6px] border border-[#292d30] text-[#a1a4a5] bg-[#000000]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[6px] border border-[#292d30] text-[#a1a4a5] bg-[#000000] group-hover:border-[#9281f7]/50 group-hover:text-[#baa7ff] transition-colors">
                 v1.2
               </span>
             </div>
