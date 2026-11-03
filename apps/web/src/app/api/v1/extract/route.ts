@@ -6,6 +6,7 @@ import os from "os";
 import { validateApiKey, deductCredits, enforcePageLimits, DEFAULT_COST_PER_PAGE_USD } from "@/lib/keys";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();

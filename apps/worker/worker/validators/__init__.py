@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-from providers.base import ValidationIssue
+
 from worker.validators.bank_statement_math import validate_bank_statement_math
 from worker.validators.driving_licence import validate_driving_licence
 from worker.validators.generic import (
@@ -14,6 +14,8 @@ from worker.validators.generic import (
 from worker.validators.invoice_math import validate_invoice_math
 from worker.validators.passport_mrz import validate_passport_mrz
 from worker.validators.receipt_math import validate_receipt_math
+
+from providers.base import ValidationIssue
 
 
 def validate_document_fields(

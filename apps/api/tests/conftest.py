@@ -64,8 +64,8 @@ async def prepare_database():
     app.dependency_overrides[get_db] = override_get_db
 
     # Point worker sessions to test session during test run
-    import worker.tasks
     import worker.db as worker_db
+    import worker.tasks
 
     orig_worker_session = getattr(worker.tasks, "WorkerSessionLocal", None)
     worker.tasks.WorkerSessionLocal = TestSessionLocal

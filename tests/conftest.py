@@ -1,13 +1,13 @@
 """Pytest configuration and test database/storage fixtures for root test suite."""
 
 import pytest_asyncio
+import worker.db as worker_db
 from app.db.models import Base
 from app.db.session import get_db
 from app.main import app
 from app.storage import storage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
-import worker.db as worker_db
 
 TEST_DATABASE_URL = "sqlite+aiosqlite://"
 

@@ -16,19 +16,14 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from app.db.models import Job, Result, UsageLedger, User
+from app.db.models import Job, Result, UsageLedger
 from app.storage import storage
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-
 from worker.config import worker_settings
 from worker.db import WorkerSessionLocal
-from worker.pipeline.bbox import enrich_fields_with_boxes
-from worker.pipeline.escalation import EscalationPolicy
-from worker.pipeline.quality import calculate_quality_score
 from worker.pipeline.rasterize import rasterize_document
 from worker.pipeline.understand import understand_document_vision
-from worker.validators import validate_document_fields
 
 logger = logging.getLogger("openocr.worker")
 

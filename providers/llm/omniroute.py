@@ -18,16 +18,16 @@ import base64
 import json
 import logging
 import time
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import httpx
-from openai import AsyncOpenAI, APIError, APITimeoutError, RateLimitError
+from openai import APIError, APITimeoutError, AsyncOpenAI, RateLimitError
 from pydantic import BaseModel
 
 from providers.base import (
     AttemptMetadata,
     RasterPage,
-    VisionProvider,
     VisionResult,
 )
 from providers.llm.prompts import (
@@ -236,7 +236,7 @@ class OmniRouteVisionProvider:
         merged_boxes: list[dict[str, Any]] = []
 
         # Totals keys that should preferentially come from later chunks
-        TOTALS_KEYS = {
+        totals_keys = {
             "total_amount",
             "subtotal",
             "tax_amount",
@@ -247,7 +247,7 @@ class OmniRouteVisionProvider:
         }
 
         # Array keys to concatenate
-        ARRAY_KEYS = {
+        array_keys = {
             "line_items",
             "items",
             "transactions",
@@ -256,7 +256,7 @@ class OmniRouteVisionProvider:
             "entries",
         }
 
-        for idx, chunk in enumerate(chunk_results):
+        for chunk in chunk_results:
             fields = chunk.get("fields", {}) if isinstance(chunk, dict) else {}
             boxes = chunk.get("boxes", []) if isinstance(chunk, dict) else []
 
@@ -267,11 +267,11 @@ class OmniRouteVisionProvider:
                 if val is None:
                     continue
 
-                if key in ARRAY_KEYS and isinstance(val, list):
+                if key in array_keys and isinstance(val, list):
                     if key not in merged_fields:
                         merged_fields[key] = []
                     merged_fields[key].extend(val)
-                elif key in TOTALS_KEYS:
+                elif key in totals_keys:
                     # Totals update from later chunks
                     merged_fields[key] = val
                 else:

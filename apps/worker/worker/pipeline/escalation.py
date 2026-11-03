@@ -11,8 +11,8 @@ All model names and escalation chains are environment-configurable.
 from __future__ import annotations
 
 import logging
-from typing import Sequence
-from app.errors import OpenOCRError
+from collections.abc import Sequence
+
 from worker.config import worker_settings
 
 logger = logging.getLogger(__name__)

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
+
 from providers.base import RasterPage, TextLayer, WordRect
 
 logger = logging.getLogger(__name__)
@@ -134,7 +136,7 @@ def snap_box_to_text_layer(
 
 
 EMPTY_FIELD_INDICATORS = {
-    "", "null", "none", "n/a", "na", "not applicable", 
+    "", "null", "none", "n/a", "na", "not applicable",
     "not specified", "unspecified", "unknown", "nil", "-", "--", "undefined"
 }
 

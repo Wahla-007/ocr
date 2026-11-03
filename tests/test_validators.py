@@ -1,14 +1,11 @@
 """Unit tests for Stage 4 deterministic validators."""
 
-import pytest
+from worker.pipeline.quality import calculate_quality_score
 from worker.validators.bank_statement_math import validate_bank_statement_math
 from worker.validators.driving_licence import validate_driving_licence
-from worker.validators.generic import validate_currency_code, validate_date_format
 from worker.validators.invoice_math import validate_invoice_math
 from worker.validators.passport_mrz import calculate_icao_check_digit, validate_passport_mrz
 from worker.validators.receipt_math import validate_receipt_math
-from worker.pipeline.quality import calculate_quality_score
-
 
 # --- Passport MRZ Tests ---
 

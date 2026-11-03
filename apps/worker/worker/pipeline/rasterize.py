@@ -17,13 +17,12 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Literal
 
+import pypdfium2 as pdfium
 from app.errors import FileTooLargeError, TooManyPagesError, UnsupportedTypeError
 from app.validation import detect_mime_type
 from PIL import Image, ImageOps, ImageSequence
-import pypdfium2 as pdfium
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from providers.base import RasterPage, TextLayer, WordRect
 
@@ -214,7 +213,7 @@ def _convert_docx_to_pdf(file_bytes: bytes) -> bytes:
         ]
 
         try:
-            res = subprocess.run(
+            subprocess.run(
                 cmd,
                 capture_output=True,
                 timeout=CONVERSION_TIMEOUT_SECONDS,
@@ -222,10 +221,10 @@ def _convert_docx_to_pdf(file_bytes: bytes) -> bytes:
                 env=env,
             )
         except subprocess.TimeoutExpired:
-            raise FileTooLargeError("DOCX conversion timed out.")
+            raise FileTooLargeError("DOCX conversion timed out.") from None
         except subprocess.CalledProcessError as err:
             logger.error(f"LibreOffice conversion failed: {err.stderr.decode('utf-8', 'ignore')}")
-            raise UnsupportedTypeError("Failed to convert DOCX document to PDF.")
+            raise UnsupportedTypeError("Failed to convert DOCX document to PDF.") from err
 
         output_pdf = os.path.join(tmp_dir, "document.pdf")
         if not os.path.exists(output_pdf):

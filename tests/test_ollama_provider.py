@@ -1,8 +1,9 @@
 """Unit tests for OllamaVisionProvider (Phase 9 Air-Gapped Mode)."""
 
 import json
-import pytest
+
 import httpx
+import pytest
 import respx
 
 from providers.base import RasterPage

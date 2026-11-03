@@ -50,7 +50,7 @@ def _load_raw_schema(doc_type: str) -> dict[str, Any]:
     if not schema_path.exists():
         schema_path = SCHEMAS_DIR / "invoice.json"
 
-    with open(schema_path, "r", encoding="utf-8") as f:
+    with open(schema_path, encoding="utf-8") as f:
         return json.load(f)
 
 

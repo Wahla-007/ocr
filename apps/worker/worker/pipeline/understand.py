@@ -11,7 +11,10 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from worker.pipeline.escalation import EscalationPolicy
 
 from app.config import settings
 from app.logging import logger
@@ -162,11 +165,12 @@ async def understand_document_vision(
     - Computes objective quality score.
     - Enriches fields with bounding boxes and digital PDF text-layer snapping.
     """
-    from providers.llm.factory import get_vision_provider
     from worker.pipeline.bbox import enrich_fields_with_boxes
     from worker.pipeline.escalation import EscalationPolicy
     from worker.pipeline.quality import calculate_quality_score
     from worker.validators import validate_document_fields
+
+    from providers.llm.factory import get_vision_provider
 
     provider = vision_provider or get_vision_provider()
     policy = escalation_policy or EscalationPolicy()

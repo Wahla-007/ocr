@@ -5,12 +5,11 @@ import {
   Loader2,
   Sparkles,
   Check,
-  FileText,
   Scan,
-  Layers,
   Table as TableIcon,
   ShieldCheck,
   Cpu,
+  Activity,
 } from "lucide-react";
 
 interface DocumentProcessingLoaderProps {
@@ -38,39 +37,55 @@ const STAGES = [
   },
   {
     step: 4,
-    title: "Schema Synthesis & Dynamic Pruning",
+    title: "Schema Synthesis & Validation",
     desc: "Strict field extraction with empty field omission",
     icon: Sparkles,
   },
 ];
 
 export function DocumentProcessingLoader({ fileName }: DocumentProcessingLoaderProps) {
-  const [activeStage, setActiveStage] = useState(1);
-  const [progressPercent, setProgressPercent] = useState(15);
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
-    // Smooth progress simulation
-    const timer1 = setTimeout(() => {
-      setActiveStage(2);
-      setProgressPercent(42);
-    }, 400);
-
-    const timer2 = setTimeout(() => {
-      setActiveStage(3);
-      setProgressPercent(72);
-    }, 1100);
-
-    const timer3 = setTimeout(() => {
-      setActiveStage(4);
-      setProgressPercent(94);
-    }, 1900);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
+    const start = Date.now();
+    const interval = setInterval(() => {
+      setElapsedMs(Date.now() - start);
+    }, 100);
+    return () => clearInterval(interval);
   }, []);
+
+  // Compute live active stage, dynamic status message, and asymptotic progress
+  const sec = elapsedMs / 1000;
+  let activeStage = 1;
+  let progressPercent = 14;
+  let statusText = "DPI scaling & contrast deskewing...";
+
+  if (sec < 3.2) {
+    activeStage = 1;
+    progressPercent = Math.min(28, Math.round(14 + (sec / 3.2) * 14));
+    statusText = "DPI scaling & perspective deskew leveling...";
+  } else if (sec < 15.0) {
+    activeStage = 2;
+    const t = (sec - 3.2) / 11.8;
+    progressPercent = Math.min(64, Math.round(28 + t * 36));
+    statusText = "Multimodal visual token analysis (Gemini 2.5 Flash)...";
+  } else if (sec < 30.0) {
+    activeStage = 3;
+    const t = (sec - 15.0) / 15.0;
+    progressPercent = Math.min(85, Math.round(64 + t * 21));
+    statusText = "Spatial table bounds & cellular matrix structuring...";
+  } else {
+    activeStage = 4;
+    // Asymptotic progression towards 98% that continues moving every second
+    const extra = sec - 30.0;
+    const asymptotic = 85 + 13 * (1 - Math.exp(-extra / 22));
+    progressPercent = Math.min(98, Math.round(asymptotic));
+    if (extra > 20) {
+      statusText = "Synthesizing catalog schema & verifying arithmetic checksums...";
+    } else {
+      statusText = "Extracting semantic key-value pairs & bounding coordinates...";
+    }
+  }
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col items-center justify-center border border-zinc-200 dark:border-[#292d30] rounded-[16px] bg-white dark:bg-[#000000] shadow-none p-4 sm:p-5 relative overflow-hidden select-none">
@@ -119,30 +134,43 @@ export function DocumentProcessingLoader({ fileName }: DocumentProcessingLoaderP
         </div>
 
         {/* Status Headings */}
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] bg-purple-50 dark:bg-[#9281f7]/10 border border-purple-200 dark:border-[#9281f7]/30 text-purple-700 dark:text-[#9281f7] font-mono text-[11px] font-medium tracking-wide">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span>Analyzing Document Architecture</span>
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[6px] bg-purple-50 dark:bg-[#9281f7]/10 border border-purple-200 dark:border-[#9281f7]/30 text-purple-700 dark:text-[#9281f7] font-mono text-[11px] font-medium tracking-wide">
+            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+            <span className="truncate max-w-sm">{statusText}</span>
           </div>
 
           <h2 className="text-base sm:text-lg font-sans font-medium text-zinc-900 dark:text-white tracking-tight">
             Extracting Structured Intelligence
           </h2>
 
-          <p className="text-xs text-zinc-500 dark:text-[#a1a4a5] font-mono truncate max-w-md">
-            target: <span className="text-zinc-900 dark:text-[#f0f0f0]">{fileName || "uploaded_document"}</span>
-          </p>
+          <div className="flex items-center justify-center gap-3 text-xs text-zinc-500 dark:text-[#a1a4a5] font-mono">
+            <span className="truncate max-w-[240px]">
+              target: <span className="text-zinc-900 dark:text-[#f0f0f0]">{fileName || "uploaded_document"}</span>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1.5 tabular-nums text-purple-600 dark:text-[#9281f7]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3ad389] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3ad389]"></span>
+              </span>
+              <span>{sec.toFixed(1)}s elapsed</span>
+            </span>
+          </div>
         </div>
 
         {/* Smooth Animated Progress Bar */}
         <div className="w-full max-w-md space-y-1">
           <div className="flex items-center justify-between text-[11px] font-mono text-zinc-500 dark:text-[#a1a4a5]">
-            <span>Pipeline Progression</span>
+            <span className="flex items-center gap-1.5">
+              <Activity className="w-3 h-3 text-purple-600 dark:text-[#9281f7]" />
+              <span>Inference Pipeline Active</span>
+            </span>
             <span className="tabular-nums font-mono text-purple-600 dark:text-[#9281f7] font-semibold">{progressPercent}%</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-[#0b0e14] overflow-hidden p-0.5 border border-zinc-200 dark:border-[#292d30]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-600 via-purple-500 to-[#9281f7] dark:from-[#9281f7] dark:to-[#baa7ff] transition-all duration-500 ease-out shadow-[0_0_8px_#9281f7]"
+              className="h-full rounded-full bg-gradient-to-r from-purple-600 via-purple-500 to-[#9281f7] dark:from-[#9281f7] dark:to-[#baa7ff] transition-all duration-300 ease-out shadow-[0_0_8px_#9281f7]"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -197,4 +225,3 @@ export function DocumentProcessingLoader({ fileName }: DocumentProcessingLoaderP
     </div>
   );
 }
-

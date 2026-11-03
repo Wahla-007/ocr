@@ -5,6 +5,7 @@ Rule 1 in Section 6: Validate real MIME type using magic bytes, not file extensi
 
 import io
 import zipfile
+
 from app.errors import FileTooLargeError, UnsupportedTypeError
 
 ALLOWED_MIME_TYPES: set[str] = {

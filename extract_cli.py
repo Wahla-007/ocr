@@ -19,6 +19,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
 # Redirect root logging and structlog to stderr so stdout is strictly JSON
 logging.basicConfig(

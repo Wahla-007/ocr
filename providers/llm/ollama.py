@@ -18,28 +18,12 @@ import json
 import logging
 import re
 import time
-from typing import Any, Sequence
+from typing import Any
 
 import httpx
-from openai import AsyncOpenAI
 
-from providers.base import (
-    AttemptMetadata,
-    ClassificationResult,
-    RasterPage,
-    VisionResult,
-)
 from providers.llm.omniroute import (
     OmniRouteVisionProvider,
-)
-from providers.llm.prompts import (
-    CLASSIFICATION_SYSTEM_PROMPT,
-    PROMPT_VERSION,
-    VISION_SYSTEM_PROMPT,
-)
-from providers.llm.schema_generator import (
-    get_classification_json_schema,
-    get_extraction_json_schema,
 )
 
 logger = logging.getLogger(__name__)

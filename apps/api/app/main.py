@@ -1,9 +1,9 @@
 """FastAPI Main Application entry point for OpenOCR API."""
 
 import sys
-from pathlib import Path
 import time
 import uuid
+from pathlib import Path
 
 # Ensure repo root and apps/worker are in sys.path for worker & provider imports
 _repo_root = Path(__file__).resolve().parent.parent.parent

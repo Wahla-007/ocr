@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+
 from providers.base import ValidationIssue
 
 ICAO_WEIGHTS = [7, 3, 1]
@@ -66,7 +67,7 @@ def validate_passport_mrz(
 
     # TD3: Standard Passport (2 lines x 44 characters)
     if len(lines) == 2 and len(lines[0]) >= 42 and len(lines[1]) >= 42:
-        line1 = lines[0].ljust(44, "<")[:44]
+        _line1 = lines[0].ljust(44, "<")[:44]
         line2 = lines[1].ljust(44, "<")[:44]
 
         # 1. Document Number Check Digit: line2[0:9] vs line2[9]

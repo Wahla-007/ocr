@@ -6,9 +6,10 @@ derived from schema completeness and deterministic business validator issues.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
-from providers.base import ValidationIssue
+from collections.abc import Sequence
+from typing import Any
 
+from providers.base import ValidationIssue
 
 CORE_DOC_KEYS = {
     "invoice": ["invoice_number", "total_amount"],

@@ -10,14 +10,14 @@ Verifies:
 """
 
 import json
-import logging
+
+import httpx
 import pytest
 import respx
-import httpx
+
 from providers.base import RasterPage
 from providers.llm.omniroute import OmniRouteVisionProvider
 from providers.llm.prompts import PROMPT_VERSION, VISION_SYSTEM_PROMPT
-from providers.llm.schema_generator import get_extraction_json_schema
 
 
 def make_dummy_raster_page(page_num: int = 1) -> RasterPage:

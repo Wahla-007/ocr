@@ -11,9 +11,10 @@ Verifies model-free rasterization:
 
 import io
 from pathlib import Path
+
 import pytest
-from PIL import Image
 from app.errors import FileTooLargeError, TooManyPagesError, UnsupportedTypeError
+from PIL import Image
 from worker.pipeline.rasterize import (
     MAX_LONG_EDGE_PX,
     RasterDocument,

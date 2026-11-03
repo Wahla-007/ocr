@@ -19,7 +19,10 @@ ignore = ["B008", "E501", "E741"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E402"]
+"apps/api/tests/*" = ["E402"]
+"apps/worker/tests/*" = ["E402"]
 "extract_cli.py" = ["E402"]
+"apps/api/app/main.py" = ["E402"]
 
 
 [tool.pytest.ini_options]

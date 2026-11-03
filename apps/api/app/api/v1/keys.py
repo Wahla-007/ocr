@@ -4,18 +4,16 @@ Provides CRUD operations for programmatic API credentials with plan enforcement.
 """
 
 import secrets
-from datetime import datetime
-from typing import List, Optional
+
+from app.api.v1.auth import get_current_user
+from app.config import PLAN_CONFIGS
+from app.db.models import ApiKey, User, utc_now
+from app.db.session import get_db
+from app.security.tokens import hash_token
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.api.v1.auth import get_current_user
-from app.config import PLAN_CONFIGS, settings
-from app.db.models import ApiKey, User, utc_now
-from app.db.session import get_db
-from app.security.tokens import hash_token
 
 router = APIRouter(prefix="/keys", tags=["API Keys"])
 
@@ -30,7 +28,7 @@ class ApiKeyItem(BaseModel):
     key_prefix: str
     last_four: str
     created_at: str
-    last_used_at: Optional[str] = None
+    last_used_at: str | None = None
     rate_limit: int = 120
 
 
@@ -44,7 +42,7 @@ class CreateKeyResponse(BaseModel):
     message: str
 
 
-@router.get("", response_model=List[ApiKeyItem])
+@router.get("", response_model=list[ApiKeyItem])
 async def list_api_keys(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -58,7 +56,6 @@ async def list_api_keys(
     res = await db.execute(stmt)
     keys = res.scalars().all()
 
-    plan_cfg = PLAN_CONFIGS.get(user.plan, PLAN_CONFIGS.get("free"))
     rate_limit = 300 if user.plan in ("pro", "business", "admin") else 120
 
     items = []

@@ -9,20 +9,17 @@ Verifies the complete 4-stage flow:
 
 import io
 import json
-import pytest
-import httpx
-import respx
-from httpx import ASGITransport, AsyncClient
-
-from app.main import app
-from app.db.models import Job, User
-from app.db.session import get_db
-from sqlalchemy import select
-from worker.tasks import process_document_job
-
-
 from pathlib import Path
 from unittest.mock import patch
+
+import httpx
+import pytest
+import respx
+from app.db.models import Job, User
+from app.main import app
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
+from worker.tasks import process_document_job
 
 SAMPLE_PDF_PATH = Path("tests/samples/clean_invoice.pdf")
 SAMPLE_PDF_BYTES = SAMPLE_PDF_PATH.read_bytes() if SAMPLE_PDF_PATH.exists() else b"%PDF-1.4"
@@ -137,8 +134,9 @@ async def test_e2e_vision_pipeline_full_lifecycle():
 @pytest.mark.asyncio
 async def test_tenant_isolation_enforcement():
     """Verifies that jobs belonging to tenant A cannot be viewed or shared by tenant B."""
-    from tests.conftest import TestSessionLocal
     import uuid
+
+    from tests.conftest import TestSessionLocal
 
     user_a_id = f"usr_{uuid.uuid4().hex[:12]}"
     user_b_id = f"usr_{uuid.uuid4().hex[:12]}"
@@ -175,8 +173,9 @@ async def test_tenant_isolation_enforcement():
 @pytest.mark.asyncio
 async def test_third_party_processing_disallowed_blocks_omniroute():
     """Verifies that if user has third_party_processing_allowed = False, worker halts with error."""
-    from tests.conftest import TestSessionLocal
     import uuid
+
+    from tests.conftest import TestSessionLocal
 
     user_strict_id = f"usr_strict_{uuid.uuid4().hex[:8]}"
     job_id = f"job_strict_{uuid.uuid4().hex[:8]}"

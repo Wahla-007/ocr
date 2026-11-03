@@ -1,11 +1,12 @@
 """Unit tests for Stage 4 bounding box mapping and text-layer snapping."""
 
-from providers.base import RasterPage, TextLayer, WordRect
 from worker.pipeline.bbox import (
     convert_box_2d_to_canvas,
     enrich_fields_with_boxes,
     snap_box_to_text_layer,
 )
+
+from providers.base import RasterPage, TextLayer, WordRect
 
 
 def test_convert_box_2d_to_canvas():
