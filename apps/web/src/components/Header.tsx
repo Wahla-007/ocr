@@ -61,6 +61,7 @@ export function Header({
   };
 
   const navLinks = [
+    { href: "/api", label: "API" },
     { href: "/docs", label: "Documentation" },
     { href: "/pricing", label: "Pricing" },
     { href: "/self-hosted", label: "Self-Hosted Solution" },

@@ -5,6 +5,7 @@ from app.api.v1.billing import router as billing_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.health import router as health_router
 from app.api.v1.jobs import router as jobs_router
+from app.api.v1.keys import router as keys_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.usage import router as usage_router
@@ -13,6 +14,7 @@ from fastapi import APIRouter
 api_v1_router = APIRouter()
 api_v1_router.include_router(health_router, tags=["Health"])
 api_v1_router.include_router(auth_router)
+api_v1_router.include_router(keys_router)
 api_v1_router.include_router(billing_router)
 api_v1_router.include_router(uploads_router)
 api_v1_router.include_router(jobs_router)

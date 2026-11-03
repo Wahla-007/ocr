@@ -154,7 +154,7 @@ async def get_optional_user(
         key_stmt = (
             select(ApiKey)
             .options(selectinload(ApiKey.user))
-            .where(ApiKey.key_hash == token_hash, ApiKey.is_active == True)
+            .where(ApiKey.key_hash == token_hash, ApiKey.revoked_at.is_(None))
         )
         key_res = await db.execute(key_stmt)
         api_key_obj = key_res.scalars().first()

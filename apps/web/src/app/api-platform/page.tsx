@@ -1,3 +1,3 @@
-import DocumentationPage from "../docs/page";
+import ApiPlatformPage from "../api/page";
 
-export default DocumentationPage;
+export default ApiPlatformPage;
