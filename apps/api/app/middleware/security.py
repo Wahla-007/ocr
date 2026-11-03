@@ -41,10 +41,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # 5. Content Security Policy (Level 2/3)
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https: blob:; "
-            "font-src 'self' data:; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: https: blob: https://fastapi.tiangolo.com https://cdn.jsdelivr.net; "
+            "font-src 'self' data: https://cdn.jsdelivr.net; "
             "connect-src 'self' https://sandbox.api.getsafepay.com https://api.getsafepay.com http://localhost:* http://127.0.0.1:* https:; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
