@@ -4,15 +4,10 @@ export function middleware(request: NextRequest) {
   // 1. Generate cryptographic per-request nonce (CSPRNG)
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
-  // In development, Next.js hot-reloading and Turbopack require unsafe-inline and WebSockets
-  const isDev = process.env.NODE_ENV !== "production";
-  const scriptSrc = isDev
-    ? `'self' 'unsafe-eval' 'unsafe-inline'`
-    : `'self' 'nonce-${nonce}'`;
+  // Next.js standalone SSR & static chunks require unsafe-inline & unsafe-eval for client hydration
+  const scriptSrc = `'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net`;
 
-  const connectSrc = isDev
-    ? `'self' ws: wss: http: https: data: blob:`
-    : `'self' https://sandbox.api.getsafepay.com https://api.getsafepay.com`;
+  const connectSrc = `'self' ws: wss: http: https: data: blob: https://sandbox.api.getsafepay.com https://api.getsafepay.com https://cdn.jsdelivr.net`;
 
   // 2. Strict Content Security Policy (Level 2/3)
   const cspHeader = [

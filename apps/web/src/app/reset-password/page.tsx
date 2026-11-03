@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -11,7 +11,6 @@ import { CheckCircle2, AlertCircle, ShieldCheck, ArrowRight, KeyRound } from "lu
 
 function ResetPasswordForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [token, setToken] = useState<string>("");
   const [newPassword, setNewPassword] = useState("");
@@ -27,14 +26,17 @@ function ResetPasswordForm() {
     document.head.appendChild(meta);
 
     // 2. Read single-use token and immediately strip from address bar and history
-    const rawToken = searchParams.get("token");
-    if (rawToken) {
-      setToken(rawToken);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      setErrorMsg("Missing or invalid password reset token. Please request a new recovery dispatch.");
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const rawToken = params.get("token");
+      if (rawToken) {
+        setToken(rawToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        setErrorMsg("Missing or invalid password reset token. Please request a new recovery dispatch.");
+      }
     }
-  }, [searchParams]);
+  }, []);
 
   const strength = evaluatePasswordStrength(newPassword);
 
@@ -199,9 +201,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="bg-white dark:bg-[#0a0a0c] border border-zinc-200 dark:border-[#292d30] rounded-2xl p-7 sm:p-9 shadow-xl shadow-zinc-200/40 dark:shadow-[0_8px_30px_rgb(0,0,0,0.6)] space-y-5">
-          <Suspense fallback={<div className="text-xs font-mono text-zinc-400">Verifying session...</div>}>
-            <ResetPasswordForm />
-          </Suspense>
+          <ResetPasswordForm />
 
           <div className="pt-3 border-t border-zinc-200 dark:border-[#292d30] text-center">
             <span className="text-[11px] font-mono text-zinc-400 dark:text-[#6e727a]">

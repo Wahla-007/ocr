@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -11,17 +11,23 @@ import { CheckCircle2, AlertCircle, Mail, ArrowRight, ShieldCheck, MailCheck, Re
 
 function VerifyEmailContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const [token, setToken] = useState<string | null>(null);
 
   // States: 'idle' | 'confirming' | 'verified' | 'expired' | 'invalid'
-  const [state, setState] = useState<"idle" | "confirming" | "verified" | "expired" | "invalid">(
-    token ? "idle" : "invalid"
-  );
+  const [state, setState] = useState<"idle" | "confirming" | "verified" | "expired" | "invalid">("idle");
   const [message, setMessage] = useState<string>("");
   const [resendEmail, setResendEmail] = useState("");
   const [resending, setResending] = useState(false);
   const [resendDone, setResendDone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get("token");
+      setToken(t);
+      setState(t ? "idle" : "invalid");
+    }
+  }, []);
 
   // OWASP Defense: Single-use tokens are submitted via POST upon explicit human user confirmation.
   // This prevents email scanners, previewers, and spam gateways from burning tokens on GET requests.
@@ -223,9 +229,7 @@ export default function VerifyEmailPage() {
       {/* Subtle Ambient Violet Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-purple-500/10 dark:bg-[#9281f7]/10 blur-[130px] pointer-events-none rounded-full" />
       <div className="w-full max-w-[420px] space-y-6 relative z-10">
-        <Suspense fallback={<div className="text-xs font-mono text-zinc-400">Loading verification details...</div>}>
-          <VerifyEmailContent />
-        </Suspense>
+        <VerifyEmailContent />
       </div>
     </div>
   );
