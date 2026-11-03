@@ -123,16 +123,16 @@ export default function PlaygroundPage() {
         ) : isUploadedDoc && result ? (
           /* State 2: Uploaded Document Mode -> Sleek Top Action Bar + Full-Height Spacious Split Workspace */
           <>
-            <div className="flex items-center justify-between px-3.5 py-1.5 border border-[#292d30] rounded-[6px] bg-[#000000] text-xs font-mono select-none shrink-0">
+            <div className="flex items-center justify-between px-3.5 py-1.5 border border-zinc-200 dark:border-[#292d30] rounded-[6px] bg-white dark:bg-[#000000] text-xs font-mono select-none shrink-0">
               <div className="flex items-center gap-2.5 truncate min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389] shrink-0" />
-                <span className="text-[#a1a4a5] shrink-0">Active File:</span>
-                <span className="text-white font-medium truncate">{activeFileName}</span>
+                <span className="text-zinc-500 dark:text-[#a1a4a5] shrink-0">Active File:</span>
+                <span className="text-zinc-900 dark:text-white font-medium truncate">{activeFileName}</span>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <label className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-[#292d30] hover:border-white text-xs text-[#a1a4a5] hover:text-white cursor-pointer transition-colors">
-                  <UploadCloud className="w-3 h-3 text-[#9281f7]" />
+                <label className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#292d30] hover:border-zinc-900 dark:hover:border-white text-xs text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-colors">
+                  <UploadCloud className="w-3 h-3 text-purple-600 dark:text-[#9281f7]" />
                   <span>Upload New</span>
                   <input
                     type="file"
@@ -148,7 +148,7 @@ export default function PlaygroundPage() {
                 <button
                   type="button"
                   onClick={handleResetToDemo}
-                  className="text-xs text-[#6e727a] hover:text-white transition-colors px-2 py-1"
+                  className="text-xs text-zinc-500 dark:text-[#6e727a] hover:text-zinc-900 dark:hover:text-white transition-colors px-2 py-1"
                 >
                   Demo Cases
                 </button>
@@ -231,19 +231,19 @@ export default function PlaygroundPage() {
           </>
         )}
 
-        {/* Resend Minimal Footer Guarantee Strip */}
-        <div className="px-3 py-1 border-t border-[#292d30]/50 bg-transparent flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-mono select-none shrink-0">
-          <div className="flex items-center gap-2 text-[#a1a4a5]">
+        {/* Minimal Footer Guarantee Strip */}
+        <div className="px-3 py-1 border-t border-zinc-200 dark:border-[#292d30]/50 bg-transparent flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-mono select-none shrink-0">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-[#a1a4a5]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#3ad389] shrink-0" />
             <span>Air-Gap Capable • Pure In-Memory Execution • Zero Data Retention</span>
           </div>
 
-          <div className="flex items-center gap-3 text-[#6e727a]">
+          <div className="flex items-center gap-3 text-zinc-400 dark:text-[#6e727a]">
             <span className="hidden sm:inline">Ctrl+V / ⌘V Paste Screenshot</span>
             <span className="hidden sm:inline">•</span>
             <span>Esc to Deselect</span>
             <span>•</span>
-            <Link href="/self-hosted" className="text-[#9281f7] hover:underline font-medium">
+            <Link href="/self-hosted" className="text-purple-600 dark:text-[#9281f7] hover:underline font-medium">
               Self-Hosted
             </Link>
           </div>

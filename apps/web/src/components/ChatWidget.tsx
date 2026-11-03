@@ -201,30 +201,30 @@ export function ChatWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="group flex items-center gap-2.5 px-3.5 py-2 rounded-[6px] bg-[#000000] hover:bg-[#0b0e14] text-white border border-[#292d30] hover:border-white shadow-none transition-all cursor-pointer"
+          className="group flex items-center gap-2.5 px-3.5 py-2 rounded-[6px] bg-white dark:bg-[#000000] hover:bg-zinc-100 dark:hover:bg-[#0b0e14] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#292d30] hover:border-zinc-900 dark:hover:border-white shadow-lg transition-all cursor-pointer"
           aria-label="Open OpenOCR Assistant"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
-          <Bot className="w-3.5 h-3.5 text-[#9281f7]" />
-          <span className="font-mono text-xs text-white">Assistant</span>
+          <Bot className="w-3.5 h-3.5 text-purple-600 dark:text-[#9281f7]" />
+          <span className="font-mono text-xs text-zinc-900 dark:text-white">Assistant</span>
         </button>
       )}
 
-      {/* Floating Chat Modal - Resend Void Black & Iris Violet */}
+      {/* Floating Chat Modal */}
       {isOpen && (
-        <div className="w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[540px] bg-[#000000] text-white border border-[#292d30] rounded-[12px] shadow-2xl flex flex-col overflow-hidden text-xs transition-all animate-in fade-in zoom-in-95 duration-150">
+        <div className="w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[540px] bg-white dark:bg-[#000000] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#292d30] rounded-[12px] shadow-2xl flex flex-col overflow-hidden text-xs transition-all animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-[#292d30] bg-[#000000] flex items-center justify-between select-none">
+          <div className="px-4 py-3 border-b border-zinc-200 dark:border-[#292d30] bg-white dark:bg-[#000000] flex items-center justify-between select-none">
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-[4px] bg-white text-black flex items-center justify-center font-mono font-bold text-xs">
+              <div className="w-6 h-6 rounded-[4px] bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center font-mono font-bold text-xs">
                 //
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-medium text-sm text-white">OpenOCR Assistant</span>
+                  <span className="font-mono font-medium text-sm text-zinc-900 dark:text-white">OpenOCR Assistant</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
                 </div>
-                <span className="text-[10px] text-[#6e727a] font-mono block">
+                <span className="text-[10px] text-zinc-500 dark:text-[#6e727a] font-mono block">
                   Documentation &amp; Support QA
                 </span>
               </div>
@@ -232,7 +232,7 @@ export function ChatWidget() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded-[4px] text-[#a1a4a5] hover:text-white hover:bg-[#0b0e14] transition-colors"
+              className="p-1 rounded-[4px] text-zinc-400 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#0b0e14] transition-colors"
               aria-label="Close Assistant"
             >
               <X className="w-4 h-4" />
@@ -240,65 +240,65 @@ export function ChatWidget() {
           </div>
 
           {/* Quick Starter Chips */}
-          <div className="px-3 py-2 bg-[#050505] border-b border-[#292d30] flex items-center gap-1.5 overflow-x-auto select-none no-scrollbar">
+          <div className="px-3 py-2 bg-zinc-50 dark:bg-[#050505] border-b border-zinc-200 dark:border-[#292d30] flex items-center gap-1.5 overflow-x-auto select-none no-scrollbar">
             <button
               type="button"
               onClick={() => handleSend("How do I get an API key?")}
-              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#292d30] bg-transparent text-[11px] font-mono text-[#a1a4a5] hover:text-white hover:border-white transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#292d30] bg-transparent text-[11px] font-mono text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:border-zinc-900 dark:hover:border-white transition-colors"
             >
               API Keys
             </button>
             <button
               type="button"
               onClick={() => handleSend("How does pricing work?")}
-              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#292d30] bg-transparent text-[11px] font-mono text-[#a1a4a5] hover:text-white hover:border-white transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#292d30] bg-transparent text-[11px] font-mono text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:border-zinc-900 dark:hover:border-white transition-colors"
             >
               Pricing
             </button>
             <button
               type="button"
               onClick={() => handleSend("What formats are supported?")}
-              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#292d30] bg-transparent text-[11px] font-mono text-[#a1a4a5] hover:text-white hover:border-white transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#292d30] bg-transparent text-[11px] font-mono text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:border-zinc-900 dark:hover:border-white transition-colors"
             >
               Formats
             </button>
             <button
               type="button"
               onClick={() => handleSend("Talk to a human support engineer")}
-              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-[#9281f7]/40 bg-[#9281f7]/10 text-[11px] font-mono text-[#baa7ff] hover:border-[#9281f7] transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-[6px] border border-purple-300 dark:border-[#9281f7]/40 bg-purple-50 dark:bg-[#9281f7]/10 text-[11px] font-mono text-purple-700 dark:text-[#baa7ff] hover:border-purple-600 dark:hover:border-[#9281f7] transition-colors"
             >
               Talk to Human
             </button>
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 leading-relaxed bg-[#000000]">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 leading-relaxed bg-white dark:bg-[#000000]">
             {messages.map((m) => (
               <div
                 key={m.id}
                 className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.sender === "bot" && (
-                  <div className="w-5 h-5 rounded-full bg-[#0b0e14] border border-[#292d30] flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-3 h-3 text-[#9281f7]" />
+                  <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-[#0b0e14] border border-zinc-200 dark:border-[#292d30] flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-3 h-3 text-purple-600 dark:text-[#9281f7]" />
                   </div>
                 )}
                 <div
                   className={`max-w-[85%] p-3 rounded-[6px] ${
                     m.sender === "user"
-                      ? "bg-[#9281f7] text-black font-medium"
-                      : "bg-[#08080a] border border-[#292d30] text-[#f0f0f0]"
+                      ? "bg-purple-600 text-white dark:bg-[#9281f7] dark:text-black font-medium"
+                      : "bg-zinc-50 dark:bg-[#08080a] border border-zinc-200 dark:border-[#292d30] text-zinc-800 dark:text-[#f0f0f0]"
                   }`}
                 >
                   <p className="text-xs whitespace-pre-wrap leading-relaxed">{m.text}</p>
                   {m.sourceDoc && (
-                    <div className="mt-2 pt-1.5 border-t border-[#292d30] text-[10px] text-[#6e727a] flex items-center justify-between font-mono">
+                    <div className="mt-2 pt-1.5 border-t border-zinc-200 dark:border-[#292d30] text-[10px] text-zinc-400 dark:text-[#6e727a] flex items-center justify-between font-mono">
                       <span>Source: {m.sourceDoc}</span>
                       {m.routeKey && (
                         <Link
                           href={m.routeKey}
                           onClick={() => setIsOpen(false)}
-                          className="text-[#9281f7] hover:underline flex items-center gap-0.5"
+                          className="text-purple-600 dark:text-[#9281f7] hover:underline flex items-center gap-0.5"
                         >
                           <span>Open</span>
                           <ExternalLink className="w-2.5 h-2.5" />
@@ -307,11 +307,11 @@ export function ChatWidget() {
                     </div>
                   )}
                   {m.isEscalation && !showEscalationForm && (
-                    <div className="mt-2.5 pt-2 border-t border-[#292d30]">
+                    <div className="mt-2.5 pt-2 border-t border-zinc-200 dark:border-[#292d30]">
                       <button
                         type="button"
                         onClick={() => setShowEscalationForm(true)}
-                        className="w-full text-xs font-mono py-1.5 px-2 rounded-[6px] border border-[#292d30] hover:border-white text-white transition-colors"
+                        className="w-full text-xs font-mono py-1.5 px-2 rounded-[6px] border border-zinc-200 dark:border-[#292d30] hover:border-zinc-900 dark:hover:border-white text-zinc-900 dark:text-white transition-colors"
                       >
                         Open Ticket with Support
                       </button>
@@ -319,8 +319,8 @@ export function ChatWidget() {
                   )}
                 </div>
                 {m.sender === "user" && (
-                  <div className="w-5 h-5 rounded-full bg-[#292d30] flex items-center justify-center shrink-0 mt-0.5">
-                    <User className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-[#292d30] flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="w-3 h-3 text-zinc-700 dark:text-white" />
                   </div>
                 )}
               </div>
@@ -330,42 +330,42 @@ export function ChatWidget() {
             {showEscalationForm && (
               <form
                 onSubmit={handleEscalationSubmit}
-                className="p-3.5 bg-[#08080a] border border-[#292d30] rounded-[6px] space-y-3"
+                className="p-3.5 bg-zinc-50 dark:bg-[#08080a] border border-zinc-200 dark:border-[#292d30] rounded-[6px] space-y-3"
               >
-                <div className="flex items-center justify-between font-mono text-xs text-[#9281f7]">
+                <div className="flex items-center justify-between font-mono text-xs text-purple-600 dark:text-[#9281f7]">
                   <span>Open Engineering Ticket</span>
                   <button
                     type="button"
                     onClick={() => setShowEscalationForm(false)}
-                    className="text-[#6e727a] hover:text-white"
+                    className="text-zinc-500 dark:text-[#6e727a] hover:text-zinc-900 dark:hover:text-white"
                   >
                     Cancel
                   </button>
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-[#a1a4a5] block mb-1">Contact Email:</label>
+                  <label className="text-[10px] font-mono text-zinc-500 dark:text-[#a1a4a5] block mb-1">Contact Email:</label>
                   <input
                     type="email"
                     required
                     placeholder="engineer@company.com"
                     value={escalateEmail}
                     onChange={(e) => setEscalateEmail(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-[#000000] border border-[#292d30] rounded-[6px] text-white focus:outline-none focus:border-[#9281f7]"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-white dark:bg-[#000000] border border-zinc-200 dark:border-[#292d30] rounded-[6px] text-zinc-900 dark:text-white focus:outline-none focus:border-purple-600 dark:focus:border-[#9281f7]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-[#a1a4a5] block mb-1">Issue Summary:</label>
+                  <label className="text-[10px] font-mono text-zinc-500 dark:text-[#a1a4a5] block mb-1">Issue Summary:</label>
                   <textarea
                     rows={2}
                     placeholder="Briefly describe the question or error..."
                     value={escalateDesc}
                     onChange={(e) => setEscalateDesc(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-[#000000] border border-[#292d30] rounded-[6px] text-white focus:outline-none focus:border-[#9281f7]"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono bg-white dark:bg-[#000000] border border-zinc-200 dark:border-[#292d30] rounded-[6px] text-zinc-900 dark:text-white focus:outline-none focus:border-purple-600 dark:focus:border-[#9281f7]"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-1.5 px-3 rounded-[6px] bg-[#9281f7] text-black font-mono text-xs font-medium hover:bg-[#baa7ff] transition-colors"
+                  className="w-full py-1.5 px-3 rounded-[6px] bg-purple-600 text-white dark:bg-[#9281f7] dark:text-black font-mono text-xs font-medium hover:bg-purple-700 dark:hover:bg-[#baa7ff] transition-colors"
                 >
                   Submit Escalation Ticket
                 </button>
@@ -381,18 +381,18 @@ export function ChatWidget() {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 border-t border-[#292d30] bg-[#000000] flex items-center gap-2"
+            className="p-3 border-t border-zinc-200 dark:border-[#292d30] bg-white dark:bg-[#000000] flex items-center gap-2"
           >
             <input
               type="text"
               placeholder="Ask a question..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 px-3 py-1.5 text-xs font-mono bg-[#050505] border border-[#292d30] rounded-[6px] text-white placeholder-[#6e727a] focus:outline-none focus:border-[#9281f7]"
+              className="flex-1 px-3 py-1.5 text-xs font-mono bg-zinc-50 dark:bg-[#050505] border border-zinc-200 dark:border-[#292d30] rounded-[6px] text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#6e727a] focus:outline-none focus:border-purple-600 dark:focus:border-[#9281f7]"
             />
             <button
               type="submit"
-              className="p-2 rounded-[6px] border border-[#292d30] hover:border-white text-[#a1a4a5] hover:text-white transition-colors"
+              className="p-2 rounded-[6px] border border-zinc-200 dark:border-[#292d30] hover:border-zinc-900 dark:hover:border-white text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors"
               aria-label="Send message"
             >
               <Send className="w-3.5 h-3.5" />

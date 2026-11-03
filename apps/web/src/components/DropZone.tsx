@@ -132,8 +132,8 @@ export function DropZone({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !isProcessing && fileInputRef.current?.click()}
-        className={`relative w-full flex-1 min-h-0 border border-[#292d30] rounded-[6px] px-6 py-4 flex flex-col items-center justify-center text-center transition-all cursor-pointer bg-[#000000] group
-          ${isDragOver ? "border-[#9281f7] bg-[#9281f7]/5" : "hover:border-[#9281f7]/50"}
+        className={`relative w-full flex-1 min-h-0 border border-zinc-200 dark:border-[#292d30] rounded-[6px] px-6 py-4 flex flex-col items-center justify-center text-center transition-all cursor-pointer bg-white dark:bg-[#000000] group
+          ${isDragOver ? "border-purple-600 dark:border-[#9281f7] bg-purple-50/50 dark:bg-[#9281f7]/5" : "hover:border-purple-400 dark:hover:border-[#9281f7]/50"}
           ${isProcessing ? "pointer-events-none opacity-60" : ""}
           ${justPasted ? "border-[#3ad389]" : ""}
         `}
@@ -154,22 +154,22 @@ export function DropZone({
 
         <div className="flex flex-col items-center justify-center space-y-3 max-w-md">
           {isProcessing ? (
-            <Loader2 className="w-8 h-8 animate-spin text-[#9281f7]" />
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600 dark:text-[#9281f7]" />
           ) : justPasted ? (
             <Check className="w-8 h-8 text-[#3ad389]" />
           ) : (
-            <UploadCloud className="w-9 h-9 text-[#9281f7] group-hover:scale-110 transition-transform duration-200" />
+            <UploadCloud className="w-9 h-9 text-purple-600 dark:text-[#9281f7] group-hover:scale-110 transition-transform duration-200" />
           )}
 
           <div className="space-y-1">
-            <h3 className="font-sans text-base sm:text-lg font-medium text-white tracking-tight">
+            <h3 className="font-sans text-base sm:text-lg font-medium text-zinc-900 dark:text-white tracking-tight">
               {isProcessing
                 ? "Extracting document..."
                 : isDragOver
                 ? "Release to extract"
                 : "Drop document here or browse"}
             </h3>
-            <p className="text-xs text-[#a1a4a5]">
+            <p className="text-xs text-zinc-500 dark:text-[#a1a4a5]">
               PDF, JPG, PNG, WEBP, TIFF • Multi-page &amp; tables supported
             </p>
           </div>
@@ -182,13 +182,13 @@ export function DropZone({
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="bg-transparent border border-[#292d30] text-white hover:border-white rounded-[6px] px-4 py-1.5 text-xs font-mono transition-colors"
+              className="bg-transparent border border-zinc-300 dark:border-[#292d30] text-zinc-800 dark:text-white hover:border-zinc-900 dark:hover:border-white rounded-[6px] px-4 py-1.5 text-xs font-mono transition-colors"
             >
               Upload file
             </button>
 
-            <span className="text-xs font-mono text-[#6e727a]">
-              or press <span className="text-[#a1a4a5]">⌘V / Ctrl+V</span>
+            <span className="text-xs font-mono text-zinc-400 dark:text-[#6e727a]">
+              or press <span className="text-zinc-600 dark:text-[#a1a4a5]">⌘V / Ctrl+V</span>
             </span>
           </div>
         </div>
@@ -198,7 +198,7 @@ export function DropZone({
       {!isUploadedDoc ? (
         <div className="w-full px-2 py-1 text-xs font-mono shrink-0">
           <div className="w-full flex items-center justify-between gap-2 overflow-x-auto scrollbar-none py-0.5">
-            <span className="text-[#6e727a] uppercase text-[10px] tracking-wider font-mono font-medium shrink-0 mr-1 select-none">
+            <span className="text-zinc-500 dark:text-[#6e727a] uppercase text-[10px] tracking-wider font-mono font-medium shrink-0 mr-1 select-none">
               Demo:
             </span>
             <div className="flex-1 flex items-center justify-between gap-1 sm:gap-2">
@@ -212,8 +212,8 @@ export function DropZone({
                     onClick={() => onSampleSelected && onSampleSelected(sample)}
                     className={`flex-1 text-center py-1 px-1.5 rounded-[4px] text-xs transition-all cursor-pointer whitespace-nowrap ${
                       isActive
-                        ? "text-[#9281f7] font-semibold border-b-2 border-[#9281f7] bg-[#9281f7]/10"
-                        : "text-[#a1a4a5] hover:text-white hover:bg-[#0b0e14]"
+                        ? "text-purple-600 dark:text-[#9281f7] font-semibold border-b-2 border-purple-600 dark:border-[#9281f7] bg-purple-50 dark:bg-[#9281f7]/10"
+                        : "text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#0b0e14]"
                     }`}
                   >
                     {sample.title.split("(")[0].trim()}
@@ -227,8 +227,8 @@ export function DropZone({
         <div className="flex items-center justify-between px-2 py-0.5 text-xs font-mono select-none shrink-0">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
-            <span className="text-[#a1a4a5] text-xs">Active:</span>
-            <span className="text-white truncate max-w-sm">{uploadedFileName}</span>
+            <span className="text-zinc-500 dark:text-[#a1a4a5] text-xs">Active:</span>
+            <span className="text-zinc-900 dark:text-white truncate max-w-sm">{uploadedFileName}</span>
           </div>
 
           {onResetDemo && (
@@ -236,7 +236,7 @@ export function DropZone({
               type="button"
               disabled={isProcessing}
               onClick={onResetDemo}
-              className="text-xs text-[#9281f7] hover:underline font-mono"
+              className="text-xs text-purple-600 dark:text-[#9281f7] hover:underline font-mono"
             >
               Back to demo cases
             </button>

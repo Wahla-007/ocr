@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { authApi, AuthUser } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
@@ -38,28 +39,15 @@ export function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Check initial theme from DOM or system
-    const darkActive = document.documentElement.classList.contains("dark");
-    setIsDark(darkActive);
     setMobileMenuOpen(false);
-
     authApi.getCurrentUser().then(setCurrentUser).catch(() => setCurrentUser(null));
   }, [pathname]);
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -80,24 +68,24 @@ export function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#292d30] bg-[#000000]/95 backdrop-blur-[25px] px-4 sm:px-8 py-2.5 transition-colors select-none">
+    <header className="sticky top-0 z-40 w-full border-b border-zinc-200 dark:border-[#292d30] bg-white/95 dark:bg-[#000000]/95 backdrop-blur-[25px] px-4 sm:px-8 py-2.5 transition-colors select-none">
       <div className="max-w-[1720px] mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo - Button for Light Table Studio */}
         <div className="flex items-center gap-6 sm:gap-8">
           <Link
             href="/"
-            className="flex items-center gap-2.5 px-2.5 py-1.5 -ml-2 rounded-[6px] border border-transparent hover:border-[#292d30] hover:bg-[#0b0e14] active:bg-[#14171f] text-left transition-all cursor-pointer group select-none"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 -ml-2 rounded-[6px] border border-transparent hover:border-zinc-200 dark:hover:border-[#292d30] hover:bg-zinc-100 dark:hover:bg-[#0b0e14] active:bg-zinc-200 dark:active:bg-[#14171f] text-left transition-all cursor-pointer group select-none"
             title="Light Table Studio (Home)"
             aria-label="Open Light Table Studio"
           >
-            <div className="h-6 w-6 rounded-[4px] bg-white text-black flex items-center justify-center font-mono font-bold text-xs shadow-none group-hover:bg-[#9281f7] group-hover:text-black transition-colors">
+            <div className="h-6 w-6 rounded-[4px] bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center font-mono font-bold text-xs shadow-none group-hover:bg-[#9281f7] group-hover:text-black transition-colors">
               //
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-base tracking-tight text-white group-hover:text-white transition-colors">
+              <span className="font-serif font-bold text-base tracking-tight text-zinc-900 dark:text-white transition-colors">
                 OpenOCR
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[6px] border border-[#292d30] text-[#a1a4a5] bg-[#000000] group-hover:border-[#9281f7]/50 group-hover:text-[#baa7ff] transition-colors">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[6px] border border-zinc-200 dark:border-[#292d30] text-zinc-500 dark:text-[#a1a4a5] bg-zinc-50 dark:bg-[#000000] group-hover:border-[#9281f7]/50 group-hover:text-purple-600 dark:group-hover:text-[#baa7ff] transition-colors">
                 v1.2
               </span>
             </div>
@@ -113,8 +101,8 @@ export function Header({
                   href={link.href}
                   className={`px-3 py-1.5 rounded-[6px] text-xs font-mono tracking-tight transition-colors ${
                     active
-                      ? "text-[#9281f7] font-semibold bg-[#9281f7]/10 border border-[#9281f7]/30"
-                      : "text-[#a1a4a5] hover:text-white hover:bg-[#0b0e14] border border-transparent"
+                      ? "text-purple-600 dark:text-[#9281f7] font-semibold bg-purple-50 dark:bg-[#9281f7]/10 border border-purple-200 dark:border-[#9281f7]/30"
+                      : "text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#0b0e14] border border-transparent"
                   }`}
                 >
                   {link.label}
@@ -126,7 +114,7 @@ export function Header({
 
         {/* Right Session Controls & Theme Toggle */}
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Assistant Trigger Button - Resend Ghost Button */}
+          {/* Assistant Trigger Button */}
           <button
             type="button"
             onClick={() => {
@@ -134,24 +122,24 @@ export function Header({
                 window.dispatchEvent(new CustomEvent("open-openocr-chat"));
               }
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-[6px] bg-transparent border border-[#292d30] text-[#a1a4a5] hover:text-white hover:border-white transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-[6px] bg-transparent border border-zinc-200 dark:border-[#292d30] text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:border-zinc-400 dark:hover:border-white transition-colors cursor-pointer"
             title="Open AI Assistant QA Chatbot"
             aria-label="Open Assistant Chatbot"
           >
-            <Bot className="w-3.5 h-3.5 text-[#9281f7]" />
+            <Bot className="w-3.5 h-3.5 text-purple-600 dark:text-[#9281f7]" />
             <span className="hidden xs:inline">Assistant</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#3ad389]" />
           </button>
 
-          {/* Theme Toggle */}
+          {/* Theme Toggle Button */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-1.5 rounded-sm border border-[var(--line-hairline)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)]"
-            title={isDark ? "Switch to Paper Light Theme" : "Switch to Deep Ink Dark Theme"}
+            className="p-1.5 rounded-[6px] border border-zinc-200 dark:border-[#292d30] text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:border-zinc-400 dark:hover:border-white transition-colors cursor-pointer"
+            title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
             aria-label="Toggle visual theme"
           >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isDark ? <Sun className="w-4 h-4 text-[#ffca16]" /> : <Moon className="w-4 h-4 text-zinc-700" />}
           </button>
 
           {/* User Session Desk */}

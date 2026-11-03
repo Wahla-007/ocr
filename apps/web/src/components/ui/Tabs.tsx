@@ -11,7 +11,7 @@ export const TabsList = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={`w-full text-xs font-mono select-none ${className.includes("grid") || className.includes("flex") ? "" : "inline-flex items-center gap-1 border-b border-[#292d30]"} ${className}`}
+    className={`w-full text-xs font-mono select-none ${className.includes("grid") || className.includes("flex") ? "" : "inline-flex items-center gap-1 border-b border-zinc-200 dark:border-[#292d30]"} ${className}`}
     {...props}
   />
 ));
@@ -23,7 +23,7 @@ export const TabsTrigger = React.forwardRef<
 >(({ className = "", ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
-    className={`px-3 py-1.5 -mb-px font-mono text-xs transition-colors border-b-2 border-transparent text-[#a1a4a5] hover:text-[#ffffff] data-[state=active]:border-[#9281f7] data-[state=active]:text-[#ffffff] data-[state=active]:font-semibold focus-visible:outline-none ${className}`}
+    className={`px-3 py-1.5 -mb-px font-mono text-xs transition-colors border-b-2 border-transparent text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-[#ffffff] data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:font-semibold focus-visible:outline-none ${className}`}
     {...props}
   />
 ));

@@ -30,17 +30,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        "bg-[#9281f7] text-[#000000] hover:bg-[#baa7ff] border border-transparent font-medium shadow-[0_0_12px_rgba(146,129,247,0.25)]",
+        "bg-purple-600 dark:bg-[#9281f7] text-white dark:text-[#000000] hover:bg-purple-700 dark:hover:bg-[#baa7ff] border border-transparent font-medium shadow-sm dark:shadow-[0_0_12px_rgba(146,129,247,0.25)]",
       secondary:
-        "bg-transparent text-[#ffffff] hover:border-[#ffffff] border border-[#292d30]",
+        "bg-transparent text-zinc-900 dark:text-[#ffffff] hover:border-zinc-900 dark:hover:border-[#ffffff] border border-zinc-200 dark:border-[#292d30]",
       outline:
-        "bg-transparent text-[#f0f0f0] hover:text-[#ffffff] border border-[#292d30] hover:border-[#ffffff]",
+        "bg-transparent text-zinc-800 dark:text-[#f0f0f0] hover:text-zinc-950 dark:hover:text-[#ffffff] border border-zinc-200 dark:border-[#292d30] hover:border-zinc-900 dark:hover:border-[#ffffff]",
       subtle:
-        "bg-[#0b0e14] text-[#a1a4a5] hover:text-[#ffffff] border border-[#292d30]",
+        "bg-zinc-100 dark:bg-[#0b0e14] text-zinc-700 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-[#ffffff] hover:bg-zinc-200 dark:hover:bg-[#14171f] border border-zinc-200 dark:border-[#292d30]",
       destructive:
-        "bg-[#ff6465] text-[#ffffff] hover:opacity-90 border border-transparent",
+        "bg-red-600 dark:bg-[#ff6465] text-white hover:opacity-90 border border-transparent",
       ghost:
-        "bg-transparent text-[#a1a4a5] hover:text-[#ffffff] border border-transparent",
+        "bg-transparent text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-[#ffffff] hover:bg-zinc-100 dark:hover:bg-[#0b0e14] border border-transparent",
     }[variant];
 
     const sizeStyles = {

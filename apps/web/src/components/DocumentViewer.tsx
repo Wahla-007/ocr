@@ -724,24 +724,24 @@ export function DocumentViewer({
   const activeField = pageFields.find((f) => f.key === (hoveredFieldKey || selectedFieldKey));
 
   return (
-    <div className="w-full flex flex-col h-full border border-[#292d30] rounded-[12px] bg-[#000000] overflow-hidden shadow-none relative">
+    <div className="w-full flex flex-col h-full border border-zinc-200 dark:border-[#292d30] rounded-[12px] bg-white dark:bg-[#000000] overflow-hidden shadow-none relative">
       {/* Top Document Viewer Bar - Clean & Minimal */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#292d30] bg-[#000000] text-xs font-mono select-none shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-[#292d30] bg-white dark:bg-[#000000] text-xs font-mono select-none shrink-0">
         <div className="flex items-center gap-2 truncate min-w-0">
-          <FileText className="w-3.5 h-3.5 text-[#9281f7] shrink-0" />
-          <span className="font-sans font-medium text-white truncate text-xs">
+          <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-[#9281f7] shrink-0" />
+          <span className="font-sans font-medium text-zinc-900 dark:text-white truncate text-xs">
             {fileName || "document_preview.pdf"}
           </span>
         </div>
 
         <div className="flex items-center gap-2 text-xs font-mono shrink-0">
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 text-[#a1a4a5] pr-2 border-r border-[#292d30]">
+            <div className="flex items-center gap-1 text-zinc-500 dark:text-[#a1a4a5] pr-2 border-r border-zinc-200 dark:border-[#292d30]">
               <button
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="disabled:opacity-30 hover:text-white p-0.5"
+                className="disabled:opacity-30 hover:text-zinc-900 dark:hover:text-white p-0.5"
                 title="Previous page"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -751,7 +751,7 @@ export function DocumentViewer({
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="disabled:opacity-30 hover:text-white p-0.5"
+                className="disabled:opacity-30 hover:text-zinc-900 dark:hover:text-white p-0.5"
                 title="Next page"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -762,25 +762,25 @@ export function DocumentViewer({
           <button
             type="button"
             onClick={() => setZoom(0.85)}
-            className="text-[#a1a4a5] hover:text-white px-2 py-0.5 transition-colors"
+            className="text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white px-2 py-0.5 transition-colors"
           >
             Fit
           </button>
           <button
             type="button"
             onClick={handleZoomOut}
-            className="text-[#a1a4a5] hover:text-white p-1 transition-colors"
+            className="text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white p-1 transition-colors"
             title="Zoom out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[#a1a4a5] w-9 text-center tabular-nums">
+          <span className="text-zinc-500 dark:text-[#a1a4a5] w-9 text-center tabular-nums">
             {Math.round(zoom * 100)}%
           </span>
           <button
             type="button"
             onClick={handleZoomIn}
-            className="text-[#a1a4a5] hover:text-white p-1 transition-colors"
+            className="text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white p-1 transition-colors"
             title="Zoom in"
           >
             <ZoomIn className="w-3.5 h-3.5" />
@@ -788,10 +788,10 @@ export function DocumentViewer({
         </div>
       </div>
 
-      {/* Main Light Table Viewport - Resend Void Black Background */}
-      <div className="flex-1 min-h-0 overflow-auto p-2 flex items-center justify-center bg-[#000000] relative">
+      {/* Main Light Table Viewport - Clean Contrast Background */}
+      <div className="flex-1 min-h-0 overflow-auto p-2 flex items-center justify-center bg-zinc-100/70 dark:bg-[#000000] relative">
         <div
-          className="relative transition-transform duration-100 ease-out origin-center border border-zinc-700/70 shadow-2xl rounded-sm overflow-hidden max-w-full max-h-full"
+          className="relative transition-transform duration-100 ease-out origin-center border border-zinc-300 dark:border-zinc-700/70 shadow-2xl rounded-sm overflow-hidden max-w-full max-h-full"
           style={{
             transform: `scale(${zoom}) rotate(${rotation}deg)`,
             filter: privacyBlur ? "blur(8px)" : "none",
@@ -814,7 +814,7 @@ export function DocumentViewer({
             renderSpecimenCanvas()
           )}
 
-          {/* Tracing-Paper Overlays: Detected Bounding Boxes (Bold High-Contrast Terracotta) */}
+          {/* Tracing-Paper Overlays: Detected Bounding Boxes */}
           {showFieldBboxes && (
             <div className="absolute inset-0 pointer-events-auto">
               {pageFields.map((field, idx) => {
@@ -835,18 +835,18 @@ export function DocumentViewer({
                     className={`absolute cursor-pointer transition-all duration-150 rounded-[4px] select-none group ${borderPattern}
                       ${
                         isSelected
-                          ? "border-2 border-[#9281f7] bg-[#9281f7]/25 ring-2 ring-[#9281f7]/60 shadow-[0_0_12px_rgba(146,129,247,0.35)] z-30"
+                          ? "border-2 border-purple-600 dark:border-[#9281f7] bg-purple-500/25 dark:bg-[#9281f7]/25 ring-2 ring-purple-600/60 dark:ring-[#9281f7]/60 shadow-[0_0_12px_rgba(146,129,247,0.35)] z-30"
                           : isHovered
-                          ? "border-2 border-[#baa7ff] bg-[#9281f7]/15 z-20"
-                          : "border border-[#9281f7]/60 bg-[#9281f7]/10 hover:border-[#9281f7] hover:bg-[#9281f7]/20 z-10"
+                          ? "border-2 border-purple-400 dark:border-[#baa7ff] bg-purple-500/15 dark:bg-[#9281f7]/15 z-20"
+                          : "border border-purple-500/60 dark:border-[#9281f7]/60 bg-purple-500/10 dark:bg-[#9281f7]/10 hover:border-purple-600 dark:hover:border-[#9281f7] hover:bg-purple-500/20 dark:hover:bg-[#9281f7]/20 z-10"
                       }
-                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(146,129,247,0.15)_3px,rgba(146,129,247,0.15)_6px)]" : ""}
+                      ${isLowConfidence ? "bg-[repeating-linear-gradient(45deg,transparent,transparent,3px,rgba(146,129,247,0.15)_3px,rgba(146,129,247,0.15)_6px)]" : ""}
                     `}
                     title={`${field.label || field.key}: ${field.value}`}
                   >
                     {/* Micro confidence tag when enabled */}
                     {showConfidences && (
-                      <span className="absolute -top-3.5 left-0 px-1 py-0 bg-[#9281f7] text-black text-[8px] font-mono font-bold rounded-[2px] tracking-tight pointer-events-none opacity-90 truncate max-w-[120px]">
+                      <span className="absolute -top-3.5 left-0 px-1 py-0 bg-purple-600 dark:bg-[#9281f7] text-white dark:text-black text-[8px] font-mono font-bold rounded-[2px] tracking-tight pointer-events-none opacity-90 truncate max-w-[120px]">
                         {(field.label || field.key || "Field").slice(0, 10)} {Math.round(field.confidence * 100)}%
                       </span>
                     )}
@@ -864,24 +864,24 @@ export function DocumentViewer({
                     maxWidth: "280px",
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute z-50 pointer-events-auto bg-[#000000] text-white border border-[#292d30] rounded-[6px] p-2 shadow-2xl transition-all"
+                  className="absolute z-50 pointer-events-auto bg-white dark:bg-[#000000] text-zinc-900 dark:text-white border border-zinc-200 dark:border-[#292d30] rounded-[6px] p-2 shadow-2xl transition-all"
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-[#292d30] pb-1 mb-1">
-                    <span className="font-mono text-[10px] font-bold text-[#9281f7] truncate">
+                  <div className="flex items-center justify-between gap-2 border-b border-zinc-200 dark:border-[#292d30] pb-1 mb-1">
+                    <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-[#9281f7] truncate">
                       {activeField.label || activeField.key}
                     </span>
-                    <span className="font-mono text-[9px] px-1 py-0.5 bg-[#0b0e14] border border-[#292d30] text-[#a1a4a5] rounded-[4px] tabular-nums shrink-0">
+                    <span className="font-mono text-[9px] px-1 py-0.5 bg-zinc-100 dark:bg-[#0b0e14] border border-zinc-200 dark:border-[#292d30] text-zinc-600 dark:text-[#a1a4a5] rounded-[4px] tabular-nums shrink-0">
                       {Math.round(activeField.confidence * 100)}%
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-1.5">
-                    <span className="font-mono text-xs font-normal text-white truncate">
+                    <span className="font-mono text-xs font-normal text-zinc-900 dark:text-white truncate">
                       {String(activeField.value)}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleCopyValue(String(activeField.value), activeField.key, e)}
-                      className="p-1 hover:bg-[#0b0e14] text-[#a1a4a5] hover:text-white rounded-[4px] transition-colors shrink-0"
+                      className="p-1 hover:bg-zinc-100 dark:hover:bg-[#0b0e14] text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white rounded-[4px] transition-colors shrink-0"
                       title="Copy field value"
                     >
                       {copiedFieldKey === activeField.key ? (

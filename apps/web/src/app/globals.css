@@ -8,58 +8,38 @@
    ========================================================================== */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* RESEND TOKENS — Black Velvet with Violet Neon */
-  --color-void-black: #000000;
-  --color-graphite-hairline: #292d30;
-  --color-white: #ffffff;
-  --color-bone-white: #f0f0f0;
-  --color-ash-gray: #a1a4a5;
-  --color-smoke-gray: #abafb4;
-  --color-iron: #6e727a;
-  --color-charcoal: #464a4d;
-  --color-iris-violet: #9281f7;
-  --color-iris-violet-glow: #baa7ff;
-  --color-signal-blue: #3b9eff;
-  --color-sky-blue: #70b8ff;
-  --color-pulse-green: #3ad389;
-  --color-alarm-red: #ff9592;
-  --color-crimson: #ff6465;
-  --color-amber: #ffca16;
-  --color-amber-glow: #ffd60a;
-  --color-surface-gradient: #0b0e14;
+  /* RESEND LIGHT TOKENS — Crisp Luxury Studio Paper */
+  --surface-base: #ffffff;
+  --surface-subtle: #f4f4f5;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f0f1f3;
+  --surface-overlay: rgba(255, 255, 255, 0.95);
 
-  /* Resend Theme Surfaces & Ink */
-  --surface-base: #000000;
-  --surface-subtle: #08080a;
-  --surface-raised: #0f1014;
-  --surface-sunken: #000000;
-  --surface-overlay: rgba(0, 0, 0, 0.95);
+  --ink-primary: #09090b;
+  --ink-secondary: #27272a;
+  --ink-muted: #71717a;
 
-  --ink-primary: #ffffff;
-  --ink-secondary: #f0f0f0;
-  --ink-muted: #a1a4a5;
+  --line-hairline: #e4e4e7;
+  --line-strong: #d4d4d8;
 
-  --line-hairline: #292d30;
-  --line-strong: #383d42;
+  --signal: #7c3aed;
+  --signal-hover: #6d28d9;
+  --signal-subtle: rgba(124, 58, 237, 0.08);
+  --signal-contrast: #ffffff;
 
-  --signal: #9281f7;
-  --signal-hover: #baa7ff;
-  --signal-subtle: rgba(146, 129, 247, 0.12);
-  --signal-contrast: #000000;
+  --semantic-success: #16a34a;
+  --semantic-success-subtle: rgba(22, 163, 74, 0.1);
+  --semantic-warning: #d97706;
+  --semantic-warning-subtle: rgba(217, 119, 6, 0.1);
+  --semantic-error: #dc2626;
+  --semantic-error-subtle: rgba(220, 38, 38, 0.1);
+  --semantic-info: #2563eb;
+  --semantic-info-subtle: rgba(37, 99, 235, 0.1);
 
-  --semantic-success: #3ad389;
-  --semantic-success-subtle: rgba(58, 211, 137, 0.12);
-  --semantic-warning: #ffca16;
-  --semantic-warning-subtle: rgba(255, 202, 22, 0.12);
-  --semantic-error: #ff9592;
-  --semantic-error-subtle: rgba(255, 149, 146, 0.12);
-  --semantic-info: #70b8ff;
-  --semantic-info-subtle: rgba(112, 184, 255, 0.12);
-
-  --focus-ring: #9281f7;
-  --focus-ring-offset: #000000;
+  --focus-ring: #7c3aed;
+  --focus-ring-offset: #ffffff;
 
   /* Typography Scales */
   --font-display-2xl: clamp(2.25rem, 4vw + 1rem, 3.5rem);
@@ -78,7 +58,9 @@
 }
 
 html.dark, [data-theme="dark"] {
-  /* RESEND: Black Velvet with Violet Neon */
+  color-scheme: dark;
+
+  /* RESEND DARK TOKENS — Black Velvet with Violet Neon */
   --surface-base: #000000;
   --surface-subtle: #08080a;
   --surface-raised: #0f1014;
