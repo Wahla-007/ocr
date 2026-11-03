@@ -20,13 +20,17 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 export const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className = "", ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={`px-3 py-1.5 -mb-px font-mono text-xs transition-colors border-b-2 border-transparent text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-[#ffffff] data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:font-semibold focus-visible:outline-none ${className}`}
-    {...props}
-  />
-));
+>(({ className = "", ...props }, ref) => {
+  const hasCustomPx = className.includes("px-");
+  const hasCustomPy = className.includes("py-");
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      className={`${hasCustomPx ? "" : "px-3"} ${hasCustomPy ? "" : "py-1.5"} -mb-px font-mono text-xs transition-colors border-b-2 border-transparent text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-[#ffffff] data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:font-semibold focus-visible:outline-none ${className}`}
+      {...props}
+    />
+  );
+});
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
 export const TabsContent = React.forwardRef<

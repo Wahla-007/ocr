@@ -199,35 +199,35 @@ export function ResultsPanel({
       <div className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 min-h-0">
         <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Minimalist Tabs Navigation - Spaced Justifiably Across Full Width */}
-          <div className="w-full border-b border-zinc-200 dark:border-[#292d30] shrink-0">
-            <TabsList className="border-none w-full grid grid-cols-5 bg-transparent p-0">
+          <div className="w-full border-b border-zinc-200 dark:border-[#292d30] shrink-0 overflow-x-auto scrollbar-none">
+            <TabsList className="border-none w-full min-w-full grid grid-cols-5 bg-transparent p-0">
               <TabsTrigger
                 value="fields"
-                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px whitespace-nowrap"
               >
                 Fields ({fields.length})
               </TabsTrigger>
               <TabsTrigger
                 value="tables"
-                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px whitespace-nowrap"
               >
                 Tables ({tables.length})
               </TabsTrigger>
               <TabsTrigger
                 value="text"
-                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px whitespace-nowrap"
               >
                 Text
               </TabsTrigger>
               <TabsTrigger
                 value="markdown"
-                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px whitespace-nowrap"
               >
                 Markdown
               </TabsTrigger>
               <TabsTrigger
                 value="json"
-                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px"
+                className="w-full text-center py-2 px-1 text-xs font-mono text-zinc-500 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors border-b-2 border-transparent data-[state=active]:text-purple-600 dark:data-[state=active]:text-white data-[state=active]:border-purple-600 dark:data-[state=active]:border-[#9281f7] data-[state=active]:bg-transparent -mb-px whitespace-nowrap"
               >
                 JSON
               </TabsTrigger>

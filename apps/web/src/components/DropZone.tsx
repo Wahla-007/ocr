@@ -197,29 +197,31 @@ export function DropZone({
       {/* Demo Cases / Specimen Archive - Spaced Justifiably & Responsive */}
       {!isUploadedDoc ? (
         <div className="w-full px-2 py-1 text-xs font-mono shrink-0">
-          <div className="w-full flex items-center justify-between gap-2 overflow-x-auto scrollbar-none py-0.5">
-            <span className="text-zinc-500 dark:text-[#6e727a] uppercase text-[10px] tracking-wider font-mono font-medium shrink-0 mr-1 select-none">
-              Demo:
-            </span>
-            <div className="flex-1 flex items-center justify-between gap-1 sm:gap-2">
-              {SAMPLE_DOCUMENTS.map((sample) => {
-                const isActive = activeSampleId === sample.id;
-                return (
-                  <button
-                    key={sample.id}
-                    type="button"
-                    disabled={isProcessing}
-                    onClick={() => onSampleSelected && onSampleSelected(sample)}
-                    className={`flex-1 text-center py-1 px-1.5 rounded-[4px] text-xs transition-all cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? "text-purple-600 dark:text-[#9281f7] font-semibold border-b-2 border-purple-600 dark:border-[#9281f7] bg-purple-50 dark:bg-[#9281f7]/10"
-                        : "text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#0b0e14]"
-                    }`}
-                  >
-                    {sample.title.split("(")[0].trim()}
-                  </button>
-                );
-              })}
+          <div className="w-full overflow-x-auto scrollbar-none py-0.5">
+            <div className="w-full min-w-max sm:min-w-full flex items-center justify-between gap-1 sm:gap-2">
+              <span className="text-zinc-500 dark:text-[#6e727a] uppercase text-[10px] tracking-wider font-mono font-medium shrink-0 mr-1 sm:mr-1.5 select-none">
+                DEMO:
+              </span>
+              <div className="flex-1 flex items-center justify-between gap-1 sm:gap-2">
+                {SAMPLE_DOCUMENTS.map((sample) => {
+                  const isActive = activeSampleId === sample.id;
+                  return (
+                    <button
+                      key={sample.id}
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => onSampleSelected && onSampleSelected(sample)}
+                      className={`flex-1 min-w-fit text-center py-1 px-1.5 sm:px-2 rounded-[4px] text-xs font-mono transition-all cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? "text-purple-600 dark:text-[#9281f7] font-semibold border-b-2 border-purple-600 dark:border-[#9281f7] bg-purple-500/10 dark:bg-[#9281f7]/10"
+                          : "text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#111113]"
+                      }`}
+                    >
+                      {sample.title.split("(")[0].trim()}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
