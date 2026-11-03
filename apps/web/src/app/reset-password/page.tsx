@@ -172,43 +172,39 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-[var(--surface-base)] text-[var(--ink-primary)] transition-colors light-table-grid">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-zinc-50/50 dark:bg-[#000000] text-zinc-900 dark:text-white transition-colors relative overflow-hidden">
+      {/* Subtle Ambient Violet Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-purple-500/10 dark:bg-[#9281f7]/10 blur-[130px] pointer-events-none rounded-full" />
+
+      <div className="w-full max-w-[420px] space-y-6 relative z-10">
         <div className="text-center space-y-2">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity"
+            className="inline-flex items-center gap-2.5 hover:opacity-85 transition-opacity"
             title="OpenOCR Home"
           >
-            <div className="h-7 w-7 rounded-sm bg-[var(--ink-primary)] text-[var(--surface-base)] flex items-center justify-center font-mono font-bold text-xs shadow-subtle">
+            <div className="h-7 w-7 rounded-[6px] bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center font-mono font-bold text-xs shadow-sm">
               //
             </div>
-            <span className="font-serif font-bold text-lg tracking-tight text-[var(--ink-primary)]">
+            <span className="font-serif font-bold text-xl tracking-tight text-zinc-900 dark:text-white">
               OpenOCR
             </span>
           </Link>
-          <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink-primary)]">
-            The Key Exchange: Re-Issuance
+          <h1 className="text-2xl font-serif font-bold tracking-tight text-zinc-900 dark:text-white pt-1">
+            Choose a new password
           </h1>
-          <p className="text-xs text-[var(--ink-secondary)] max-w-xs mx-auto">
-            Establish a new master passphrase for your document extraction account.
+          <p className="text-xs text-zinc-500 dark:text-[#a1a4a5] max-w-xs mx-auto">
+            Establish a new master password for your document extraction account.
           </p>
         </div>
 
-        <div className="bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-sm p-6 sm:p-8 shadow-card relative registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-[var(--line-hairline)]">
-            <span className="font-mono text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
-              DOCKET NO. OCR-KEY-02
-            </span>
-            <span className="archival-stamp text-[var(--signal)]">KEY EXCHANGE</span>
-          </div>
-
-          <Suspense fallback={<div className="text-xs font-mono text-[var(--ink-muted)]">Verifying key exchange session...</div>}>
+        <div className="bg-white dark:bg-[#0a0a0c] border border-zinc-200 dark:border-[#292d30] rounded-2xl p-7 sm:p-9 shadow-xl shadow-zinc-200/40 dark:shadow-[0_8px_30px_rgb(0,0,0,0.6)] space-y-5">
+          <Suspense fallback={<div className="text-xs font-mono text-zinc-400">Verifying session...</div>}>
             <ResetPasswordForm />
           </Suspense>
 
-          <div className="pt-3 border-t border-[var(--line-hairline)] text-center">
-            <span className="text-[11px] font-mono text-[var(--ink-muted)]">
+          <div className="pt-3 border-t border-zinc-200 dark:border-[#292d30] text-center">
+            <span className="text-[11px] font-mono text-zinc-400 dark:text-[#6e727a]">
               Referrer-Policy: no-referrer • Zero URL History Footprint
             </span>
           </div>

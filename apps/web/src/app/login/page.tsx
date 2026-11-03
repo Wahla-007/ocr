@@ -96,15 +96,15 @@ function LoginForm() {
         type="email"
         required
         autoComplete="email"
-        placeholder="archivist@organization.gov"
+        placeholder="you@company.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={loading}
       />
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Input
-          label="Passphrase"
+          label="Password"
           isPassword
           required
           autoComplete="current-password"
@@ -120,21 +120,21 @@ function LoginForm() {
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
               disabled={loading}
-              className="rounded-sm border-[var(--line-strong)] text-[var(--signal)] focus:ring-[var(--focus-ring)] accent-[var(--signal)]"
+              className="w-4 h-4 rounded-[4px] border-zinc-300 dark:border-zinc-700 text-purple-600 dark:text-[#9281f7] focus:ring-purple-500 accent-purple-600 dark:accent-[#9281f7] cursor-pointer"
             />
-            <span className="text-xs text-[var(--ink-secondary)]">Remember session (14 days)</span>
+            <span className="text-xs text-zinc-600 dark:text-zinc-400">Remember for 14 days</span>
           </label>
           <Link
             href="/forgot-password"
-            className="text-xs text-[var(--ink-muted)] hover:text-[var(--signal)] transition-colors"
+            className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors"
           >
-            Forgot passphrase?
+            Forgot password?
           </Link>
         </div>
       </div>
 
       {errorMsg && (
-        <div className="p-3 bg-[var(--semantic-error-subtle)] border border-[var(--semantic-error)] rounded-sm text-xs text-[var(--semantic-error)] flex flex-col gap-1.5 animate-fade-in">
+        <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-[8px] text-xs text-red-600 dark:text-red-400 flex flex-col gap-1.5 animate-fade-in">
           <div className="flex items-center gap-2 font-medium">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -152,8 +152,8 @@ function LoginForm() {
       )}
 
       {resendStatus && (
-        <div className="p-3 bg-[var(--surface-raised)] border border-[var(--line-strong)] rounded-sm text-xs text-[var(--ink-secondary)] flex items-center gap-2">
-          <Mail className="w-4 h-4 text-[var(--semantic-success)] shrink-0" />
+        <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 rounded-[8px] text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2">
+          <Mail className="w-4 h-4 text-purple-600 dark:text-[#9281f7] shrink-0" />
           <span>{resendStatus}</span>
         </div>
       )}
@@ -163,24 +163,24 @@ function LoginForm() {
         variant="primary"
         size="md"
         loading={loading}
-        className="w-full"
+        className="w-full py-2.5 rounded-[8px] font-medium"
         rightIcon={<ArrowRight className="w-4 h-4" />}
       >
-        Sign In to Light Table
+        Sign In
       </Button>
 
-      {/* Archival Security Pledge */}
-      <div className="pt-4 border-t border-[var(--line-hairline)] text-center space-y-2">
-        <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--ink-muted)] font-mono">
-          <ShieldCheck className="w-3.5 h-3.5 text-[var(--semantic-success)]" />
-          <span>HttpOnly Session • Anti-Enumeration • Zero Log Retention</span>
-        </div>
-        <p className="text-xs text-[var(--ink-secondary)]">
-          Need a workspace?{" "}
-          <Link href="/signup" className="text-[var(--signal)] hover:underline font-medium">
-            Register new account
+      {/* Security Pledge & Switch to Signup */}
+      <div className="pt-4 border-t border-zinc-200 dark:border-[#292d30] text-center space-y-3">
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-purple-600 dark:text-[#9281f7] hover:underline font-medium">
+            Create an account
           </Link>
         </p>
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 dark:text-[#6e727a] font-mono">
+          <ShieldCheck className="w-3.5 h-3.5 text-[#3ad389]" />
+          <span>256-Bit TLS • HttpOnly Cookies • Zero Log Retention</span>
+        </div>
       </div>
     </form>
   );
@@ -188,40 +188,36 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-[var(--surface-base)] text-[var(--ink-primary)] transition-colors light-table-grid">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-zinc-50/50 dark:bg-[#000000] text-zinc-900 dark:text-white transition-colors relative overflow-hidden">
+      {/* Subtle Ambient Violet Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-purple-500/10 dark:bg-[#9281f7]/10 blur-[130px] pointer-events-none rounded-full" />
+
+      <div className="w-full max-w-[420px] space-y-6 relative z-10">
         {/* Header / Brand */}
         <div className="text-center space-y-2">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity"
+            className="inline-flex items-center gap-2.5 hover:opacity-85 transition-opacity"
             title="OpenOCR Home"
           >
-            <div className="h-7 w-7 rounded-sm bg-[var(--ink-primary)] text-[var(--surface-base)] flex items-center justify-center font-mono font-bold text-xs shadow-subtle">
+            <div className="h-7 w-7 rounded-[6px] bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center font-mono font-bold text-xs shadow-sm">
               //
             </div>
-            <span className="font-serif font-bold text-lg tracking-tight text-[var(--ink-primary)]">
+            <span className="font-serif font-bold text-xl tracking-tight text-zinc-900 dark:text-white">
               OpenOCR
             </span>
           </Link>
-          <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink-primary)]">
-            The Front Desk: Authentication
+          <h1 className="text-2xl font-serif font-bold tracking-tight text-zinc-900 dark:text-white pt-1">
+            Sign in to your account
           </h1>
-          <p className="text-xs text-[var(--ink-secondary)] max-w-xs mx-auto">
-            Access your secure document extraction deck and private keyset registry.
+          <p className="text-xs text-zinc-500 dark:text-[#a1a4a5] max-w-xs mx-auto">
+            Access your document extraction workspaces and private API keys.
           </p>
         </div>
 
-        {/* Archival Docket Card */}
-        <div className="bg-[var(--surface-base)] border border-[var(--line-strong)] rounded-sm p-6 sm:p-8 shadow-card relative registration-mark registration-mark-tl registration-mark-tr registration-mark-bl registration-mark-br">
-          <div className="flex items-center justify-between pb-3 border-b border-[var(--line-hairline)] mb-5">
-            <span className="font-mono text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
-              DOCKET NO. OCR-AUTH-01
-            </span>
-            <Badge variant="outline">RESTRICTED</Badge>
-          </div>
-
-          <Suspense fallback={<div className="h-48 flex items-center justify-center text-xs text-[var(--ink-muted)]">Loading credentials desk...</div>}>
+        {/* Clean Modern Auth Card */}
+        <div className="bg-white dark:bg-[#0a0a0c] border border-zinc-200 dark:border-[#292d30] rounded-2xl p-7 sm:p-9 shadow-xl shadow-zinc-200/40 dark:shadow-[0_8px_30px_rgb(0,0,0,0.6)]">
+          <Suspense fallback={<div className="h-48 flex items-center justify-center text-xs text-zinc-400">Loading authentication form...</div>}>
             <LoginForm />
           </Suspense>
         </div>

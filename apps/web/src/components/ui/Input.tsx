@@ -33,11 +33,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <div className="flex items-center justify-between">
             <label
               htmlFor={inputId}
-              className="text-xs font-mono tracking-tight text-[var(--ink-secondary)] uppercase font-semibold"
+              className="text-xs font-medium text-zinc-700 dark:text-zinc-300 select-none"
             >
               {label}
             </label>
-            {hint && <span className="text-[11px] text-[var(--ink-muted)]">{hint}</span>}
+            {hint && <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{hint}</span>}
           </div>
         )}
 
@@ -47,13 +47,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             type={inputType}
             disabled={disabled}
-            className={`w-full px-3 py-2 text-sm bg-[var(--surface-base)] text-[var(--ink-primary)] placeholder-[var(--ink-muted)] rounded-sm border transition-colors outline-none
+            className={`w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#08080a] text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#6e727a] rounded-[8px] border transition-all outline-none
               ${
                 error
-                  ? "border-[var(--semantic-error)] focus:border-[var(--semantic-error)] focus:ring-1 focus:ring-[var(--semantic-error)]"
-                  : "border-[var(--line-strong)] hover:border-[var(--ink-secondary)] focus:border-[var(--signal)] focus:ring-1 focus:ring-[var(--signal)]"
+                  ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  : "border-zinc-200 dark:border-[#292d30] hover:border-zinc-300 dark:hover:border-zinc-700 focus:border-purple-600 dark:focus:border-[#9281f7] focus:ring-2 focus:ring-purple-600/15 dark:focus:ring-[#9281f7]/20"
               }
-              ${disabled ? "opacity-50 cursor-not-allowed bg-[var(--surface-sunken)]" : ""}
+              ${disabled ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-[#050505]" : ""}
               ${isPassword ? "pr-10" : ""}
               ${className}
             `}
@@ -66,7 +66,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-2.5 text-[var(--ink-muted)] hover:text-[var(--ink-primary)] p-1 transition-colors"
+              className="absolute right-2.5 text-zinc-400 hover:text-zinc-700 dark:text-[#a1a4a5] dark:hover:text-white p-1 rounded transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -74,7 +74,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error && (
-          <div className="flex items-center gap-1.5 text-xs text-[var(--semantic-error)] mt-0.5">
+          <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 mt-0.5">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </div>
