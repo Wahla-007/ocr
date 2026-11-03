@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { authApi, validateInternalRedirect } from "@/lib/auth";
-import { ArrowRight, AlertCircle, ShieldCheck, Mail } from "lucide-react";
+import { ArrowRight, AlertCircle, Mail } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -205,17 +205,13 @@ export default function LoginPage() {
             </Button>
 
             {/* Security Pledge & Switch to Signup */}
-            <div className="pt-4 border-t border-zinc-200 dark:border-[#292d30] text-center space-y-3">
+            <div className="pt-4 border-t border-zinc-200 dark:border-[#292d30] text-center">
               <p className="text-xs text-zinc-600 dark:text-zinc-400">
                 Don&apos;t have an account?{" "}
                 <Link href="/signup" className="text-purple-600 dark:text-[#9281f7] hover:underline font-medium">
                   Create an account
                 </Link>
               </p>
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 dark:text-[#6e727a] font-mono">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#3ad389]" />
-                <span>256-Bit TLS • HttpOnly Cookies • Zero Log Retention</span>
-              </div>
             </div>
           </form>
         </div>
