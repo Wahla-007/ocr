@@ -89,7 +89,20 @@ def build_job_response(job: Job) -> JobResponse:
         resp.doc_type_confidence = res.confidence
 
         if res.fields_json:
-            empty_values = {"", "null", "none", "n/a", "na", "not applicable", "not specified", "unspecified", "unknown", "-", "--", "undefined"}
+            empty_values = {
+                "",
+                "null",
+                "none",
+                "n/a",
+                "na",
+                "not applicable",
+                "not specified",
+                "unspecified",
+                "unknown",
+                "-",
+                "--",
+                "undefined",
+            }
             resp.fields = [
                 ExtractedField(
                     key=f.get("key", ""),
@@ -101,7 +114,8 @@ def build_job_response(job: Job) -> JobResponse:
                     box_source=f.get("box_source"),
                 )
                 for f in res.fields_json
-                if f.get("value") is not None and str(f.get("value")).strip().lower() not in empty_values
+                if f.get("value") is not None
+                and str(f.get("value")).strip().lower() not in empty_values
             ]
 
         if res.blocks_json:
@@ -219,8 +233,7 @@ async def extract_document(
 
     # 2. Compute SHA-256 for Idempotency and Caching with Prompt Version, Schema Type, and Extraction Mode
     dedup_input = (
-        content_bytes
-        + f":{settings.PROMPT_VERSION}:{schema}:{settings.EXTRACTION_MODE}".encode()
+        content_bytes + f":{settings.PROMPT_VERSION}:{schema}:{settings.EXTRACTION_MODE}".encode()
     )
     file_hash = hashlib.sha256(dedup_input).hexdigest()
     job_id = f"job_{uuid.uuid4().hex[:12]}"

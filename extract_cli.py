@@ -30,7 +30,12 @@ logging.basicConfig(
 
 # Ensure paths
 ROOT_DIR = Path(__file__).resolve().parent
-for p in [ROOT_DIR, ROOT_DIR / "apps" / "api", ROOT_DIR / "apps" / "worker", ROOT_DIR / "providers"]:
+for p in [
+    ROOT_DIR,
+    ROOT_DIR / "apps" / "api",
+    ROOT_DIR / "apps" / "worker",
+    ROOT_DIR / "providers",
+]:
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
@@ -505,9 +510,13 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
 
         raster_doc = rasterize_document(data, mime, max_pages=max_pages)
         if raster_doc and raster_doc.pages:
-            doc_type, enriched_fields, vision_res, issues, quality_score = (
-                await understand_document_vision(raster_doc.pages, schema_type="auto")
-            )
+            (
+                doc_type,
+                enriched_fields,
+                vision_res,
+                issues,
+                quality_score,
+            ) = await understand_document_vision(raster_doc.pages, schema_type="auto")
             latency_ms = round((time.perf_counter() - t0) * 1000)
             preview_img = (
                 f"data:{raster_doc.pages[0].mime_type};base64,{base64.b64encode(raster_doc.pages[0].image_bytes).decode('ascii')}"
@@ -530,7 +539,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                     fields_dict[k] = v
 
             checks_list = [
-                i if isinstance(i, dict) else (i.model_dump() if hasattr(i, "model_dump") else dict(i))
+                i
+                if isinstance(i, dict)
+                else (i.model_dump() if hasattr(i, "model_dump") else dict(i))
                 for i in issues
             ]
 
@@ -548,7 +559,9 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             )
             line_items = raw_vfields.get("line_items") or raw_vfields.get("items") or []
             if line_items and isinstance(line_items, list) and not extracted_tables:
-                table_rows: list[list[str]] = [["Description", "Quantity", "Unit Price", "Total Amount"]]
+                table_rows: list[list[str]] = [
+                    ["Description", "Quantity", "Unit Price", "Total Amount"]
+                ]
                 for item in line_items:
                     if isinstance(item, dict):
                         desc = str(item.get("description") or item.get("name") or "Item").strip()
@@ -557,10 +570,13 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                         total = str(item.get("amount") or item.get("total") or "").strip()
                         table_rows.append([desc, qty, unit_price, total])
                 if len(table_rows) > 1:
-                    md_table = "\n".join([
-                        "| " + " | ".join(row) + " |"
-                        for row in [table_rows[0], ["---"] * len(table_rows[0])] + table_rows[1:]
-                    ])
+                    md_table = "\n".join(
+                        [
+                            "| " + " | ".join(row) + " |"
+                            for row in [table_rows[0], ["---"] * len(table_rows[0])]
+                            + table_rows[1:]
+                        ]
+                    )
                     extracted_tables.append({"page": 1, "rows": table_rows, "markdown": md_table})
 
             transactions = raw_vfields.get("transactions") or []
@@ -575,10 +591,13 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
                         t_bal = str(tx.get("balance") or "").strip()
                         table_rows.append([t_date, t_desc, t_debit, t_credit, t_bal])
                 if len(table_rows) > 1:
-                    md_table = "\n".join([
-                        "| " + " | ".join(row) + " |"
-                        for row in [table_rows[0], ["---"] * len(table_rows[0])] + table_rows[1:]
-                    ])
+                    md_table = "\n".join(
+                        [
+                            "| " + " | ".join(row) + " |"
+                            for row in [table_rows[0], ["---"] * len(table_rows[0])]
+                            + table_rows[1:]
+                        ]
+                    )
                     extracted_tables.append({"page": 1, "rows": table_rows, "markdown": md_table})
 
             md_content = (
@@ -605,13 +624,15 @@ async def extract_file(file_path: Path, max_pages: int = 500) -> dict:
             for f in raw_fields_list:
                 bbox_info = f.get("bbox")
                 if bbox_info and isinstance(bbox_info, dict):
-                    synthesized_blocks.append({
-                        "type": "field",
-                        "text": str(f.get("value", "")),
-                        "page": f.get("page", 1),
-                        "confidence": f.get("confidence", 0.98),
-                        "bbox": bbox_info,
-                    })
+                    synthesized_blocks.append(
+                        {
+                            "type": "field",
+                            "text": str(f.get("value", "")),
+                            "page": f.get("page", 1),
+                            "confidence": f.get("confidence", 0.98),
+                            "bbox": bbox_info,
+                        }
+                    )
 
             return {
                 "id": f"ocr_{uuid.uuid4().hex[:24]}",

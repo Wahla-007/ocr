@@ -42,7 +42,9 @@ def calculate_quality_score(
     # 1. Completeness score
     target_keys = expected_field_keys or CORE_DOC_KEYS.get(doc_type.lower() if doc_type else "")
     if target_keys:
-        populated_count = sum(1 for k in target_keys if fields.get(k) is not None and fields.get(k) != "")
+        populated_count = sum(
+            1 for k in target_keys if fields.get(k) is not None and fields.get(k) != ""
+        )
         completeness = populated_count / max(1, len(target_keys))
     else:
         # If no core keys defined, infer completeness from populated fields capped at standard 4-field threshold

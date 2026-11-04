@@ -43,18 +43,16 @@ def get_vision_provider(
     name = (provider_name or os.environ.get("PROVIDER", "omniroute")).lower().strip()
 
     resolved_base_url = (
-        base_url
-        or os.environ.get("OMNIROUTE_BASE_URL")
-        or "http://127.0.0.1:20128/v1"
+        base_url or os.environ.get("OMNIROUTE_BASE_URL") or "http://127.0.0.1:20128/v1"
     )
     resolved_api_key = (
-        api_key
-        or os.environ.get("OMNIROUTE_API_KEY")
-        or "sk-openocr-worker-live-2026"
+        api_key or os.environ.get("OMNIROUTE_API_KEY") or "sk-openocr-worker-live-2026"
     )
     resolved_model = (
         default_model
-        or (os.environ.get("OMNIROUTE_MODEL_CHAIN", "gemini/gemini-2.5-flash").split(",")[0].strip())
+        or (
+            os.environ.get("OMNIROUTE_MODEL_CHAIN", "gemini/gemini-2.5-flash").split(",")[0].strip()
+        )
         or "gemini/gemini-2.5-flash"
     )
     resolved_chunk_size = int(
@@ -69,11 +67,7 @@ def get_vision_provider(
             max_pages_per_chunk=resolved_chunk_size,
         )
     elif name == "ollama":
-        ollama_url = (
-            base_url
-            or os.environ.get("OLLAMA_BASE_URL")
-            or "http://127.0.0.1:11434/v1"
-        )
+        ollama_url = base_url or os.environ.get("OLLAMA_BASE_URL") or "http://127.0.0.1:11434/v1"
         ollama_model = default_model or os.environ.get("OLLAMA_MODEL", "qwen2.5vl")
         return OllamaVisionProvider(
             base_url=ollama_url,

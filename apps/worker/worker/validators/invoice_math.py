@@ -18,7 +18,9 @@ def _to_float(val: Any) -> float | None:
         if isinstance(val, (int, float)):
             return float(val)
         # Strip currency symbols and whitespace
-        clean_str = str(val).replace(",", "").replace("$", "").replace("€", "").replace("£", "").strip()
+        clean_str = (
+            str(val).replace(",", "").replace("$", "").replace("€", "").replace("£", "").strip()
+        )
         return float(clean_str)
     except (ValueError, TypeError):
         return None
@@ -44,7 +46,9 @@ def validate_invoice_math(
         has_valid_items = False
         for item in line_items:
             if isinstance(item, dict):
-                item_amt = _to_float(item.get("amount") or item.get("total") or item.get("total_amount"))
+                item_amt = _to_float(
+                    item.get("amount") or item.get("total") or item.get("total_amount")
+                )
                 if item_amt is not None:
                     line_sums += item_amt
                     has_valid_items = True

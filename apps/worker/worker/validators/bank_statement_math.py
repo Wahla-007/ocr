@@ -19,8 +19,20 @@ def validate_bank_statement_math(
     issues: list[ValidationIssue] = []
 
     opening = _to_float(fields.get("opening_balance") or fields.get("beginning_balance"))
-    credits_amt = _to_float(fields.get("total_deposits") or fields.get("total_credits") or fields.get("deposits")) or 0.0
-    debits_amt = _to_float(fields.get("total_withdrawals") or fields.get("total_debits") or fields.get("withdrawals")) or 0.0
+    credits_amt = (
+        _to_float(
+            fields.get("total_deposits") or fields.get("total_credits") or fields.get("deposits")
+        )
+        or 0.0
+    )
+    debits_amt = (
+        _to_float(
+            fields.get("total_withdrawals")
+            or fields.get("total_debits")
+            or fields.get("withdrawals")
+        )
+        or 0.0
+    )
     closing = _to_float(fields.get("closing_balance") or fields.get("ending_balance"))
 
     if opening is not None and closing is not None:

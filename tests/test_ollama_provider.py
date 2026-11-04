@@ -45,16 +45,22 @@ async def test_ollama_extract_success():
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": json.dumps({
-                        "fields": {
-                            "invoice_number": "INV-2026-001",
-                            "total_amount": "500.00",
-                            "currency": "USD",
-                        },
-                        "boxes": [
-                            {"field": "invoice_number", "box_2d": [100, 200, 130, 400], "page": 1}
-                        ],
-                    }),
+                    "content": json.dumps(
+                        {
+                            "fields": {
+                                "invoice_number": "INV-2026-001",
+                                "total_amount": "500.00",
+                                "currency": "USD",
+                            },
+                            "boxes": [
+                                {
+                                    "field": "invoice_number",
+                                    "box_2d": [100, 200, 130, 400],
+                                    "page": 1,
+                                }
+                            ],
+                        }
+                    ),
                 },
                 "finish_reason": "stop",
             }
@@ -110,7 +116,10 @@ async def test_ollama_json_repair_retry():
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": 'Here is the data: {"fields": {"inv": 123}, unclosed string'},
+                "message": {
+                    "role": "assistant",
+                    "content": 'Here is the data: {"fields": {"inv": 123}, unclosed string',
+                },
             }
         ],
         "usage": {"prompt_tokens": 100, "completion_tokens": 20},
@@ -122,7 +131,10 @@ async def test_ollama_json_repair_retry():
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": '{"fields": {"inv": 123}, "boxes": []}'},
+                "message": {
+                    "role": "assistant",
+                    "content": '{"fields": {"inv": 123}, "boxes": []}',
+                },
             }
         ],
         "usage": {"prompt_tokens": 50, "completion_tokens": 15},

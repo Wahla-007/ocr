@@ -45,7 +45,9 @@ class RasterDocument(BaseModel):
     original_size_bytes: int
 
 
-def _downscale_to_cap(img: Image.Image, max_edge: int = MAX_LONG_EDGE_PX) -> tuple[Image.Image, int, int]:
+def _downscale_to_cap(
+    img: Image.Image, max_edge: int = MAX_LONG_EDGE_PX
+) -> tuple[Image.Image, int, int]:
     """Scales image proportionally so its longest edge does not exceed max_edge."""
     w, h = img.size
     long_edge = max(w, h)

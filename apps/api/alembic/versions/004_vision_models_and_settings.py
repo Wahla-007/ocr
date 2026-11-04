@@ -23,16 +23,30 @@ JsonType = sa.JSON().with_variant(postgresql.JSONB, "postgresql")
 
 def upgrade() -> None:
     # 1. Add token metrics and attempt metadata to usage_ledger
-    op.add_column("usage_ledger", sa.Column("prompt_tokens", sa.Integer(), nullable=False, server_default="0"))
-    op.add_column("usage_ledger", sa.Column("completion_tokens", sa.Integer(), nullable=False, server_default="0"))
+    op.add_column(
+        "usage_ledger", sa.Column("prompt_tokens", sa.Integer(), nullable=False, server_default="0")
+    )
+    op.add_column(
+        "usage_ledger",
+        sa.Column("completion_tokens", sa.Integer(), nullable=False, server_default="0"),
+    )
     op.add_column("usage_ledger", sa.Column("model", sa.String(length=128), nullable=True))
-    op.add_column("usage_ledger", sa.Column("attempts", sa.Integer(), nullable=False, server_default="1"))
-    op.add_column("usage_ledger", sa.Column("pages", sa.Integer(), nullable=False, server_default="1"))
+    op.add_column(
+        "usage_ledger", sa.Column("attempts", sa.Integer(), nullable=False, server_default="1")
+    )
+    op.add_column(
+        "usage_ledger", sa.Column("pages", sa.Integer(), nullable=False, server_default="1")
+    )
 
     # 2. Add tenant setting for third-party AI processing control
     op.add_column(
         "users",
-        sa.Column("third_party_processing_allowed", sa.Boolean(), nullable=False, server_default=sa.text("true")),
+        sa.Column(
+            "third_party_processing_allowed",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("true"),
+        ),
     )
 
     # 3. Add vision quality score and validation issue metadata to results

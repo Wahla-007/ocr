@@ -146,7 +146,11 @@ def validate_passport_mrz(
         # 5. VIZ Cross-Checks
         # Cross-check Document Number
         clean_mrz_doc_num = doc_num_raw.replace("<", "").strip()
-        viz_doc_num = str(fields.get("passport_number") or fields.get("document_number") or "").strip().upper()
+        viz_doc_num = (
+            str(fields.get("passport_number") or fields.get("document_number") or "")
+            .strip()
+            .upper()
+        )
         if viz_doc_num and clean_mrz_doc_num:
             # Strip non-alphanumeric for comparison
             clean_viz = re.sub(r"[^A-Z0-9]", "", viz_doc_num)

@@ -181,7 +181,9 @@ async def understand_document_vision(
         try:
             classification = await provider.classify(pages)
             resolved_type = classification.doc_type
-            logger.info(f"Vision model classified document as '{resolved_type}' (confidence={classification.confidence})")
+            logger.info(
+                f"Vision model classified document as '{resolved_type}' (confidence={classification.confidence})"
+            )
         except Exception as exc:
             logger.warning(f"Vision classification failed, defaulting to 'invoice': {exc}")
             resolved_type = "invoice"
@@ -194,7 +196,9 @@ async def understand_document_vision(
 
     for attempt in range(policy.max_attempts):
         model_for_attempt = policy.get_model_for_attempt(attempt)
-        logger.info(f"Vision extraction attempt {attempt + 1}/{policy.max_attempts} with model '{model_for_attempt}'")
+        logger.info(
+            f"Vision extraction attempt {attempt + 1}/{policy.max_attempts} with model '{model_for_attempt}'"
+        )
 
         try:
             vision_result = await provider.extract(

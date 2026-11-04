@@ -37,7 +37,9 @@ class EscalationExhaustedError(Exception):
 class EscalationPolicy:
     """Manages the model progression and circuit breaker for vision extraction."""
 
-    def __init__(self, chain: Sequence[str] | None = None, max_attempts: int = MAX_ATTEMPTS_HARD_CAP):
+    def __init__(
+        self, chain: Sequence[str] | None = None, max_attempts: int = MAX_ATTEMPTS_HARD_CAP
+    ):
         if chain is None:
             raw_chain = getattr(worker_settings, "OMNIROUTE_MODEL_CHAIN", "")
             if raw_chain:

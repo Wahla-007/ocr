@@ -42,17 +42,27 @@ async def test_omniroute_strict_schema_success():
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": json.dumps({
-                        "fields": {
-                            "invoice_number": "INV-2026-001",
-                            "total_amount": 540.0,
-                            "currency": "USD",
-                        },
-                        "boxes": [
-                            {"field": "invoice_number", "page": 1, "box_2d": [100, 150, 130, 280]},
-                            {"field": "total_amount", "page": 1, "box_2d": [850, 600, 880, 750]},
-                        ],
-                    }),
+                    "content": json.dumps(
+                        {
+                            "fields": {
+                                "invoice_number": "INV-2026-001",
+                                "total_amount": 540.0,
+                                "currency": "USD",
+                            },
+                            "boxes": [
+                                {
+                                    "field": "invoice_number",
+                                    "page": 1,
+                                    "box_2d": [100, 150, 130, 280],
+                                },
+                                {
+                                    "field": "total_amount",
+                                    "page": 1,
+                                    "box_2d": [850, 600, 880, 750],
+                                },
+                            ],
+                        }
+                    ),
                 },
                 "finish_reason": "stop",
             }
@@ -107,10 +117,12 @@ async def test_omniroute_schema_rejected_fallback():
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": json.dumps({
-                        "fields": {"invoice_number": "INV-FALLBACK", "total_amount": 100.0},
-                        "boxes": [],
-                    }),
+                    "content": json.dumps(
+                        {
+                            "fields": {"invoice_number": "INV-FALLBACK", "total_amount": 100.0},
+                            "boxes": [],
+                        }
+                    ),
                 },
                 "finish_reason": "stop",
             }
@@ -159,7 +171,9 @@ async def test_omniroute_rate_limit_backoff():
 
     route = respx.post("http://127.0.0.1:20128/v1/chat/completions")
     route.side_effect = [
-        httpx.Response(429, json={"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}}),
+        httpx.Response(
+            429, json={"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}}
+        ),
         httpx.Response(200, json=success_response),
     ]
 
@@ -184,21 +198,27 @@ async def test_multipage_chunking_and_merge_policy():
     chunk1_resp = {
         "id": "chunk1",
         "object": "chat.completion",
-        "choices": [{
-            "index": 0,
-            "message": {
-                "role": "assistant",
-                "content": json.dumps({
-                    "fields": {
-                        "invoice_number": "INV-MULTI-001",
-                        "vendor_name": "ACME CORP",
-                        "line_items": [{"description": "Item 1", "amount": 100.0}],
-                    },
-                    "boxes": [{"field": "invoice_number", "page": 1, "box_2d": [50, 50, 70, 150]}],
-                }),
-            },
-            "finish_reason": "stop",
-        }],
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {
+                            "fields": {
+                                "invoice_number": "INV-MULTI-001",
+                                "vendor_name": "ACME CORP",
+                                "line_items": [{"description": "Item 1", "amount": 100.0}],
+                            },
+                            "boxes": [
+                                {"field": "invoice_number", "page": 1, "box_2d": [50, 50, 70, 150]}
+                            ],
+                        }
+                    ),
+                },
+                "finish_reason": "stop",
+            }
+        ],
         "usage": {"prompt_tokens": 150, "completion_tokens": 50},
     }
 
@@ -206,21 +226,27 @@ async def test_multipage_chunking_and_merge_policy():
     chunk2_resp = {
         "id": "chunk2",
         "object": "chat.completion",
-        "choices": [{
-            "index": 0,
-            "message": {
-                "role": "assistant",
-                "content": json.dumps({
-                    "fields": {
-                        "vendor_name": "ACME CORP",
-                        "line_items": [{"description": "Item 2", "amount": 200.0}],
-                        "total_amount": 300.0,
-                    },
-                    "boxes": [{"field": "total_amount", "page": 4, "box_2d": [800, 700, 830, 800]}],
-                }),
-            },
-            "finish_reason": "stop",
-        }],
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {
+                            "fields": {
+                                "vendor_name": "ACME CORP",
+                                "line_items": [{"description": "Item 2", "amount": 200.0}],
+                                "total_amount": 300.0,
+                            },
+                            "boxes": [
+                                {"field": "total_amount", "page": 4, "box_2d": [800, 700, 830, 800]}
+                            ],
+                        }
+                    ),
+                },
+                "finish_reason": "stop",
+            }
+        ],
         "usage": {"prompt_tokens": 140, "completion_tokens": 40},
     }
 

@@ -136,8 +136,19 @@ def snap_box_to_text_layer(
 
 
 EMPTY_FIELD_INDICATORS = {
-    "", "null", "none", "n/a", "na", "not applicable",
-    "not specified", "unspecified", "unknown", "nil", "-", "--", "undefined"
+    "",
+    "null",
+    "none",
+    "n/a",
+    "na",
+    "not applicable",
+    "not specified",
+    "unspecified",
+    "unknown",
+    "nil",
+    "-",
+    "--",
+    "undefined",
 }
 
 
@@ -205,15 +216,17 @@ def enrich_fields_with_boxes(
                                         p_obj.text_layer,
                                     )
                         item_label = item_key.replace("_", " ").title()
-                        enriched_fields.append({
-                            "key": item_key,
-                            "label": item_label,
-                            "value": item_val,
-                            "confidence": 0.98,
-                            "page": add_page_num,
-                            "bbox": add_canvas_box,
-                            "box_source": add_box_source,
-                        })
+                        enriched_fields.append(
+                            {
+                                "key": item_key,
+                                "label": item_label,
+                                "value": item_val,
+                                "confidence": 0.98,
+                                "page": add_page_num,
+                                "bbox": add_canvas_box,
+                                "box_source": add_box_source,
+                            }
+                        )
             continue
 
         # 2. Unpack individual line_items
@@ -224,16 +237,20 @@ def enrich_fields_with_boxes(
                     amt = item.get("amount") or item.get("total") or item.get("unit_price")
                     qty = item.get("quantity")
                     if not is_empty_field_value(desc) or not is_empty_field_value(amt):
-                        line_summary = f"{desc} (Qty: {qty}, Amount: {amt})" if qty else f"{desc} ({amt})"
-                        enriched_fields.append({
-                            "key": f"line_item_{idx + 1}",
-                            "label": f"Line Item {idx + 1}",
-                            "value": line_summary,
-                            "confidence": 0.98,
-                            "page": 1,
-                            "bbox": None,
-                            "box_source": None,
-                        })
+                        line_summary = (
+                            f"{desc} (Qty: {qty}, Amount: {amt})" if qty else f"{desc} ({amt})"
+                        )
+                        enriched_fields.append(
+                            {
+                                "key": f"line_item_{idx + 1}",
+                                "label": f"Line Item {idx + 1}",
+                                "value": line_summary,
+                                "confidence": 0.98,
+                                "page": 1,
+                                "bbox": None,
+                                "box_source": None,
+                            }
+                        )
             continue
 
         # 3. Unpack work history (Resumes)
@@ -242,17 +259,23 @@ def enrich_fields_with_boxes(
                 if isinstance(item, dict):
                     title = item.get("job_title") or ""
                     comp = item.get("company") or ""
-                    dates = f" ({item.get('start_date')} - {item.get('end_date')})" if item.get('start_date') else ""
+                    dates = (
+                        f" ({item.get('start_date')} - {item.get('end_date')})"
+                        if item.get("start_date")
+                        else ""
+                    )
                     if title or comp:
-                        enriched_fields.append({
-                            "key": f"experience_{idx + 1}",
-                            "label": f"Experience {idx + 1}",
-                            "value": f"{title} at {comp}{dates}".strip(),
-                            "confidence": 0.98,
-                            "page": 1,
-                            "bbox": None,
-                            "box_source": None,
-                        })
+                        enriched_fields.append(
+                            {
+                                "key": f"experience_{idx + 1}",
+                                "label": f"Experience {idx + 1}",
+                                "value": f"{title} at {comp}{dates}".strip(),
+                                "confidence": 0.98,
+                                "page": 1,
+                                "bbox": None,
+                                "box_source": None,
+                            }
+                        )
             continue
 
         # 4. Unpack education (Resumes)
@@ -261,32 +284,38 @@ def enrich_fields_with_boxes(
                 if isinstance(item, dict):
                     deg = item.get("degree") or ""
                     inst = item.get("institution") or ""
-                    year = f" ({item.get('graduation_year')})" if item.get('graduation_year') else ""
+                    year = (
+                        f" ({item.get('graduation_year')})" if item.get("graduation_year") else ""
+                    )
                     if deg or inst:
-                        enriched_fields.append({
-                            "key": f"education_{idx + 1}",
-                            "label": f"Education {idx + 1}",
-                            "value": f"{deg}, {inst}{year}".strip(),
-                            "confidence": 0.98,
-                            "page": 1,
-                            "bbox": None,
-                            "box_source": None,
-                        })
+                        enriched_fields.append(
+                            {
+                                "key": f"education_{idx + 1}",
+                                "label": f"Education {idx + 1}",
+                                "value": f"{deg}, {inst}{year}".strip(),
+                                "confidence": 0.98,
+                                "page": 1,
+                                "bbox": None,
+                                "box_source": None,
+                            }
+                        )
             continue
 
         # 5. Format string lists (skills, languages, certifications)
         if key in ("skills", "languages", "certifications") and isinstance(val, list):
             cleaned_list = [str(s).strip() for s in val if not is_empty_field_value(s)]
             if cleaned_list:
-                enriched_fields.append({
-                    "key": key,
-                    "label": key.replace("_", " ").title(),
-                    "value": ", ".join(cleaned_list),
-                    "confidence": 0.98,
-                    "page": 1,
-                    "bbox": None,
-                    "box_source": None,
-                })
+                enriched_fields.append(
+                    {
+                        "key": key,
+                        "label": key.replace("_", " ").title(),
+                        "value": ", ".join(cleaned_list),
+                        "confidence": 0.98,
+                        "page": 1,
+                        "bbox": None,
+                        "box_source": None,
+                    }
+                )
             continue
 
         # 6. Format nested dicts to human-readable strings
@@ -329,14 +358,16 @@ def enrich_fields_with_boxes(
                     )
 
         label = key.replace("_", " ").title()
-        enriched_fields.append({
-            "key": key,
-            "label": label,
-            "value": val_display,
-            "confidence": 0.98,
-            "page": page_num,
-            "bbox": canvas_box,
-            "box_source": box_source,
-        })
+        enriched_fields.append(
+            {
+                "key": key,
+                "label": label,
+                "value": val_display,
+                "confidence": 0.98,
+                "page": page_num,
+                "bbox": canvas_box,
+                "box_source": box_source,
+            }
+        )
 
     return enriched_fields

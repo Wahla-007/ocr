@@ -138,6 +138,7 @@ def test_corrupt_file_rejected():
 def test_docx_handling_without_soffice():
     """Verify DOCX input triggers graceful check when LibreOffice is not installed."""
     import zipfile
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
         zf.writestr("[Content_Types].xml", "<Types/>")

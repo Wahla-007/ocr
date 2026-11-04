@@ -92,13 +92,15 @@ class OmniRouteVisionProvider:
         for page in pages:
             b64_img = base64.b64encode(page.image_bytes).decode("utf-8")
             data_uri = f"data:{page.mime_type};base64,{b64_img}"
-            parts.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": data_uri,
-                    "detail": "high",
-                },
-            })
+            parts.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": data_uri,
+                        "detail": "high",
+                    },
+                }
+            )
 
         return parts
 
@@ -145,9 +147,10 @@ class OmniRouteVisionProvider:
             except APIError as err:
                 last_exception = err
                 # If strict json_schema was rejected by upstream route, fallback to json_object mode
-                if (
-                    current_format.get("type") == "json_schema"
-                    and ("schema" in str(err).lower() or "response_format" in str(err).lower() or err.status_code == 400)
+                if current_format.get("type") == "json_schema" and (
+                    "schema" in str(err).lower()
+                    or "response_format" in str(err).lower()
+                    or err.status_code == 400
                 ):
                     logger.warning(
                         "Upstream model rejected strict json_schema mode; "
@@ -173,7 +176,9 @@ class OmniRouteVisionProvider:
                     raise
 
         latency_ms = round((time.monotonic() - start_time) * 1000, 2)
-        raise RuntimeError(f"OmniRoute call failed after {MAX_NETWORK_RETRIES} retries: {last_exception}")
+        raise RuntimeError(
+            f"OmniRoute call failed after {MAX_NETWORK_RETRIES} retries: {last_exception}"
+        )
 
     async def classify(
         self,

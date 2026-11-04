@@ -151,6 +151,7 @@ async def get_optional_user(
         # Check API key if not a session
         from app.db.models import ApiKey
         from sqlalchemy.orm import selectinload
+
         key_stmt = (
             select(ApiKey)
             .options(selectinload(ApiKey.user))

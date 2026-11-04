@@ -9,6 +9,7 @@ from worker.validators.receipt_math import validate_receipt_math
 
 # --- Passport MRZ Tests ---
 
+
 def test_icao_check_digit_calculation():
     """Verify ICAO 9303 7-3-1 mod-10 check digit calculation using official test vectors."""
     # Test vector 1: "L898902C<" -> 3
@@ -52,6 +53,7 @@ def test_passport_mrz_tampered_check_digit():
 
 
 # --- Invoice Math Tests ---
+
 
 def test_invoice_math_passing():
     """Verify balanced invoice math passes without error."""
@@ -98,10 +100,22 @@ def test_invoice_due_date_before_issue_date():
 
 # --- Receipt Math Tests ---
 
+
 def test_receipt_math_passing_and_failing():
     """Verify receipt subtotal + tax = total validation."""
     # Passing
-    assert len([i for i in validate_receipt_math({"subtotal": 50.0, "tax_amount": 5.0, "total_amount": 55.0}) if i.severity == "error"]) == 0
+    assert (
+        len(
+            [
+                i
+                for i in validate_receipt_math(
+                    {"subtotal": 50.0, "tax_amount": 5.0, "total_amount": 55.0}
+                )
+                if i.severity == "error"
+            ]
+        )
+        == 0
+    )
 
     # Failing
     failing = validate_receipt_math({"subtotal": 50.0, "tax_amount": 5.0, "total_amount": 80.0})
@@ -110,54 +124,67 @@ def test_receipt_math_passing_and_failing():
 
 # --- Bank Statement Tests ---
 
+
 def test_bank_statement_math():
     """Verify opening + deposits - withdrawals = closing."""
     # Passing
-    passing = validate_bank_statement_math({
-        "opening_balance": 1000.0,
-        "total_deposits": 500.0,
-        "total_withdrawals": 200.0,
-        "closing_balance": 1300.0,
-    })
+    passing = validate_bank_statement_math(
+        {
+            "opening_balance": 1000.0,
+            "total_deposits": 500.0,
+            "total_withdrawals": 200.0,
+            "closing_balance": 1300.0,
+        }
+    )
     assert len([i for i in passing if i.severity == "error"]) == 0
 
     # Failing
-    failing = validate_bank_statement_math({
-        "opening_balance": 1000.0,
-        "total_deposits": 500.0,
-        "total_withdrawals": 200.0,
-        "closing_balance": 2000.0,
-    })
+    failing = validate_bank_statement_math(
+        {
+            "opening_balance": 1000.0,
+            "total_deposits": 500.0,
+            "total_withdrawals": 200.0,
+            "closing_balance": 2000.0,
+        }
+    )
     assert any(i.code == "BANK_STATEMENT_BALANCE_MISMATCH" for i in failing)
 
 
 # --- Driving Licence Tests ---
 
+
 def test_driving_licence_validations():
     """Verify licence dates and minimum age."""
     # Passing
-    passing = validate_driving_licence({
-        "issue_date": "2020-01-01",
-        "expiry_date": "2030-01-01",
-        "date_of_birth": "1995-05-20",
-    })
+    passing = validate_driving_licence(
+        {
+            "issue_date": "2020-01-01",
+            "expiry_date": "2030-01-01",
+            "date_of_birth": "1995-05-20",
+        }
+    )
     assert len([i for i in passing if i.severity == "error"]) == 0
 
     # Failing: expiry before issue
-    failing_expiry = validate_driving_licence({
-        "issue_date": "2025-01-01",
-        "expiry_date": "2020-01-01",
-    })
+    failing_expiry = validate_driving_licence(
+        {
+            "issue_date": "2025-01-01",
+            "expiry_date": "2020-01-01",
+        }
+    )
     assert any(i.code == "EXPIRY_BEFORE_OR_EQUAL_ISSUE_DATE" for i in failing_expiry)
 
     # Failing: under minimum age
-    failing_age = validate_driving_licence({
-        "date_of_birth": "2024-01-01",  # 2 years old
-    })
+    failing_age = validate_driving_licence(
+        {
+            "date_of_birth": "2024-01-01",  # 2 years old
+        }
+    )
     assert any(i.code == "HOLDER_TOO_YOUNG" for i in failing_age)
 
 
 # --- Quality Score Tests ---
+
 
 def test_quality_score_calculation():
     """Verify quality score calculation based on completeness and issue severity."""
@@ -167,6 +194,7 @@ def test_quality_score_calculation():
 
     # With warning -> slight reduction
     from providers.base import ValidationIssue
+
     warn_issue = ValidationIssue(field="a", code="WARN", severity="warning")
     score_warn = calculate_quality_score(perfect_fields, [warn_issue])
     assert 0.90 <= score_warn < 1.0

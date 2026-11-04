@@ -62,7 +62,9 @@ class User(Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    third_party_processing_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    third_party_processing_allowed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
@@ -217,7 +219,9 @@ class Result(Base):
     schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
     prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
     quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    validation_issues_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JsonType, nullable=True)
+    validation_issues_json: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JsonType, nullable=True
+    )
     model_used: Mapped[str | None] = mapped_column(String(128), nullable=True)
     pages_json: Mapped[list[dict[str, Any]] | None] = mapped_column(JsonType, nullable=True)
 

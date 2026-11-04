@@ -34,6 +34,7 @@ async def prepare_database():
 
     # Configure worker session to share the in-memory test DB
     import worker.tasks
+
     orig_worker_session = getattr(worker.tasks, "WorkerSessionLocal", None)
     worker.tasks.WorkerSessionLocal = TestSessionLocal
     worker_db.WorkerSessionLocal.configure(bind=test_engine)

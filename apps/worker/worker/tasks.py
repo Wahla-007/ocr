@@ -32,6 +32,7 @@ async def publish_job_event(job_id: str, stage: str, payload: dict[str, Any] | N
     """Emits fine-grained progress and completion events over Redis SSE channel `sse:jobs:{job_id}`."""
     try:
         import redis.asyncio as aioredis
+
         r = aioredis.from_url(worker_settings.REDIS_URL, socket_connect_timeout=1)
         event_data = {
             "job_id": job_id,
@@ -78,7 +79,11 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                     job.completed_at = datetime.now(UTC)
                     job.latency_ms = int((time.time() - start_time) * 1000)
                     await session.commit()
-                    await publish_job_event(job_id, "failed", {"error": error_msg, "error_code": "THIRD_PARTY_PROCESSING_DISALLOWED"})
+                    await publish_job_event(
+                        job_id,
+                        "failed",
+                        {"error": error_msg, "error_code": "THIRD_PARTY_PROCESSING_DISALLOWED"},
+                    )
                     return {"job_id": job_id, "status": "failed", "error": error_msg}
 
             # 3. Transition status: queued -> processing
@@ -102,12 +107,16 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
             # 6. Stage 3 & 4: VISION EXTRACTION & VALIDATION
             await publish_job_event(job_id, "classifying")
 
-            doc_type, enriched_fields, vision_result, issues, quality_score = (
-                await understand_document_vision(
-                    pages=raster_doc.pages,
-                    schema_type=job.doc_type,
-                    with_boxes=True,
-                )
+            (
+                doc_type,
+                enriched_fields,
+                vision_result,
+                issues,
+                quality_score,
+            ) = await understand_document_vision(
+                pages=raster_doc.pages,
+                schema_type=job.doc_type,
+                with_boxes=True,
             )
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -126,7 +135,9 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
             # Build tables_json from line_items or transactions if present
             tables_data = []
             extracted_raw = vision_result.extracted_data or {}
-            raw_fields_dict = extracted_raw.get("fields", {}) if isinstance(extracted_raw, dict) else {}
+            raw_fields_dict = (
+                extracted_raw.get("fields", {}) if isinstance(extracted_raw, dict) else {}
+            )
             line_items = raw_fields_dict.get("line_items")
             if isinstance(line_items, list) and len(line_items) > 0:
                 header = ["Description", "Quantity", "Unit Price", "Total"]
@@ -143,11 +154,13 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                     md_rows = ["| " + " | ".join(r) + " |" for r in rows]
                     sep = "| " + " | ".join(["---"] * len(header)) + " |"
                     table_md = "\n".join([md_rows[0], sep] + md_rows[1:])
-                    tables_data.append({
-                        "page": 1,
-                        "rows": rows,
-                        "markdown": table_md,
-                    })
+                    tables_data.append(
+                        {
+                            "page": 1,
+                            "rows": rows,
+                            "markdown": table_md,
+                        }
+                    )
 
             # Transactions for bank statements
             transactions = raw_fields_dict.get("transactions")
@@ -167,11 +180,13 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
                     md_rows = ["| " + " | ".join(r) + " |" for r in tx_rows]
                     sep = "| " + " | ".join(["---"] * len(tx_header)) + " |"
                     table_md = "\n".join([md_rows[0], sep] + md_rows[1:])
-                    tables_data.append({
-                        "page": 1,
-                        "rows": tx_rows,
-                        "markdown": table_md,
-                    })
+                    tables_data.append(
+                        {
+                            "page": 1,
+                            "rows": tx_rows,
+                            "markdown": table_md,
+                        }
+                    )
 
             # Build structured Markdown representation
             lines = [f"# {doc_type.replace('_', ' ').title()}\n"]
@@ -269,5 +284,7 @@ async def process_document_job(ctx: dict[str, Any], job_id: str) -> dict[str, An
             except Exception as inner_e:
                 logger.error(f"Failed to update failed status for job {job_id}: {inner_e}")
 
-            await publish_job_event(job_id, "failed", {"error": str(exc), "error_code": "EXTRACTION_FAILED"})
+            await publish_job_event(
+                job_id, "failed", {"error": str(exc), "error_code": "EXTRACTION_FAILED"}
+            )
             return {"job_id": job_id, "status": "failed", "error": str(exc)}

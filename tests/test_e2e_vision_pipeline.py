@@ -36,12 +36,14 @@ async def test_e2e_vision_pipeline_full_lifecycle():
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": json.dumps({
-                        "category": "financial",
-                        "doc_type": "invoice",
-                        "country_code": "US",
-                        "confidence": 0.99,
-                    }),
+                    "content": json.dumps(
+                        {
+                            "category": "financial",
+                            "doc_type": "invoice",
+                            "country_code": "US",
+                            "confidence": 0.99,
+                        }
+                    ),
                 },
                 "finish_reason": "stop",
             }
@@ -56,21 +58,31 @@ async def test_e2e_vision_pipeline_full_lifecycle():
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": json.dumps({
-                        "fields": {
-                            "invoice_number": "INV-2026-999",
-                            "invoice_date": "2026-10-31",
-                            "currency": "USD",
-                            "subtotal": 100.0,
-                            "tax_amount": 10.0,
-                            "total_amount": 110.0,
-                            "supplier_name": "Acme Corp",
-                        },
-                        "boxes": [
-                            {"field": "invoice_number", "box_2d": [100, 100, 150, 300], "page": 1},
-                            {"field": "total_amount", "box_2d": [800, 700, 850, 900], "page": 1},
-                        ],
-                    }),
+                    "content": json.dumps(
+                        {
+                            "fields": {
+                                "invoice_number": "INV-2026-999",
+                                "invoice_date": "2026-10-31",
+                                "currency": "USD",
+                                "subtotal": 100.0,
+                                "tax_amount": 10.0,
+                                "total_amount": 110.0,
+                                "supplier_name": "Acme Corp",
+                            },
+                            "boxes": [
+                                {
+                                    "field": "invoice_number",
+                                    "box_2d": [100, 100, 150, 300],
+                                    "page": 1,
+                                },
+                                {
+                                    "field": "total_amount",
+                                    "box_2d": [800, 700, 850, 900],
+                                    "page": 1,
+                                },
+                            ],
+                        }
+                    ),
                 },
                 "finish_reason": "stop",
             }
@@ -88,7 +100,9 @@ async def test_e2e_vision_pipeline_full_lifecycle():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         with patch("app.api.v1.jobs.enqueue_job", return_value=False):
             # A. Submit document via /v1/extract
-            files = {"file": ("invoice_specimen.pdf", io.BytesIO(SAMPLE_PDF_BYTES), "application/pdf")}
+            files = {
+                "file": ("invoice_specimen.pdf", io.BytesIO(SAMPLE_PDF_BYTES), "application/pdf")
+            }
             extract_resp = await client.post("/v1/extract", files=files)
             assert extract_resp.status_code == 200
             job_info = extract_resp.json()
@@ -122,7 +136,9 @@ async def test_e2e_vision_pipeline_full_lifecycle():
         assert "completed" in sse_resp.text
 
         # E. Test Cache HIT (identical bytes return cached job with 0 credits charged)
-        files_repeat = {"file": ("invoice_specimen.pdf", io.BytesIO(SAMPLE_PDF_BYTES), "application/pdf")}
+        files_repeat = {
+            "file": ("invoice_specimen.pdf", io.BytesIO(SAMPLE_PDF_BYTES), "application/pdf")
+        }
         cached_resp = await client.post("/v1/extract?wait=true", files=files_repeat)
         assert cached_resp.status_code == 200
         cached_data = cached_resp.json()
@@ -214,4 +230,3 @@ async def test_third_party_processing_disallowed_blocks_omniroute():
         assert failed_job is not None
         assert failed_job.status == "failed"
         assert failed_job.error_code == "THIRD_PARTY_PROCESSING_DISALLOWED"
-

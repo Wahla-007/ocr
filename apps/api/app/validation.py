@@ -50,10 +50,14 @@ def detect_mime_type(header_bytes: bytes, file_bytes: bytes | None = None) -> st
                 with zipfile.ZipFile(io.BytesIO(file_bytes)) as zf:
                     infolist = zf.infolist()
                     if len(infolist) > MAX_ZIP_ENTRIES:
-                        raise FileTooLargeError("Decompression bomb detected: excessive zip entries.")
+                        raise FileTooLargeError(
+                            "Decompression bomb detected: excessive zip entries."
+                        )
                     total_uncompressed = sum(info.file_size for info in infolist)
                     if total_uncompressed > MAX_UNCOMPRESSED_BYTES:
-                        raise FileTooLargeError("Decompression bomb detected: uncompressed size exceeds limit.")
+                        raise FileTooLargeError(
+                            "Decompression bomb detected: uncompressed size exceeds limit."
+                        )
                     names = set(zf.namelist())
                     if "[Content_Types].xml" in names:
                         return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
