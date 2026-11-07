@@ -952,15 +952,6 @@ volumes:
           </nav>
 
           <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-[#292d30] space-y-2">
-            <a
-              href="https://github.com/Wahla-007/ocr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-zinc-500 hover:text-purple-600 dark:hover:text-[#9281f7] flex items-center justify-between"
-            >
-              <span>GitHub Repository</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
             <Link
               href="/support"
               className="text-[11px] text-zinc-500 hover:text-purple-600 dark:hover:text-[#9281f7] flex items-center justify-between"
