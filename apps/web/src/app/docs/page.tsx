@@ -1,11 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { CodeBlock } from "@/components/ui/CodeBlock";
 import {
   BookOpen,
   Code2,
@@ -37,1803 +34,943 @@ import {
   Cpu,
   Bot,
   LifeBuoy,
+  ChevronRight,
+  ChevronDown,
+  Folder,
+  FolderOpen,
+  Info,
+  Lightbulb,
+  AlertOctagon,
+  Printer,
+  Share2,
+  ThumbsUp,
+  ThumbsDown,
+  Download,
 } from "lucide-react";
 
-type CodeLang = "curl" | "python" | "typescript" | "go";
-type WebhookLang = "python" | "node" | "go";
-type SchemaType = "invoice" | "receipt" | "driving_license" | "contract";
+type CodeLang = "curl" | "python" | "typescript" | "csharp";
+
+interface NavItem {
+  id: string;
+  title: string;
+  category: string;
+  badge?: string;
+  keywords: string;
+}
+
+interface NavFolder {
+  id: string;
+  title: string;
+  items: NavItem[];
+}
+
+const NAV_STRUCTURE: NavFolder[] = [
+  {
+    id: "overview",
+    title: "Overview & Foundations",
+    items: [
+      { id: "intro", title: "What is OpenOCR?", category: "Overview", keywords: "introduction overview features invariants" },
+      { id: "architecture", title: "Architecture & Pipeline", category: "Overview", badge: "Core", keywords: "topology normalizer parser llm omniroute" },
+      { id: "quickstart", title: "Quickstart (5-Minute)", category: "Overview", keywords: "get started tutorial first request curl python" },
+    ],
+  },
+  {
+    id: "api-reference",
+    title: "REST API Reference",
+    items: [
+      { id: "authentication", title: "Authentication & Keys", category: "API Reference", keywords: "bearer token x-api-key argon2id authorization" },
+      { id: "endpoint-extract", title: "POST /v1/extract", category: "API Reference", badge: "Sync", keywords: "extract multipart synchronous wait preview bboxes" },
+      { id: "endpoint-jobs", title: "POST /v1/jobs (Async)", category: "API Reference", badge: "Async", keywords: "jobs asynchronous queue polling worker redis" },
+      { id: "endpoint-keys", title: "GET & POST /v1/keys", category: "API Reference", keywords: "api keys tier check permissions revoke" },
+      { id: "endpoint-health", title: "GET /v1/health & Usage", category: "API Reference", keywords: "health check status quota limits usage" },
+    ],
+  },
+  {
+    id: "document-models",
+    title: "Document Model Catalog",
+    items: [
+      { id: "model-invoices", title: "Invoices & Receipts", category: "Models", keywords: "invoice receipt line items tax total math balance" },
+      { id: "model-identity", title: "ID Cards & Passports", category: "Models", badge: "MRZ", keywords: "passport mrz icao driving licence identity" },
+      { id: "model-bank", title: "Bank Statements", category: "Models", keywords: "bank statement transactions balance reconciliation" },
+      { id: "model-discovery", title: "Zero-Selection Discovery", category: "Models", keywords: "auto classification arbitrary forms contract resume" },
+    ],
+  },
+  {
+    id: "self-hosted",
+    title: "Self-Hosted & Enterprise",
+    items: [
+      { id: "deployment-docker", title: "Docker Compose Setup", category: "Self-Hosted", badge: "Recommended", keywords: "docker compose production deployment standalone" },
+      { id: "deployment-airgap", title: "Air-Gapped & Offline VPC", category: "Self-Hosted", keywords: "offline air gap on premise private no egress" },
+      { id: "deployment-llm", title: "Multi-Model LLM Gateway", category: "Self-Hosted", keywords: "omniroute ollama gemini vllm local inference" },
+      { id: "deployment-db", title: "PostgreSQL & Redis Scaling", category: "Self-Hosted", keywords: "migrations alembic asyncpg task workers redis" },
+    ],
+  },
+  {
+    id: "security-ops",
+    title: "Security & Operations",
+    items: [
+      { id: "sec-retention", title: "Zero Retention Guarantee", category: "Security", keywords: "privacy gdpr zero data retention ephemeral memory" },
+      { id: "sec-ratelimits", title: "Rate Limits & Quota Headers", category: "Security", keywords: "throttling sliding window retry after headers" },
+      { id: "sec-errors", title: "RFC 7807 Error Envelopes", category: "Security", keywords: "problem details error codes 400 401 402 422 500" },
+    ],
+  },
+];
 
 export default function DocumentationPage() {
-  const [selectedLang, setSelectedLang] = useState<CodeLang>("python");
-  const [webhookLang, setWebhookLang] = useState<WebhookLang>("python");
-  const [activeSchema, setActiveSchema] = useState<SchemaType>("invoice");
-  const [testKey, setTestKey] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<string>("overview");
+  const [activeId, setActiveId] = useState<string>("intro");
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
+    overview: true,
+    "api-reference": true,
+    "document-models": true,
+    "self-hosted": true,
+    "security-ops": true,
+  });
+  const [filterQuery, setFilterQuery] = useState("");
+  const [selectedLang, setSelectedLang] = useState<CodeLang>("curl");
   const [copiedKey, setCopiedKey] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [quickstartCopied, setQuickstartCopied] = useState(false);
+  const [userRating, setUserRating] = useState<"yes" | "no" | null>(null);
 
-  const sections = [
-    { id: "overview", number: "01", group: "Foundations", title: "Architecture & Protocols", keywords: "invariants zero selection pymupdf pipeline architecture docling paddleocr" },
-    { id: "auth", number: "02", group: "Foundations", title: "Authentication & Bearer Keys", keywords: "api key argon2id bearer header security tokens permissions csprng" },
-    { id: "quickstart", number: "03", group: "Foundations", title: "5-Minute Quickstart", keywords: "quick start tutorial first request curl python sdk npm pip" },
-    { id: "extract", number: "04", group: "Endpoints", title: "Document Extraction API", keywords: "extract post synchronous multipart file bounding box layout markdown json" },
-    { id: "jobs", number: "05", group: "Endpoints", title: "Async Jobs & Status Polling", keywords: "jobs asynchronous queue polling batch worker redis celery" },
-    { id: "uploads", number: "06", group: "Endpoints", title: "Direct Storage Uploads", keywords: "s3 minio presigned sign large files zero copy put bucket" },
-    { id: "webhooks", number: "07", group: "Reliability", title: "HMAC Webhook Verification", keywords: "webhooks hmac sha256 timing attack constant time signature compare replay" },
-    { id: "errors", number: "08", group: "Reliability", title: "Standard Error Envelopes", keywords: "rfc 7807 error codes 400 401 403 404 413 415 422 429 500 status codes" },
-    { id: "ratelimits", number: "09", group: "Reliability", title: "Rate Limits & Quota Headers", keywords: "ratelimit quota headers sliding window retry after 429 throttle" },
-    { id: "schemas", number: "10", group: "Intelligence", title: "Document Extraction Schemas", keywords: "schemas invoice receipt driving license contract nda pydantic types" },
-    { id: "selfhosted", number: "11", group: "Intelligence", title: "Self-Hosted & Air-Gapped", keywords: "self hosted docker compose offline air gapped on premise private vpc" },
-    { id: "glossary", number: "12", group: "Intelligence", title: "Technical Glossary & Concepts", keywords: "glossary terminology idp ocr bbox bounding box math reconciliation invariants aeo geo" },
-  ];
+  const toggleFolder = (folderId: string) => {
+    setOpenFolders((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
+  };
 
-  const effectiveKey = testKey.trim() || "ocr_live_your_developer_key";
-
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(effectiveKey);
+  const handleCopyCode = (text: string) => {
+    navigator.clipboard.writeText(text);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const handleCopyQuickstart = () => {
-    const cmd = `curl -X POST "https://api.openocr.io/v1/extract" \\\n  -H "Authorization: Bearer ${effectiveKey}" \\\n  -F "file=@invoice.pdf" \\\n  -F "wait=true"`;
-    navigator.clipboard.writeText(cmd);
-    setQuickstartCopied(true);
-    setTimeout(() => setQuickstartCopied(false), 2000);
-  };
-
-  const filteredSections = useMemo(() => {
-    if (!searchQuery.trim()) return sections;
-    const q = searchQuery.toLowerCase();
-    return sections.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.keywords.toLowerCase().includes(q) ||
-        s.number.includes(q) ||
-        s.group.toLowerCase().includes(q)
-    );
-  }, [searchQuery, sections]);
-
-  // Code snippets dynamically tailored to active section and selected language
-  const getSectionCode = (sectionId: string, lang: CodeLang): string => {
-    switch (sectionId) {
-      case "overview":
-        if (lang === "curl") {
-          return `# Check OpenOCR Cluster Health & Engine Capabilities
-curl -X GET "https://api.openocr.io/v1/health" \\
-  -H "Accept: application/json"
-
-# Returns:
-# {
-#   "status": "healthy",
-#   "version": "1.0.0",
-#   "engines": ["docling", "paddleocr", "rapidocr"],
-#   "gpu_accelerated": true,
-#   "timestamp_utc": "2026-10-29T05:20:00Z"
-# }`;
-        } else if (lang === "python") {
-          return `import httpx
-
-# Probe OpenOCR health & engine capabilities
-resp = httpx.get("https://api.openocr.io/v1/health")
-health = resp.json()
-
-print(f"Cluster Status: {health['status']}")
-print(f"Available Engines: {', '.join(health['engines'])}")
-print(f"GPU Accelerated: {health['gpu_accelerated']}")`;
-        } else if (lang === "typescript") {
-          return `import axios from "axios";
-
-// Check OpenOCR cluster capabilities & health
-const { data: health } = await axios.get("https://api.openocr.io/v1/health");
-
-console.log("Cluster Status:", health.status);
-console.log("Engines:", health.engines.join(", "));
-console.log("GPU Acceleration:", health.gpu_accelerated);`;
-        } else {
-          return `package main
-
-import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-)
-
-func main() {
-	resp, _ := http.Get("https://api.openocr.io/v1/health")
-	defer resp.Body.Close()
-
-	var health map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&health)
-	fmt.Printf("Cluster Status: %v\\n", health["status"])
-}`;
-        }
-
-      case "auth":
-        if (lang === "curl") {
-          return `# Validate API Key & Read Current Plan Scopes
-curl -X GET "https://api.openocr.io/v1/usage" \\
-  -H "Authorization: Bearer ${effectiveKey}"
-
-# Response:
-# {
-#   "key_name": "Developer Production Key",
-#   "plan": "developer",
-#   "rate_limit_per_min": 300,
-#   "daily_quota": 10000,
-#   "remaining_today": 9420
-# }`;
-        } else if (lang === "python") {
-          return `import httpx
-
-headers = {"Authorization": "Bearer ${effectiveKey}"}
-
-# Validate credentials and inspect available quota
-resp = httpx.get("https://api.openocr.io/v1/usage", headers=headers)
-
-if resp.status_code == 401:
-    raise PermissionError("Invalid or revoked API key.")
-    
-usage = resp.json()
-print(f"Plan: {usage['plan']} | Credits Remaining: {usage['remaining_today']}")`;
-        } else if (lang === "typescript") {
-          return `import axios from "axios";
-
-const headers = { Authorization: "Bearer ${effectiveKey}" };
-
-try {
-  const { data: usage } = await axios.get("https://api.openocr.io/v1/usage", { headers });
-  console.log(\`Authenticated under \${usage.plan} plan.\`);
-  console.log(\`Credits remaining: \${usage.remaining_today}/\${usage.daily_quota}\`);
-} catch (err: any) {
-  if (err.response?.status === 401) {
-    console.error("Authentication failed: Check your bearer token.");
-  }
-}`;
-        } else {
-          return `package main
-
-import (
-	"fmt"
-	"net/http"
-)
-
-func checkAuth(key string) {
-	req, _ := http.NewRequest("GET", "https://api.openocr.io/v1/usage", nil)
-	req.Header.Set("Authorization", "Bearer "+key)
-
-	resp, _ := http.DefaultClient.Do(req)
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		fmt.Println("API Key valid and authorized.")
-	} else {
-		fmt.Printf("Authorization failed: HTTP %d\\n", resp.StatusCode)
-	}
-}`;
-        }
-
-      case "quickstart":
-        if (lang === "curl") {
-          return `# 1-Line Extraction Quickstart
-curl -X POST "https://api.openocr.io/v1/extract" \\
-  -H "Authorization: Bearer ${effectiveKey}" \\
-  -F "file=@document.pdf" \\
-  -F "wait=true" \\
-  -F "format=json"`;
-        } else if (lang === "python") {
-          return `import httpx
-
-# Fast, typed document extraction
-with open("invoice.pdf", "rb") as f:
-    resp = httpx.post(
-        "https://api.openocr.io/v1/extract",
-        headers={"Authorization": "Bearer ${effectiveKey}"},
-        files={"file": f},
-        params={"wait": "true", "format": "json"}
-    )
-
-data = resp.json()
-print(f"Doc Type: {data['doc_type']}")
-for field in data["fields"]:
-    print(f" • {field['label']}: {field['value']}")`;
-        } else if (lang === "typescript") {
-          return `import axios from "axios";
-import fs from "fs";
-import FormData from "form-data";
-
-const form = new FormData();
-form.append("file", fs.createReadStream("invoice.pdf"));
-
-const { data } = await axios.post("https://api.openocr.io/v1/extract?wait=true", form, {
-  headers: {
-    ...form.getHeaders(),
-    Authorization: "Bearer ${effectiveKey}",
-  },
-});
-
-console.log("Document Type:", data.doc_type);
-console.log("Fields:", data.fields);`;
-        } else {
-          return `package main
-
-import (
-	"bytes"
-	"fmt"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"os"
-)
-
-func main() {
-	file, _ := os.Open("invoice.pdf")
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", "invoice.pdf")
-	io.Copy(part, file)
-	writer.Close()
-
-	req, _ := http.NewRequest("POST", "https://api.openocr.io/v1/extract?wait=true", body)
-	req.Header.Set("Authorization", "Bearer ${effectiveKey}")
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, _ := http.DefaultClient.Do(req)
-	defer resp.Body.Close()
-	fmt.Printf("HTTP Status: %s\\n", resp.Status)
-}`;
-        }
-
-      case "jobs":
-        if (lang === "curl") {
-          return `# 1. Enqueue asynchronous extraction job (wait=false)
-curl -X POST "https://api.openocr.io/v1/extract" \\
-  -H "Authorization: Bearer ${effectiveKey}" \\
-  -F "file=@financial_statement.pdf" \\
-  -F "wait=false"
-
-# Returns: {"id": "job_91a02f81c4e2", "status": "queued"}
-
-# 2. Poll job status until complete (supports format=json|markdown|text)
-curl -X GET "https://api.openocr.io/v1/jobs/job_91a02f81c4e2?format=json" \\
-  -H "Authorization: Bearer ${effectiveKey}"`;
-        } else if (lang === "python") {
-          return `import httpx
-import time
-
-headers = {
-    "Authorization": "Bearer ${effectiveKey}",
-    "X-Requested-With": "OpenOCR-Client"
-}
-
-# 1. Enqueue asynchronous job
-with open("financial_statement.pdf", "rb") as f:
-    res = httpx.post(
-        "https://api.openocr.io/v1/extract",
-        headers=headers,
-        files={"file": f},
-        params={"wait": "false"}
-    )
-job_id = res.json()["id"]
-print(f"Queued Job ID: {job_id}")
-
-# 2. Poll status with exponential backoff
-while True:
-    status_res = httpx.get(
-        f"https://api.openocr.io/v1/jobs/{job_id}",
-        headers=headers,
-        params={"format": "json"}
-    )
-    job = status_res.json()
-    if job["status"] == "done":
-        print(f"Complete in {job['latency_ms']}ms. Doc Type: {job['doc_type']}")
-        print(f"Summary: {job['summary']}")
-        break
-    elif job["status"] == "failed":
-        print(f"Extraction failed: {job.get('error_code')}")
-        break
-    time.sleep(1.5)`;
-        } else if (lang === "typescript") {
-          return `import axios from "axios";
-import fs from "fs";
-import FormData from "form-data";
-
-const headers = { Authorization: "Bearer ${effectiveKey}" };
-
-// 1. Enqueue asynchronous job
-const form = new FormData();
-form.append("file", fs.createReadStream("financial_statement.pdf"));
-
-const { data: queued } = await axios.post(
-  "https://api.openocr.io/v1/extract?wait=false",
-  form,
-  { headers: { ...headers, ...form.getHeaders() } }
-);
-
-console.log("Enqueued Job ID:", queued.id);
-
-// 2. Poll job status until done
-while (true) {
-  const { data: job } = await axios.get(
-    \`https://api.openocr.io/v1/jobs/\${queued.id}?format=json\`,
-    { headers }
-  );
-
-  if (job.status === "done") {
-    console.log("Extraction Intelligence:", job.fields);
-    break;
-  } else if (job.status === "failed") {
-    throw new Error(\`Extraction failed: \${job.error_code}\`);
-  }
-  await new Promise((r) => setTimeout(r, 1500));
-}`;
-        } else {
-          return `package main
-
-import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"time"
-)
-
-func pollJob(jobID, apiKey string) {
-	client := &http.Client{}
-	url := fmt.Sprintf("https://api.openocr.io/v1/jobs/%s?format=json", jobID)
-
-	for {
-		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set("Authorization", "Bearer "+apiKey)
-		resp, _ := client.Do(req)
-
-		var job map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&job)
-		resp.Body.Close()
-
-		if job["status"] == "done" {
-			fmt.Printf("Extraction Success: %v\\n", job["summary"])
-			return
-		}
-		time.Sleep(1500 * time.Millisecond)
-	}
-}`;
-        }
-
-      case "uploads":
-        if (lang === "curl") {
-          return `# Step 1: Request pre-signed direct upload URL
-curl -X POST "https://api.openocr.io/v1/uploads/sign" \\
-  -H "Authorization: Bearer ${effectiveKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "filename": "heavy_docket_80mb.pdf",
-    "mime": "application/pdf",
-    "size_bytes": 83886080
-  }'
-
-# Step 2: Upload raw binary directly to storage via HTTP PUT
-curl -X PUT "<upload_url_from_step_1>" \\
-  -H "Content-Type: application/pdf" \\
-  --data-binary "@heavy_docket_80mb.pdf"
-
-# Step 3: Trigger extraction referencing the storage key
-curl -X POST "https://api.openocr.io/v1/extract?file_key=<file_key>&wait=true" \\
-  -H "Authorization: Bearer ${effectiveKey}"`;
-        } else if (lang === "python") {
-          return `import httpx
-import os
-
-file_path = "heavy_docket_80mb.pdf"
-size_bytes = os.path.getsize(file_path)
-headers = {"Authorization": "Bearer ${effectiveKey}"}
-
-# Step 1: Request pre-signed S3/MinIO upload URL
-with httpx.Client() as client:
-    sign_res = client.post(
-        "https://api.openocr.io/v1/uploads/sign",
-        headers=headers,
-        json={
-            "filename": os.path.basename(file_path),
-            "mime": "application/pdf",
-            "size_bytes": size_bytes
-        }
-    )
-    presigned = sign_res.json()
-    upload_url = presigned["upload_url"]
-    file_key = presigned["file_key"]
-
-    # Step 2: Upload raw binary directly to storage (zero memory on API server)
-    with open(file_path, "rb") as f:
-        client.put(upload_url, content=f.read(), headers={"Content-Type": "application/pdf"})
-
-    # Step 3: Trigger zero-copy extraction via file_key
-    extract_res = client.post(
-        "https://api.openocr.io/v1/extract",
-        headers=headers,
-        params={"file_key": file_key, "wait": "true"}
-    )
-    print("Intelligence Extracted:", extract_res.json())`;
-        } else if (lang === "typescript") {
-          return `import axios from "axios";
-import fs from "fs";
-
-const fileBuffer = fs.readFileSync("heavy_docket_80mb.pdf");
-const headers = { Authorization: "Bearer ${effectiveKey}" };
-
-// Step 1: Sign upload
-const { data: presigned } = await axios.post(
-  "https://api.openocr.io/v1/uploads/sign",
-  {
-    filename: "heavy_docket_80mb.pdf",
-    mime: "application/pdf",
-    size_bytes: fileBuffer.length,
-  },
-  { headers }
-);
-
-// Step 2: Direct PUT to storage (bypasses API gateway memory)
-await axios.put(presigned.upload_url, fileBuffer, {
-  headers: { "Content-Type": "application/pdf" },
-});
-
-// Step 3: Submit extraction job via file_key
-const { data: result } = await axios.post(
-  \`https://api.openocr.io/v1/extract?file_key=\${encodeURIComponent(presigned.file_key)}&wait=true\`,
-  null,
-  { headers }
-);
-
-console.log("Extracted Payload:", result);`;
-        } else {
-          return `package main
-
-import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"os"
-)
-
-func directUpload(filePath, apiKey string) {
-	data, _ := os.ReadFile(filePath)
-	
-	signBody, _ := json.Marshal(map[string]interface{}{
-		"filename": filePath,
-		"mime": "application/pdf",
-		"size_bytes": len(data),
-	})
-	req, _ := http.NewRequest("POST", "https://api.openocr.io/v1/uploads/sign", bytes.NewReader(signBody))
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", "application/json")
-	// Execute upload to storage and trigger extraction
-}`;
-        }
-
-      case "webhooks":
-        return `import hmac
-import hashlib
-import time
-
-def verify_openocr_webhook(raw_payload_bytes: bytes, signature_header: str, secret_key: str) -> bool:
-    """
-    Verifies OpenOCR HMAC-SHA256 signature using constant-time comparison.
-    Signature Header Format: t=1729900000,v1=abcdef0123456789...
-    """
-    try:
-        parts = dict(item.split("=") for item in signature_header.split(","))
-        timestamp = int(parts["t"])
-        signature = parts["v1"]
-
-        # Prevent replay attacks: Reject deliveries older than 5 minutes (300s)
-        if abs(time.time() - timestamp) > 300:
-            return False
-
-        # Signed payload is: timestamp + "." + raw_body
-        signed_payload = f"{timestamp}.".encode("utf-8") + raw_payload_bytes
-        expected_sig = hmac.new(
-            secret_key.encode("utf-8"),
-            signed_payload,
-            hashlib.sha256
-        ).hexdigest()
-
-        # Constant-time comparison defeats timing attacks
-        return hmac.compare_digest(expected_sig, signature)
-    except Exception:
-        return False`;
-
-      case "errors":
-        if (lang === "curl") {
-          return `# Example: Sending an unsupported executable file
-curl -i -X POST "https://api.openocr.io/v1/extract" \\
-  -H "Authorization: Bearer ${effectiveKey}" \\
-  -F "file=@malicious.exe"
-
-# HTTP/1.1 415 Unsupported Media Type
-# Content-Type: application/json
-#
-# {
-#   "error": {
-#     "code": "UNSUPPORTED_TYPE",
-#     "message": "MIME type 'application/x-msdownload' is not supported. Allowed: PDF, PNG, JPG, WEBP, TIFF.",
-#     "request_id": "req_8492026af01"
-#   }
-# }`;
-        } else if (lang === "python") {
-          return `import httpx
-
-try:
-    response = httpx.post(
-        "https://api.openocr.io/v1/extract",
-        headers={"Authorization": "Bearer ${effectiveKey}"},
-        files={"file": open("oversized_docket.pdf", "rb")}
-    )
-    response.raise_for_status()
-except httpx.HTTPStatusError as exc:
-    # OpenOCR Standard RFC Error Envelope
-    err = exc.response.json().get("error", {})
-    code = err.get("code")
-    message = err.get("message")
-    req_id = err.get("request_id")
-    
-    if code == "FILE_TOO_LARGE":
-        print(f"Document exceeds plan limits. Req ID: {req_id}")
-    elif code == "QUOTA_EXCEEDED":
-        print(f"Daily credits exhausted. Upgrade at /pricing")
-    else:
-        print(f"[{code}] {message} (Trace: {req_id})")`;
-        } else {
-          return `// TypeScript Error Handling
-try {
-  await axios.post("https://api.openocr.io/v1/extract", form, { headers });
-} catch (error: any) {
-  if (error.response?.data?.error) {
-    const { code, message, request_id } = error.response.data.error;
-    switch (code) {
-      case "FILE_TOO_LARGE":
-        console.error("Document exceeds file size limits:", message);
-        break;
-      case "QUOTA_EXCEEDED":
-        console.error("Credits exhausted. Upgrade plan at /pricing");
-        break;
-      default:
-        console.error(\`[\${code}] \${message} (Ref: \${request_id})\`);
-    }
-  }
-}`;
-        }
-
-      case "ratelimits":
-        if (lang === "curl") {
-          return `# Read Rate Limit and Quota Headers on Any Response
-curl -i -X POST "https://api.openocr.io/v1/extract" \\
-  -H "Authorization: Bearer ${effectiveKey}" \\
-  -F "file=@doc.pdf" \\
-  -F "wait=true"
-
-# Response Headers:
-# X-RateLimit-Limit: 300
-# X-RateLimit-Remaining: 299
-# X-Quota-Limit: 10000
-# X-Quota-Remaining: 9980
-# X-Quota-Reset: 1729987200
-# Retry-After: 60 (present when HTTP 429 occurs)`;
-        } else {
-          return `import httpx
-import time
-
-def extract_with_backoff(file_path: str, api_key: str):
-    headers = {"Authorization": f"Bearer {api_key}"}
-    
-    while True:
-        with open(file_path, "rb") as f:
-            resp = httpx.post(
-                "https://api.openocr.io/v1/extract",
-                headers=headers,
-                files={"file": f},
-                params={"wait": "true"}
-            )
-        
-        # Read standard headers
-        rate_rem = resp.headers.get("X-RateLimit-Remaining")
-        quota_rem = resp.headers.get("X-Quota-Remaining")
-        print(f"Remaining in window: {rate_rem} reqs | Remaining credits: {quota_rem}")
-        
-        if resp.status_code == 429:
-            retry_after = int(resp.headers.get("Retry-After", 5))
-            print(f"Rate limited (429). Waiting {retry_after}s before retry...")
-            time.sleep(retry_after)
-            continue
-            
-        return resp.json()`;
-        }
-
-      case "schemas":
-        return `// Retrieve Schema Validation Definition Programmatically
-curl -X GET "https://api.openocr.io/v1/schemas/${activeSchema}" \\
-  -H "Authorization: Bearer ${effectiveKey}"
-
-// Validates keys, types, bounding boxes, and arithmetic invariants`;
-
-      case "selfhosted":
-        return `# Self-Hosted Air-Gapped Run (Docker Compose)
-version: '3.8'
-services:
-  openocr-api:
-    image: openocr/api:latest
-    environment:
-      - DATABASE_URL=postgresql://postgres:secret@db:5432/openocr
-      - REDIS_URL=redis://redis:6379/0
-      - S3_ENDPOINT_URL=http://minio:9000
-      - S3_BUCKET_NAME=openocr-raw
-      - SELF_HOSTED_MODE=true
-    ports:
-      - "8000:8000"
-
-  openocr-worker:
-    image: openocr/worker:latest
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - S3_ENDPOINT_URL=http://minio:9000
-      - OCR_ENGINE_PRIMARY=docling
-      - OCR_ENGINE_FALLBACK=paddleocr`;
-
-      default: // "extract"
-        if (lang === "curl") {
-          return `curl -X POST "https://api.openocr.io/v1/extract" \\
-  -H "Authorization: Bearer ${effectiveKey}" \\
-  -H "X-Requested-With: OpenOCR-Client" \\
-  -F "file=@commercial_invoice.pdf" \\
-  -F "wait=true" \\
-  -F "format=json"`;
-        } else if (lang === "python") {
-          return `import httpx
-
-url = "https://api.openocr.io/v1/extract"
-headers = {
-    "Authorization": "Bearer ${effectiveKey}",
-    "X-Requested-With": "OpenOCR-Client"
-}
-
-with open("commercial_invoice.pdf", "rb") as f:
-    response = httpx.post(
-        url,
-        headers=headers,
-        files={"file": f},
-        params={"wait": "true", "format": "json"},
-        timeout=30.0
-    )
-
-data = response.json()
-print(f"Document Type: {data['doc_type']} (Confidence: {data['doc_type_confidence']})")
-for field in data["fields"]:
-    print(f" • {field['label']}: {field['value']}")`;
-        } else if (lang === "typescript") {
-          return `import fs from "fs";
-import axios from "axios";
-import FormData from "form-data";
-
-const form = new FormData();
-form.append("file", fs.createReadStream("commercial_invoice.pdf"));
-
-const response = await axios.post("https://api.openocr.io/v1/extract", form, {
-  params: { wait: "true", format: "json" },
-  headers: {
-    ...form.getHeaders(),
-    Authorization: "Bearer ${effectiveKey}",
-    "X-Requested-With": "OpenOCR-Client",
-  },
-  timeout: 30000,
-});
-
-console.log("Extracted Intelligence:", response.data);`;
-        } else {
-          return `package main
-
-import (
-	"bytes"
-	"fmt"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"os"
-)
-
-func main() {
-	file, err := os.Open("commercial_invoice.pdf")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", "commercial_invoice.pdf")
-	io.Copy(part, file)
-	writer.Close()
-
-	req, _ := http.NewRequest("POST", "https://api.openocr.io/v1/extract?wait=true&format=json", body)
-	req.Header.Set("Authorization", "Bearer ${effectiveKey}")
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	fmt.Printf("Extraction Response Status: %s\\n", resp.Status)
-}`;
-        }
+  const handlePrint = () => {
+    if (typeof window !== "undefined") {
+      window.print();
     }
   };
 
-  const getSectionSampleResponse = (sectionId: string): string => {
-    switch (sectionId) {
-      case "overview":
-        return `{
-  "status": "healthy",
-  "version": "1.0.0",
-  "engines": ["docling", "paddleocr", "rapidocr"],
-  "gpu_accelerated": true,
-  "cluster_region": "us-east-1",
-  "uptime_seconds": 1849200
-}`;
-      case "auth":
-        return `{
-  "key_id": "key_8f0a21bc9e44",
-  "name": "Developer Production Key",
-  "plan": "developer",
-  "active": true,
-  "rate_limit_per_minute": 300,
-  "daily_quota": 10000,
-  "remaining_today": 9420,
-  "scopes": ["extract:write", "jobs:read", "uploads:sign"]
-}`;
-      case "jobs":
-        return `{
-  "id": "job_91a02f81c4e2",
-  "status": "done",
-  "pages": 4,
-  "latency_ms": 384.2,
-  "doc_type": "tax_return",
-  "doc_type_confidence": 0.998,
-  "overall_confidence": 0.988,
-  "fields_count": 32,
-  "summary": "Form 1040 Individual Income Tax Return for Tax Year 2025. Adjusted Gross Income verified.",
-  "completed_at": "2026-10-29T05:22:14Z"
-}`;
-      case "uploads":
-        return `{
-  "upload_url": "https://s3.us-east-1.amazonaws.com/openocr-raw/uploads/2026-10-29/heavy_docket_80mb.pdf?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE...",
-  "file_key": "uploads/2026-10-29/heavy_docket_80mb.pdf",
-  "expires_in_seconds": 900,
-  "max_bytes": 104857600
-}`;
-      case "webhooks":
-        return `{
-  "event": "extraction.completed",
-  "job_id": "job_91a02f81c4e2",
-  "doc_type": "invoice",
-  "status": "done",
-  "delivery_attempt": 1,
-  "timestamp": 1729900000,
-  "result_url": "https://api.openocr.io/v1/jobs/job_91a02f81c4e2"
-}`;
-      case "errors":
-        return `{
-  "error": {
-    "code": "FILE_TOO_LARGE",
-    "message": "Document file size (34.2MB) exceeds the 10MB limit for your Free Plan.",
-    "request_id": "req_8492026af01",
-    "plan": "free",
-    "upgrade_url": "/pricing"
-  }
-}`;
-      case "ratelimits":
-        return `{
-  "status": "rate_limits_healthy",
-  "sliding_window_seconds": 60,
-  "rate_limit_per_minute": 300,
-  "remaining_in_window": 284,
-  "daily_quota_total": 10000,
-  "daily_quota_remaining": 9420,
-  "quota_reset_utc": "2026-10-30T00:00:00Z"
-}`;
-      case "schemas":
-        if (activeSchema === "invoice") {
-          return `{
-  "doc_type": "invoice",
-  "invoice_number": "INV-2026-4092",
-  "vendor": {
-    "name": "Acme Precision Robotics GmbH",
-    "tax_id": "DE-814920482",
-    "address": "Industriestrasse 42, 70565 Stuttgart"
-  },
-  "customer": {
-    "name": "Apex Automation Systems Inc",
-    "address": "400 Valley Road, Suite 200, Austin TX"
-  },
-  "dates": {
-    "issue_date": "2026-10-14",
-    "due_date": "2026-11-13"
-  },
-  "totals": {
-    "currency": "USD",
-    "subtotal": 5200.00,
-    "tax_amount": 956.00,
-    "total_amount": 6156.00
-  },
-  "validation": {
-    "is_valid": true,
-    "arithmetic_check": "5200.00 + 956.00 == 6156.00"
-  }
-}`;
-        } else if (activeSchema === "receipt") {
-          return `{
-  "doc_type": "receipt",
-  "merchant": {
-    "name": "Starlight Artisan Cafe & Roasters",
-    "store_id": "LOC-042",
-    "address": "128 Market St, San Francisco, CA"
-  },
-  "transaction": {
-    "timestamp": "2026-10-28T09:14:22Z",
-    "cashier": "Morgan B.",
-    "payment_method": "Visa *4092"
-  },
-  "financials": {
-    "subtotal": 24.50,
-    "tax": 2.15,
-    "tip": 4.00,
-    "total": 30.65
-  }
-}`;
-        } else if (activeSchema === "driving_license") {
-          return `{
-  "doc_type": "driving_license",
-  "jurisdiction": "California DMV",
-  "license_number": "D9402914",
-  "holder": {
-    "full_name": "ELENA MARIE ROSTOVA",
-    "date_of_birth": "1994-06-18",
-    "address": "840 ORCHARD WAY, PALO ALTO, CA 94301"
-  },
-  "validity": {
-    "issued": "2023-07-01",
-    "expires": "2028-06-18",
-    "class": "C - NONCOMMERCIAL"
-  },
-  "biometric": {
-    "portrait_detected": true,
-    "signature_present": true
-  }
-}`;
-        } else {
-          return `{
-  "doc_type": "contract",
-  "title": "Mutual Non-Disclosure & Intellectual Property Assignment",
-  "execution_date": "2026-10-01",
-  "parties": [
-    { "role": "Disclosing Party", "name": "Vanguard Autonomous Corp" },
-    { "role": "Receiving Party", "name": "Quantum Kinetics Labs LLC" }
-  ],
-  "governing_law": "State of Delaware",
-  "confidentiality_duration_months": 36,
-  "signatures": {
-    "party_a_signed": true,
-    "party_b_signed": true
-  }
-}`;
-        }
+  // Filter items in sidebar based on user search query
+  const filteredFolders = useMemo(() => {
+    if (!filterQuery.trim()) return NAV_STRUCTURE;
+    const q = filterQuery.toLowerCase();
+    return NAV_STRUCTURE.map((folder) => {
+      const matchingItems = folder.items.filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          item.keywords.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q)
+      );
+      return {
+        ...folder,
+        items: matchingItems,
+      };
+    }).filter((folder) => folder.items.length > 0);
+  }, [filterQuery]);
 
-      case "selfhosted":
-        return `{
-  "status": "healthy",
-  "mode": "self_hosted",
-  "air_gapped": true,
-  "gpu_available": false,
-  "ocr_backends": ["docling", "paddleocr", "rapidocr"],
-  "external_network_calls": 0,
-  "billing_disabled": true
-}`;
-      default:
-        return `{
-  "id": "job_91a02f81c4e2",
-  "status": "done",
-  "doc_type": "invoice",
-  "doc_type_confidence": 0.994,
-  "overall_confidence": 0.985,
-  "pages": 2,
-  "latency_ms": 48.2,
-  "credits_charged": 2,
-  "cached": false,
-  "summary": "Commercial invoice for 14 precision robotics actuators totaling $6,156.00 USD.",
+  return (
+    <div className="min-h-screen flex flex-col bg-white dark:bg-[#000000] text-zinc-900 dark:text-[#f0f0f0] transition-colors selection:bg-[#9281f7]/30">
+      <Header />
+
+      {/* Microsoft Learn Sub-Header Bar with Breadcrumbs & Document Controls */}
+      <div className="w-full border-b border-zinc-200 dark:border-[#292d30] bg-zinc-50/70 dark:bg-[#0b0e14]/70 px-4 sm:px-8 py-2 select-none">
+        <div className="max-w-[1720px] mx-auto flex items-center justify-between gap-4 text-xs font-mono">
+          {/* Breadcrumb Hierarchy */}
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-zinc-500 dark:text-[#888c94] truncate">
+            <Link href="/" className="hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors">
+              Docs
+            </Link>
+            <ChevronRight className="w-3 h-3 text-zinc-400 dark:text-[#555a64] shrink-0" />
+            <span className="text-zinc-700 dark:text-[#b4b7bd]">OpenOCR Platform</span>
+            <ChevronRight className="w-3 h-3 text-zinc-400 dark:text-[#555a64] shrink-0" />
+            <span className="text-zinc-700 dark:text-[#b4b7bd]">Document Intelligence</span>
+            <ChevronRight className="w-3 h-3 text-zinc-400 dark:text-[#555a64] shrink-0" />
+            <span className="text-purple-600 dark:text-[#9281f7] font-semibold truncate">
+              {NAV_STRUCTURE.flatMap((f) => f.items).find((i) => i.id === activeId)?.title || "API Reference"}
+            </span>
+          </nav>
+
+          {/* Quick Action Tools */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handlePrint}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-zinc-200 dark:border-[#292d30] bg-white dark:bg-[#000000] hover:bg-zinc-100 dark:hover:bg-[#14171f] text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white transition-colors"
+              title="Print or Save as PDF"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print / PDF</span>
+            </button>
+            <Link
+              href="/api"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-purple-200 dark:border-[#9281f7]/30 bg-purple-50 dark:bg-[#9281f7]/10 text-purple-700 dark:text-[#9281f7] hover:bg-purple-100 dark:hover:bg-[#9281f7]/20 transition-colors font-medium"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Manage API Keys</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Microsoft Learn 3-Pane Grid */}
+      <div className="flex-1 w-full max-w-[1720px] mx-auto px-4 sm:px-8 py-6 flex gap-8 items-start">
+        {/* Left Pane: Microsoft Tree Navigation (Width 300px) */}
+        <aside className="w-72 xl:w-80 shrink-0 hidden lg:flex flex-col sticky top-24 max-h-[calc(100vh-120px)] border-r border-zinc-200 dark:border-[#292d30] pr-6 select-none font-sans">
+          {/* Realtime Search / Filter Input */}
+          <div className="relative mb-3">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400 dark:text-[#6e727a]" />
+            <input
+              type="text"
+              placeholder="Filter by title or keyword..."
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              className="w-full pl-8 pr-7 py-1.5 text-xs font-mono bg-zinc-100 dark:bg-[#0b0e14] border border-zinc-200 dark:border-[#292d30] rounded-[6px] text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-[#6e727a] focus:outline-none focus:border-purple-600 dark:focus:border-[#9281f7]"
+            />
+            {filterQuery && (
+              <button
+                onClick={() => setFilterQuery("")}
+                className="absolute right-2.5 top-2 text-[10px] font-mono text-zinc-400 hover:text-zinc-600 dark:hover:text-white"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Collapsible Hierarchy Tree */}
+          <nav className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs scrollbar-thin">
+            {filteredFolders.map((folder) => {
+              const isOpen = openFolders[folder.id] ?? true;
+              return (
+                <div key={folder.id} className="space-y-1">
+                  {/* Folder Group Header */}
+                  <button
+                    onClick={() => toggleFolder(folder.id)}
+                    className="w-full flex items-center justify-between py-1 text-left font-semibold text-zinc-500 dark:text-[#888c94] uppercase tracking-wider text-[11px] hover:text-zinc-900 dark:hover:text-white transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 truncate">
+                      {isOpen ? <FolderOpen className="w-3.5 h-3.5 text-purple-600 dark:text-[#9281f7]" /> : <Folder className="w-3.5 h-3.5" />}
+                      <span className="truncate">{folder.title}</span>
+                    </span>
+                    {isOpen ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                  </button>
+
+                  {/* Folder Items */}
+                  {isOpen && (
+                    <div className="pl-2 border-l border-zinc-200 dark:border-[#1f2327] space-y-0.5 mt-1">
+                      {folder.items.map((item) => {
+                        const isActive = activeId === item.id;
+                        return (
+                          <a
+                            key={item.id}
+                            href={`#${item.id}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setActiveId(item.id);
+                              document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }}
+                            className={`flex items-center justify-between py-1.5 px-2.5 rounded-[6px] text-xs transition-colors ${
+                              isActive
+                                ? "bg-purple-50 dark:bg-[#9281f7]/10 text-purple-700 dark:text-[#9281f7] font-medium border-l-2 border-purple-600 dark:border-[#9281f7]"
+                                : "text-zinc-600 dark:text-[#a1a4a5] hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#0b0e14]"
+                            }`}
+                          >
+                            <span className="truncate">{item.title}</span>
+                            {item.badge && (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-[#1f2327] text-zinc-600 dark:text-[#a1a4a5] shrink-0 ml-1">
+                                {item.badge}
+                              </span>
+                            )}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Quick Help Box */}
+          <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-[#292d30] text-[11px] font-mono text-zinc-500 dark:text-[#888c94] space-y-1">
+            <div className="flex items-center justify-between">
+              <span>Platform Specs:</span>
+              <span className="text-zinc-900 dark:text-white">v1.2.0-LTS</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Swagger Raw:</span>
+              <Link href="/swagger" target="_blank" className="text-purple-600 dark:text-[#9281f7] hover:underline flex items-center gap-1">
+                /swagger <ExternalLink className="w-2.5 h-2.5" />
+              </Link>
+            </div>
+          </div>
+        </aside>
+
+        {/* Center Pane: Article Content (Flex 1) */}
+        <main className="flex-1 min-w-0 max-w-4xl space-y-12">
+          {/* Article Metadata Bar */}
+          <div className="space-y-3 pb-6 border-b border-zinc-200 dark:border-[#292d30]">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-[4px] bg-purple-50 dark:bg-[#9281f7]/10 text-purple-700 dark:text-[#9281f7] font-mono text-[11px] font-semibold uppercase tracking-wider border border-purple-200 dark:border-[#9281f7]/30">
+                Official Reference
+              </span>
+              <span className="text-xs text-zinc-500 dark:text-[#6e727a] font-mono">•</span>
+              <span className="text-xs text-zinc-500 dark:text-[#a1a4a5] font-mono">Document Intelligence Platform</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-sans font-bold tracking-tight text-zinc-900 dark:text-white">
+              OpenOCR Document Intelligence &amp; Self-Hosted API
+            </h1>
+
+            {/* Microsoft Learn Signature Article Stats */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-500 dark:text-[#888c94] font-mono pt-1">
+              <span>Article</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> 15 minutes to read
+              </span>
+              <span>•</span>
+              <span>Updated: Nov 07, 2026</span>
+              <span>•</span>
+              <span>Contributors: 12 engineers</span>
+            </div>
+          </div>
+
+          {/* Section 1: Intro */}
+          <section id="intro" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>What is OpenOCR?</span>
+              <a href="#intro" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              <strong>OpenOCR</strong> is a high-throughput, multimodal document intelligence system built for high-security, automated data extraction. Unlike legacy template-based OCR systems that require hand-drawn bounding box rules, OpenOCR utilizes <strong>zero-selection semantic synthesis</strong>: documents are auto-classified upon arrival, deskewed via GPU-accelerated rasterization, structurally parsed for cellular tables, and mapped to structured JSON schemas with objective confidence scores.
+            </p>
+
+            {/* Microsoft Alert: Note */}
+            <div className="p-4 rounded-[8px] border-l-4 border-l-blue-500 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 text-xs text-zinc-800 dark:text-[#d0d4dc] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-blue-700 dark:text-blue-400 font-sans uppercase tracking-wider text-[11px]">
+                <Info className="w-4 h-4 shrink-0" />
+                <span>Note</span>
+              </div>
+              <p className="leading-relaxed">
+                OpenOCR provides an <strong>in-memory ephemeral architecture</strong>. All PDF rendering, OCR inference, and LLM reasoning occur strictly in volatile RAM. No image bytes or extracted text are permanently logged or written to storage, fulfilling strict HIPAA, GDPR, and SOC2 confidentiality controls.
+              </p>
+            </div>
+          </section>
+
+          {/* Section 2: Architecture */}
+          <section id="architecture" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>System Topology &amp; Invariants</span>
+              <a href="#architecture" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              Every document passes through five deterministic and isolated pipeline stages:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              <div className="p-3.5 rounded-[8px] border border-zinc-200 dark:border-[#292d30] bg-zinc-50/50 dark:bg-[#08080a] space-y-1.5 font-mono text-xs">
+                <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                  <span className="w-5 h-5 rounded bg-purple-100 dark:bg-[#9281f7]/20 text-purple-700 dark:text-[#9281f7] flex items-center justify-center text-[11px]">1</span>
+                  <span>Stage 1: Geometry Normalization</span>
+                </div>
+                <p className="text-[11px] text-zinc-600 dark:text-[#888c94] font-sans">
+                  DPI scaling (72 to 300 DPI), affine perspective deskew, contrast leveling, and page dimension extraction via PyMuPDF.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-[8px] border border-zinc-200 dark:border-[#292d30] bg-zinc-50/50 dark:bg-[#08080a] space-y-1.5 font-mono text-xs">
+                <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                  <span className="w-5 h-5 rounded bg-purple-100 dark:bg-[#9281f7]/20 text-purple-700 dark:text-[#9281f7] flex items-center justify-center text-[11px]">2</span>
+                  <span>Stage 2: Multimodal Visual Inference</span>
+                </div>
+                <p className="text-[11px] text-zinc-600 dark:text-[#888c94] font-sans">
+                  Visual token analysis via Gemini 2.5 Flash (or local Ollama/vLLM) to classify document topology and detect spatial semantics.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-[8px] border border-zinc-200 dark:border-[#292d30] bg-zinc-50/50 dark:bg-[#08080a] space-y-1.5 font-mono text-xs">
+                <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                  <span className="w-5 h-5 rounded bg-purple-100 dark:bg-[#9281f7]/20 text-purple-700 dark:text-[#9281f7] flex items-center justify-center text-[11px]">3</span>
+                  <span>Stage 3: Cellular Matrix Structuring</span>
+                </div>
+                <p className="text-[11px] text-zinc-600 dark:text-[#888c94] font-sans">
+                  Extracts tables, row-column boundaries, and reading order using RapidOCR &amp; ONNX Runtime for complex tabular structures.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-[8px] border border-zinc-200 dark:border-[#292d30] bg-zinc-50/50 dark:bg-[#08080a] space-y-1.5 font-mono text-xs">
+                <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                  <span className="w-5 h-5 rounded bg-purple-100 dark:bg-[#9281f7]/20 text-purple-700 dark:text-[#9281f7] flex items-center justify-center text-[11px]">4</span>
+                  <span>Stage 4: Deterministic Validation</span>
+                </div>
+                <p className="text-[11px] text-zinc-600 dark:text-[#888c94] font-sans">
+                  ICAO 9303 MRZ checksum calculations, invoice arithmetic balance verification (<code className="text-[10px]">subtotal + tax = total</code>), and strict empty field omission.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 3: Quickstart */}
+          <section id="quickstart" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>Quickstart (5-Minute Integration)</span>
+              <a href="#quickstart" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              Extract any document file (<code className="text-xs font-mono bg-zinc-100 dark:bg-[#14171f] px-1 py-0.5 rounded">.pdf</code>, <code className="text-xs font-mono bg-zinc-100 dark:bg-[#14171f] px-1 py-0.5 rounded">.png</code>, <code className="text-xs font-mono bg-zinc-100 dark:bg-[#14171f] px-1 py-0.5 rounded">.jpg</code>, <code className="text-xs font-mono bg-zinc-100 dark:bg-[#14171f] px-1 py-0.5 rounded">.tiff</code>) with a single HTTP request:
+            </p>
+
+            {/* Microsoft Code Block with Language Tabs */}
+            <div className="rounded-[8px] border border-zinc-200 dark:border-[#292d30] overflow-hidden bg-zinc-950 font-mono text-xs">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-900/90 text-zinc-400 select-none">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedLang("curl")}
+                    className={`px-2.5 py-1 rounded text-xs transition-colors ${selectedLang === "curl" ? "bg-zinc-800 text-white font-semibold" : "hover:text-white"}`}
+                  >
+                    cURL
+                  </button>
+                  <button
+                    onClick={() => setSelectedLang("python")}
+                    className={`px-2.5 py-1 rounded text-xs transition-colors ${selectedLang === "python" ? "bg-zinc-800 text-white font-semibold" : "hover:text-white"}`}
+                  >
+                    Python (httpx)
+                  </button>
+                  <button
+                    onClick={() => setSelectedLang("typescript")}
+                    className={`px-2.5 py-1 rounded text-xs transition-colors ${selectedLang === "typescript" ? "bg-zinc-800 text-white font-semibold" : "hover:text-white"}`}
+                  >
+                    TypeScript (Node.js)
+                  </button>
+                  <button
+                    onClick={() => setSelectedLang("csharp")}
+                    className={`px-2.5 py-1 rounded text-xs transition-colors ${selectedLang === "csharp" ? "bg-zinc-800 text-white font-semibold" : "hover:text-white"}`}
+                  >
+                    C# (.NET)
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => handleCopyCode(
+                    selectedLang === "curl"
+                      ? `curl -X POST "http://172.198.152.197/api/v1/extract?format=json" \\\n  -H "X-API-Key: ocr_live_your_key_here" \\\n  -F "file=@invoice.pdf"`
+                      : selectedLang === "python"
+                      ? `import httpx\n\nurl = "http://172.198.152.197/api/v1/extract?format=json"\nheaders = {"X-API-Key": "ocr_live_your_key_here"}\nwith open("invoice.pdf", "rb") as f:\n    resp = httpx.post(url, headers=headers, files={"file": f}, timeout=120.0)\n\nresult = resp.json()\nprint(f"Document Type: {result['doc_type']}")\nfor field in result['fields']:\n    print(f" • {field['label']}: {field['value']}")`
+                      : selectedLang === "typescript"
+                      ? `import fs from "fs";\nimport axios from "axios";\nimport FormData from "form-data";\n\nconst form = new FormData();\nform.append("file", fs.createReadStream("invoice.pdf"));\n\nconst { data } = await axios.post("http://172.198.152.197/api/v1/extract?format=json", form, {\n  headers: {\n    ...form.getHeaders(),\n    "X-API-Key": "ocr_live_your_key_here",\n  },\n  timeout: 120000,\n});\n\nconsole.log("Document Type:", data.doc_type);\nconsole.log("Extracted Fields:", data.fields);`
+                      : `using System.Net.Http;\nusing System.IO;\n\nusing var client = new HttpClient();\nclient.DefaultRequestHeaders.Add("X-API-Key", "ocr_live_your_key_here");\n\nusing var form = new MultipartFormDataContent();\nusing var fileStream = File.OpenRead("invoice.pdf");\nform.Add(new StreamContent(fileStream), "file", "invoice.pdf");\n\nvar response = await client.PostAsync("http://172.198.152.197/api/v1/extract?format=json", form);\nvar json = await response.Content.ReadAsStringAsync();\nConsole.WriteLine(json);`
+                  )}
+                  className="flex items-center gap-1.5 text-xs hover:text-white text-zinc-400 transition-colors"
+                >
+                  {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedKey ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+
+              <div className="p-4 text-zinc-100 overflow-x-auto leading-relaxed">
+                {selectedLang === "curl" && (
+                  <pre>
+                    <span className="text-zinc-500"># Direct synchronous document extraction</span>{"\n"}
+                    <span className="text-purple-400">curl</span> -X POST <span className="text-emerald-300">"http://172.198.152.197/api/v1/extract?format=json"</span> \{"\n"}
+                    {"  "}-H <span className="text-emerald-300">"X-API-Key: ocr_live_your_key_here"</span> \{"\n"}
+                    {"  "}-F <span className="text-emerald-300">"file=@invoice.pdf"</span>
+                  </pre>
+                )}
+                {selectedLang === "python" && (
+                  <pre>
+                    <span className="text-purple-400">import</span> httpx{"\n\n"}
+                    url = <span className="text-emerald-300">"http://172.198.152.197/api/v1/extract?format=json"</span>{"\n"}
+                    headers = {"{"}<span className="text-emerald-300">"X-API-Key"</span>: <span className="text-emerald-300">"ocr_live_your_key_here"</span>{"}"}{"\n\n"}
+                    <span className="text-purple-400">with</span> open(<span className="text-emerald-300">"invoice.pdf"</span>, <span className="text-emerald-300">"rb"</span>) <span className="text-purple-400">as</span> f:{"\n"}
+                    {"    "}resp = httpx.post(url, headers=headers, files={"{"}<span className="text-emerald-300">"file"</span>: f{"}"}, timeout=<span className="text-amber-300">120.0</span>){"\n\n"}
+                    result = resp.json(){"\n"}
+                    print(<span className="text-emerald-300">f"Doc Type: &#123;result['doc_type']&#125;"</span>){"\n"}
+                    <span className="text-purple-400">for</span> field <span className="text-purple-400">in</span> result[<span className="text-emerald-300">'fields'</span>]:{"\n"}
+                    {"    "}print(<span className="text-emerald-300">f" • &#123;field['label']&#125;: &#123;field['value']&#125;"</span>)
+                  </pre>
+                )}
+                {selectedLang === "typescript" && (
+                  <pre>
+                    <span className="text-purple-400">import</span> fs <span className="text-purple-400">from</span> <span className="text-emerald-300">"fs"</span>;{"\n"}
+                    <span className="text-purple-400">import</span> axios <span className="text-purple-400">from</span> <span className="text-emerald-300">"axios"</span>;{"\n"}
+                    <span className="text-purple-400">import</span> FormData <span className="text-purple-400">from</span> <span className="text-emerald-300">"form-data"</span>;{"\n\n"}
+                    <span className="text-purple-400">const</span> form = <span className="text-purple-400">new</span> FormData();{"\n"}
+                    form.append(<span className="text-emerald-300">"file"</span>, fs.createReadStream(<span className="text-emerald-300">"invoice.pdf"</span>));{"\n\n"}
+                    <span className="text-purple-400">const</span> &#123; data &#125; = <span className="text-purple-400">await</span> axios.post(<span className="text-emerald-300">"http://172.198.152.197/api/v1/extract?format=json"</span>, form, &#123;{"\n"}
+                    {"  "}headers: &#123; ...form.getHeaders(), <span className="text-emerald-300">"X-API-Key"</span>: <span className="text-emerald-300">"ocr_live_your_key_here"</span> &#125;,{"\n"}
+                    {"  "}timeout: <span className="text-amber-300">120000</span>,{"\n"}
+                    &#125;);{"\n\n"}
+                    console.log(<span className="text-emerald-300">"Extracted:"</span>, data.fields);
+                  </pre>
+                )}
+                {selectedLang === "csharp" && (
+                  <pre>
+                    <span className="text-purple-400">using</span> System.Net.Http;{"\n"}
+                    <span className="text-purple-400">using</span> System.IO;{"\n\n"}
+                    <span className="text-purple-400">using var</span> client = <span className="text-purple-400">new</span> HttpClient();{"\n"}
+                    client.DefaultRequestHeaders.Add(<span className="text-emerald-300">"X-API-Key"</span>, <span className="text-emerald-300">"ocr_live_your_key_here"</span>);{"\n\n"}
+                    <span className="text-purple-400">using var</span> form = <span className="text-purple-400">new</span> MultipartFormDataContent();{"\n"}
+                    <span className="text-purple-400">using var</span> stream = File.OpenRead(<span className="text-emerald-300">"invoice.pdf"</span>);{"\n"}
+                    form.Add(<span className="text-purple-400">new</span> StreamContent(stream), <span className="text-emerald-300">"file"</span>, <span className="text-emerald-300">"invoice.pdf"</span>);{"\n\n"}
+                    <span className="text-purple-400">var</span> response = <span className="text-purple-400">await</span> client.PostAsync(<span className="text-emerald-300">"http://172.198.152.197/api/v1/extract?format=json"</span>, form);{"\n"}
+                    <span className="text-purple-400">var</span> json = <span className="text-purple-400">await</span> response.Content.ReadAsStringAsync();
+                  </pre>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Section 4: Authentication */}
+          <section id="authentication" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>Authentication &amp; API Key Tiers</span>
+              <a href="#authentication" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              OpenOCR supports two standard credential headers. Pass either of the following on every request:
+            </p>
+
+            {/* Microsoft Table */}
+            <div className="overflow-x-auto border border-zinc-200 dark:border-[#292d30] rounded-[8px]">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-zinc-100 dark:bg-[#14171f] border-b border-zinc-200 dark:border-[#292d30] text-zinc-700 dark:text-[#a1a4a5] font-mono">
+                  <tr>
+                    <th className="py-2.5 px-3 font-semibold">Header</th>
+                    <th className="py-2.5 px-3 font-semibold">Example</th>
+                    <th className="py-2.5 px-3 font-semibold">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-[#292d30] font-mono text-[11px]">
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-purple-600 dark:text-[#9281f7]">X-API-Key</td>
+                    <td className="py-2 px-3 text-zinc-600 dark:text-[#a1a4a5]">ocr_live_4a89f...</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Standard API Key header, recommended for server-to-server and microservice calls.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-purple-600 dark:text-[#9281f7]">Authorization</td>
+                    <td className="py-2 px-3 text-zinc-600 dark:text-[#a1a4a5]">Bearer ocr_live_4a89f...</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">RFC 6750 standard bearer authorization header.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Microsoft Alert: Important */}
+            <div className="p-4 rounded-[8px] border-l-4 border-l-purple-500 bg-purple-50/70 dark:bg-[#9281f7]/10 border border-purple-200 dark:border-[#9281f7]/30 text-xs text-zinc-800 dark:text-[#d0d4dc] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-purple-700 dark:text-[#9281f7] font-sans uppercase tracking-wider text-[11px]">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>Tier Requirement</span>
+              </div>
+              <p className="leading-relaxed">
+                Direct programmatic API keys require a <strong>Developer</strong>, <strong>Pro</strong>, or <strong>Enterprise</strong> subscription. Free tier accounts can test documents via the Web Light Table Studio interface, but are blocked from generating automated API keys until upgraded.
+              </p>
+            </div>
+          </section>
+
+          {/* Section 5: POST /v1/extract */}
+          <section id="endpoint-extract" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-xs font-mono bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">POST</span>
+              <span>/v1/extract (Synchronous)</span>
+              <a href="#endpoint-extract" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              Executes synchronous document ingestion, rasterization, semantic vision reasoning, and structured JSON generation in a single HTTP request.
+            </p>
+
+            <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-zinc-500 dark:text-[#888c94] pt-1">
+              Request Parameters (Multipart Form-Data)
+            </h3>
+
+            <div className="overflow-x-auto border border-zinc-200 dark:border-[#292d30] rounded-[8px]">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-zinc-100 dark:bg-[#14171f] border-b border-zinc-200 dark:border-[#292d30] text-zinc-700 dark:text-[#a1a4a5] font-mono">
+                  <tr>
+                    <th className="py-2.5 px-3 font-semibold">Parameter</th>
+                    <th className="py-2.5 px-3 font-semibold">Type</th>
+                    <th className="py-2.5 px-3 font-semibold">Required</th>
+                    <th className="py-2.5 px-3 font-semibold">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-[#292d30] font-mono text-[11px]">
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-zinc-900 dark:text-white">file</td>
+                    <td className="py-2 px-3 text-purple-600 dark:text-[#baa7ff]">Binary File</td>
+                    <td className="py-2 px-3 text-rose-600 dark:text-rose-400 font-semibold">Required</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">The document binary (<code className="text-[10px]">PDF, PNG, JPG, WEBP, TIFF</code>). Max 50MB.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-zinc-900 dark:text-white">format</td>
+                    <td className="py-2 px-3 text-purple-600 dark:text-[#baa7ff]">String</td>
+                    <td className="py-2 px-3 text-zinc-400">Optional</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Desired schema response format: <code className="text-[10px]">json</code> (default), <code className="text-[10px]">markdown</code>, or <code className="text-[10px]">text</code>.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-zinc-900 dark:text-white">max_pages</td>
+                    <td className="py-2 px-3 text-purple-600 dark:text-[#baa7ff]">Integer</td>
+                    <td className="py-2 px-3 text-zinc-400">Optional</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Maximum pages to parse from PDF. Defaults to tier allowance (Free: 2, Pro: 500).</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-zinc-500 dark:text-[#888c94] pt-2">
+              Response Structure (200 OK)
+            </h3>
+
+            <div className="rounded-[8px] border border-zinc-200 dark:border-[#292d30] overflow-hidden bg-zinc-950 p-4 font-mono text-xs text-zinc-100 overflow-x-auto">
+              <pre>{`{
+  "id": "ocr_153fa440a5374ab388244a54",
+  "document_type": "invoice",
+  "doc_type_confidence": 0.98,
+  "overall_confidence": 0.96,
+  "pages": 1,
+  "latency_ms": 1420,
   "fields": [
     {
       "key": "invoice_number",
       "label": "Invoice Number",
-      "value": "INV-2026-4092",
+      "value": "INV-2026-9041",
+      "confidence": 0.99,
       "page": 1,
-      "bbox": { "x": 380, "y": 42, "width": 140, "height": 18 }
+      "bbox": { "x": 420.5, "y": 85.0, "width": 84.0, "height": 14.5 },
+      "box_source": "model"
     },
     {
       "key": "total_amount",
       "label": "Total Amount",
-      "value": 6156.00,
-      "page": 2,
-      "bbox": { "x": 420, "y": 620, "width": 110, "height": 22 }
+      "value": 1450.00,
+      "confidence": 0.98,
+      "page": 1,
+      "bbox": { "x": 440.0, "y": 680.0, "width": 64.0, "height": 16.0 },
+      "box_source": "model"
+    }
+  ],
+  "tables": [
+    {
+      "id": "table_1",
+      "headers": ["Description", "Quantity", "Unit Price", "Amount"],
+      "rows": [
+        ["Cloud Server Instance - Standard", "2", "$500.00", "$1000.00"],
+        ["Dedicated Bandwidth Addon", "1", "$450.00", "$450.00"]
+      ]
     }
   ]
-}`;
-    }
-  };
+}`}</pre>
+            </div>
+          </section>
 
-  const activeSectionObj = sections.find((s) => s.id === activeSection) || sections[0];
-  const groups = Array.from(new Set(sections.map((s) => s.group)));
+          {/* Section 6: Self-Hosted Docker Deployment */}
+          <section id="deployment-docker" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>Self-Hosted Docker Deployment</span>
+              <a href="#deployment-docker" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
 
-  return (
-    <div className="min-h-screen bg-[var(--surface-base)] text-[var(--ink-primary)] transition-colors">
-      <Header />
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              Deploy OpenOCR in your own private cloud, on-premises datacenter, or sovereign VPC with Docker Compose:
+            </p>
 
-      <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-8">
-        {/* Top Header & Breadcrumb */}
-        <div className="border-b border-[var(--line-strong)] pb-6 mb-8">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-[var(--signal)] font-bold tracking-wider uppercase">
-              Documentation
-            </span>
-            <span className="text-zinc-400">/</span>
-            <Badge variant="outline">API SPECIFICATION v1.0</Badge>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[var(--ink-primary)] tracking-tight">
-                OpenOCR Developer Documentation &amp; API Reference
-              </h1>
-              <p className="text-xs sm:text-sm text-[var(--ink-secondary)] mt-1 max-w-3xl">
-                Comprehensive technical guide for zero-selection document intelligence, asynchronous worker queues, direct storage uploads, timing-safe HMAC webhooks, and air-gapped clusters.
+            {/* Microsoft Code Block: Docker Compose */}
+            <div className="rounded-[8px] border border-zinc-200 dark:border-[#292d30] overflow-hidden bg-zinc-950 font-mono text-xs">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-900/90 text-zinc-400 select-none">
+                <span className="font-semibold text-zinc-300">docker-compose.selfhosted.yml</span>
+                <button
+                  onClick={() => handleCopyCode(
+`version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/wahla-007/openocr-web:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      - api
+
+  api:
+    image: ghcr.io/wahla-007/openocr-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:secure_pass@db:5432/openocr
+      - REDIS_URL=redis://redis:6379/0
+      - OMNIROUTE_BASE_URL=http://omniroute:20128/v1
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secure_pass
+      - POSTGRES_DB=openocr
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  pgdata:`
+                  )}
+                  className="flex items-center gap-1.5 text-xs hover:text-white text-zinc-400 transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy YAML</span>
+                </button>
+              </div>
+
+              <div className="p-4 text-zinc-100 overflow-x-auto leading-relaxed">
+                <pre>{`version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/wahla-007/openocr-web:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      - api
+
+  api:
+    image: ghcr.io/wahla-007/openocr-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:secure_pass@db:5432/openocr
+      - REDIS_URL=redis://redis:6379/0
+      - OMNIROUTE_BASE_URL=http://omniroute:20128/v1
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secure_pass
+      - POSTGRES_DB=openocr
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  pgdata:`}</pre>
+              </div>
+            </div>
+
+            {/* Microsoft Alert: Tip */}
+            <div className="p-4 rounded-[8px] border-l-4 border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-xs text-zinc-800 dark:text-[#d0d4dc] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400 font-sans uppercase tracking-wider text-[11px]">
+                <Lightbulb className="w-4 h-4 shrink-0" />
+                <span>Tip: Production Nginx Reverse Proxy</span>
+              </div>
+              <p className="leading-relaxed">
+                Ensure your external reverse proxy (Nginx / Traefik / Envoy) has a <strong>read timeout of at least 300 seconds</strong> (<code className="font-mono">proxy_read_timeout 300s;</code>). Large or dense 50-page PDF extraction runs perform deep multi-chunk OCR that can run up to 45–90s without dropping socket connections.
               </p>
             </div>
+          </section>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Section 7: Air-Gapped & Offline Deployment */}
+          <section id="deployment-airgap" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>Air-Gapped &amp; Offline VPC Deployment</span>
+              <a href="#deployment-airgap" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              For defense, banking, and confidential medical networks with <strong>zero external internet connectivity</strong>, OpenOCR can be bundled with completely local vision backends.
+            </p>
+
+            <div className="space-y-2 font-mono text-xs">
+              <div className="p-3 bg-zinc-100 dark:bg-[#0b0e14] border border-zinc-200 dark:border-[#292d30] rounded-[6px]">
+                <span className="text-zinc-500"># 1. Download offline standalone bundle</span>{"\n"}
+                <span className="text-purple-600 dark:text-[#9281f7]">wget</span> https://releases.openocr.io/openocr-enterprise-selfhosted.tar.gz{"\n"}
+                <span className="text-purple-600 dark:text-[#9281f7]">tar</span> -xzf openocr-enterprise-selfhosted.tar.gz{"\n"}
+                <span className="text-purple-600 dark:text-[#9281f7]">cd</span> openocr-enterprise
+              </div>
+              <div className="p-3 bg-zinc-100 dark:bg-[#0b0e14] border border-zinc-200 dark:border-[#292d30] rounded-[6px]">
+                <span className="text-zinc-500"># 2. Configure local Ollama / vLLM in .env</span>{"\n"}
+                VISION_PROVIDER=ollama{"\n"}
+                OLLAMA_BASE_URL=http://localhost:11434{"\n"}
+                OLLAMA_MODEL=minicpm-v:latest
+              </div>
+            </div>
+          </section>
+
+          {/* Section 8: RFC 7807 Standard Error Codes */}
+          <section id="sec-errors" className="space-y-4 scroll-mt-28">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <span>RFC 7807 Error Envelopes &amp; Troubleshooting</span>
+              <a href="#sec-errors" className="text-zinc-400 hover:text-purple-600 text-sm">#</a>
+            </h2>
+
+            <p className="text-sm text-zinc-700 dark:text-[#c4c7cc] leading-relaxed">
+              Every failed request returns standard RFC 7807 problem details with human-readable error messages and programmatic machine codes:
+            </p>
+
+            {/* Microsoft Error Codes Table */}
+            <div className="overflow-x-auto border border-zinc-200 dark:border-[#292d30] rounded-[8px]">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-zinc-100 dark:bg-[#14171f] border-b border-zinc-200 dark:border-[#292d30] text-zinc-700 dark:text-[#a1a4a5] font-mono">
+                  <tr>
+                    <th className="py-2.5 px-3 font-semibold">HTTP Code</th>
+                    <th className="py-2.5 px-3 font-semibold">Error Code</th>
+                    <th className="py-2.5 px-3 font-semibold">Root Cause &amp; Resolution</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-[#292d30] font-mono text-[11px]">
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-amber-600 dark:text-amber-400">400</td>
+                    <td className="py-2 px-3 text-zinc-900 dark:text-white font-bold">UNSUPPORTED_TYPE</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Uploaded file format not supported. Ensure MIME type is PDF or image.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-rose-600 dark:text-rose-400">401</td>
+                    <td className="py-2 px-3 text-zinc-900 dark:text-white font-bold">UNAUTHORIZED</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Missing or revoked API Key. Pass via <code className="text-[10px]">X-API-Key</code> or <code className="text-[10px]">Authorization: Bearer</code>.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-amber-600 dark:text-amber-400">402</td>
+                    <td className="py-2 px-3 text-zinc-900 dark:text-white font-bold">FREE_TIER_LIMIT</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Account quota exhausted. Visit <Link href="/pricing" className="text-purple-600 dark:text-[#9281f7] underline">/pricing</Link> to upgrade.</td>
+                  </tr>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-[#0b0e14]">
+                    <td className="py-2 px-3 font-bold text-purple-600 dark:text-[#9281f7]">429</td>
+                    <td className="py-2 px-3 text-zinc-900 dark:text-white font-bold">RATE_LIMIT_EXCEEDED</td>
+                    <td className="py-2 px-3 font-sans text-zinc-700 dark:text-[#c4c7cc]">Too many requests in sliding 60-second window. Inspect <code className="text-[10px]">Retry-After</code> header.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Microsoft Article Feedback Widget */}
+          <div className="p-6 rounded-[12px] border border-zinc-200 dark:border-[#292d30] bg-zinc-50/70 dark:bg-[#08080a] flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
+            <div className="space-y-1 text-center sm:text-left">
+              <h4 className="text-sm font-bold text-zinc-900 dark:text-white">Was this page helpful?</h4>
+              <p className="text-xs text-zinc-500 dark:text-[#888c94]">Let us know how we can improve our documentation and developer guides.</p>
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("open-openocr-chat"));
-                  }
-                }}
-                className="inline-flex items-center justify-center font-mono font-bold transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] border border-[var(--signal)] bg-[var(--signal-subtle)] text-[var(--signal)] hover:bg-[var(--signal)] hover:text-white px-3 py-1.5 text-xs h-9 rounded-sm gap-2 shadow-xs cursor-pointer"
-                title="Ask the AI Assistant"
+                onClick={() => setUserRating("yes")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-medium border transition-colors ${
+                  userRating === "yes"
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold"
+                    : "border-zinc-200 dark:border-[#292d30] bg-white dark:bg-[#000000] text-zinc-700 dark:text-[#a1a4a5] hover:border-zinc-400"
+                }`}
               >
-                <Bot className="w-4 h-4" />
-                <span>Ask Assistant</span>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
+                <ThumbsUp className="w-3.5 h-3.5" />
+                <span>Yes</span>
               </button>
-              <Link href="/pricing">
-                <Button variant="outline" size="sm" leftIcon={<KeyRound className="w-3.5 h-3.5" />}>
-                  Get Live Key
-                </Button>
-              </Link>
-              <Link href="/self-hosted">
-                <Button variant="outline" size="sm" leftIcon={<Server className="w-3.5 h-3.5" />}>
-                  Self-Hosted Solution
-                </Button>
-              </Link>
-              <Link href="/support">
-                <Button variant="outline" size="sm" leftIcon={<LifeBuoy className="w-3.5 h-3.5" />}>
-                  Support Portal
-                </Button>
-              </Link>
+              <button
+                onClick={() => setUserRating("no")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-medium border transition-colors ${
+                  userRating === "no"
+                    ? "border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 font-bold"
+                    : "border-zinc-200 dark:border-[#292d30] bg-white dark:bg-[#000000] text-zinc-700 dark:text-[#a1a4a5] hover:border-zinc-400"
+                }`}
+              >
+                <ThumbsDown className="w-3.5 h-3.5" />
+                <span>No</span>
+              </button>
             </div>
           </div>
-        </div>
+        </main>
 
-        {/* 3-Column Layout: Sidebar Index (Fixed 270px) | Technical Narrative (Flex-1 max-w-3xl) | Interactive SDK Patch Bay (Fixed 520px) */}
-        <div className="flex flex-col lg:flex-row gap-8 xl:gap-10 items-start">
-          {/* Left Column: Sticky Grouped Index & Quick Filter */}
-          <nav className="w-64 xl:w-72 shrink-0 hidden lg:block sticky top-20 space-y-4 select-none font-mono text-xs border-r border-[var(--line-hairline)] pr-5">
-            {/* Quick Filter Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[var(--ink-muted)]" />
-              <input
-                type="text"
-                placeholder="Filter documentation... (Ctrl+K)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-hairline)] rounded-sm text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-2 text-[10px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+        {/* Right Pane: Microsoft "In this article" (Sticky 240px) */}
+        <aside className="w-56 xl:w-64 shrink-0 hidden xl:flex flex-col sticky top-24 max-h-[calc(100vh-120px)] border-l border-zinc-200 dark:border-[#292d30] pl-6 select-none font-sans text-xs">
+          <span className="font-bold uppercase tracking-wider text-[11px] text-zinc-400 dark:text-[#6e727a] mb-3">
+            In this article
+          </span>
 
-            {/* Grouped Section Links */}
-            <div className="space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
-              {groups.map((group) => {
-                const groupSections = filteredSections.filter((s) => s.group === group);
-                if (groupSections.length === 0) return null;
-
-                return (
-                  <div key={group} className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block mb-1">
-                      {group}
-                    </span>
-                    {groupSections.map((s) => (
-                      <a
-                        key={s.id}
-                        href={`#${s.id}`}
-                        onClick={() => setActiveSection(s.id)}
-                        className={`flex items-start gap-2 py-1.5 px-2.5 rounded-sm transition-colors ${
-                          activeSection === s.id
-                            ? "bg-[var(--signal-subtle)] text-[var(--signal)] font-bold border-l-2 border-l-[var(--signal)]"
-                            : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
-                        }`}
-                      >
-                        <span className="font-mono text-[10px] opacity-75 shrink-0 pt-0.5">{s.number}.</span>
-                        <span className="text-[11px] leading-snug">{s.title}</span>
-                      </a>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="pt-4 border-t border-[var(--line-hairline)] space-y-2">
-              <Link
-                href="/pricing"
-                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
-              >
-                <span>Pricing &amp; Quotas</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-              <Link
-                href="/self-hosted"
-                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
-              >
-                <span>Self-Hosted Cluster</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-              <Link
-                href="/support"
-                className="text-[11px] text-[var(--ink-muted)] hover:text-[var(--signal)] flex items-center justify-between py-0.5"
-              >
-                <span>Customer Support &amp; Tickets</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
+          <nav className="space-y-2 border-l border-transparent text-zinc-500 dark:text-[#888c94]">
+            <a
+              href="#intro"
+              onClick={() => setActiveId("intro")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "intro" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              What is OpenOCR?
+            </a>
+            <a
+              href="#architecture"
+              onClick={() => setActiveId("architecture")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "architecture" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              System Topology
+            </a>
+            <a
+              href="#quickstart"
+              onClick={() => setActiveId("quickstart")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "quickstart" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              Quickstart (5-Minute)
+            </a>
+            <a
+              href="#authentication"
+              onClick={() => setActiveId("authentication")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "authentication" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              Authentication &amp; Tiers
+            </a>
+            <a
+              href="#endpoint-extract"
+              onClick={() => setActiveId("endpoint-extract")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "endpoint-extract" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              POST /v1/extract
+            </a>
+            <a
+              href="#deployment-docker"
+              onClick={() => setActiveId("deployment-docker")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "deployment-docker" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              Docker Compose Setup
+            </a>
+            <a
+              href="#deployment-airgap"
+              onClick={() => setActiveId("deployment-airgap")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "deployment-airgap" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              Air-Gapped &amp; Offline
+            </a>
+            <a
+              href="#sec-errors"
+              onClick={() => setActiveId("sec-errors")}
+              className={`block hover:text-purple-600 dark:hover:text-[#9281f7] transition-colors truncate ${activeId === "sec-errors" ? "text-purple-600 dark:text-[#9281f7] font-semibold" : ""}`}
+            >
+              RFC 7807 Error Codes
+            </a>
           </nav>
 
-          {/* Middle Column: Detailed Technical Specification Narrative */}
-          <div className="flex-1 min-w-0 max-w-3xl space-y-14 text-xs text-[var(--ink-secondary)] leading-relaxed">
-            {/* Section 01: Architecture & Overview */}
-            <section id="overview" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">01.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Architecture & Protocol Invariants
-                </h2>
-              </div>
-              <p>
-                OpenOCR exposes a pure RESTful interface versioned under <code className="font-mono text-[var(--ink-primary)] bg-[var(--surface-subtle)] px-1 py-0.5 rounded-sm">/v1</code>. Every extraction operates under <strong>zero schema selection</strong>: documents are classified first, normalized via PyMuPDF, analyzed by deterministic layout engines, and structured via isolated LLM layers.
-              </p>
-              <div className="p-3 bg-[var(--surface-subtle)] border border-[var(--line-hairline)] rounded-sm space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-[var(--ink-primary)]">Base Production URL:</span>
-                  <Badge variant="signal">PRODUCTION</Badge>
-                </div>
-                <div className="text-[var(--signal)] font-bold">https://api.openocr.io/v1</div>
-                <div className="text-[10px] text-[var(--ink-muted)] pt-1 border-t border-[var(--line-hairline)]">
-                  Self-hosted default: <code className="text-[var(--ink-primary)]">http://localhost:8000/v1</code>
-                </div>
-              </div>
-              <div className="p-3 border border-[var(--line-hairline)] rounded-sm space-y-2">
-                <div className="font-mono text-[11px] font-bold text-[var(--ink-primary)] uppercase flex items-center gap-1.5">
-                  <Cpu className="w-3.5 h-3.5 text-[var(--signal)]" />
-                  <span>Processing Pipeline Topology:</span>
-                </div>
-                <ol className="list-decimal list-inside space-y-1 font-mono text-[11px] text-[var(--ink-secondary)]">
-                  <li><strong>Ingestion:</strong> Multi-part stream or S3 zero-copy storage key.</li>
-                  <li><strong>Normalizer:</strong> PyMuPDF rendering to vector primitives (72 to 300 DPI).</li>
-                  <li><strong>Layout Parser:</strong> IBM Docling extracts reading order, tables, and bounding boxes.</li>
-                  <li><strong>Fallback OCR:</strong> PaddleOCR / RapidOCR triggered on degraded or skewed text.</li>
-                  <li><strong>Structuring Layer:</strong> Post-processor validates schema and calculates confidence.</li>
-                </ol>
-              </div>
-            </section>
-
-            {/* Section 02: Authentication */}
-            <section id="auth" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">02.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Authentication & Bearer Keys
-                </h2>
-              </div>
-              <p>
-                Programmatic API calls require an API key passed via the standard HTTP Bearer header:
-              </p>
-              <div className="p-2.5 bg-[var(--surface-sunken)] border border-[var(--line-strong)] font-mono text-xs rounded-sm text-[var(--ink-primary)] flex items-center justify-between">
-                <span>Authorization: Bearer ocr_live_your_developer_key</span>
-                <button
-                  type="button"
-                  onClick={handleCopyKey}
-                  className="text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-                  title="Copy Header"
-                >
-                  {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <p>
-                Keys are generated with a CSPRNG and hashed using Argon2id in our database. API keys are exempt from cookie CSRF checks but subject to per-key rate limits (120 to 600 req/min).
-              </p>
-              <div className="p-3 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-2">
-                <div className="font-mono text-[11px] font-bold text-[var(--ink-primary)] uppercase">Key Prefix Conventions:</div>
-                <ul className="space-y-1 font-mono text-[11px] text-[var(--ink-secondary)]">
-                  <li>• <strong className="text-[var(--ink-primary)]">ocr_live_*</strong>: Production keys with live credit metering.</li>
-                  <li>• <strong className="text-[var(--ink-primary)]">ocr_test_*</strong>: Sandbox keys with synthetic responses.</li>
-                </ul>
-              </div>
-            </section>
-
-            {/* Section 03: 5-Minute Quickstart */}
-            <section id="quickstart" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">03.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  5-Minute Integration Quickstart
-                </h2>
-              </div>
-              <p>
-                Get your first document extracted in under two minutes with zero SDK dependencies using cURL or your language of choice:
-              </p>
-              <div className="p-4 bg-[var(--surface-sunken)] border border-[var(--signal)]/40 rounded-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] font-bold text-[var(--signal)] uppercase">
-                    Step 1: Execute Extraction via Terminal
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyQuickstart}
-                    className="text-xs font-mono text-[var(--ink-muted)] hover:text-[var(--ink-primary)] flex items-center gap-1"
-                  >
-                    {quickstartCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                    <span>{quickstartCopied ? "Copied" : "Copy cURL"}</span>
-                  </button>
-                </div>
-                <div className="font-mono text-[11px] bg-[var(--surface-base)] p-2.5 rounded-sm overflow-x-auto text-[var(--ink-primary)]">
-                  curl -X POST &quot;https://api.openocr.io/v1/extract&quot; \<br />
-                  &nbsp;&nbsp;-H &quot;Authorization: Bearer {effectiveKey}&quot; \<br />
-                  &nbsp;&nbsp;-F &quot;file=@invoice.pdf&quot; \<br />
-                  &nbsp;&nbsp;-F &quot;wait=true&quot;
-                </div>
-                <div className="text-[11px] text-[var(--ink-secondary)]">
-                  Notice that you did not specify a document template. OpenOCR auto-detects the invoice structure, verifies math integrity, and extracts typed key-value pairs with exact page coordinates.
-                </div>
-              </div>
-            </section>
-
-            {/* Section 04: Document Extraction API */}
-            <section id="extract" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">04.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Document Extraction API
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="signal">POST</Badge>
-                <code className="font-mono font-bold text-xs text-[var(--ink-primary)]">/v1/extract</code>
-              </div>
-              <p>
-                Submits document bytes for immediate extraction. Set <code className="font-mono bg-[var(--surface-subtle)] px-1">wait=true</code> to hold the HTTP connection for synchronous completion (up to 25s), or <code className="font-mono bg-[var(--surface-subtle)] px-1">wait=false</code> to receive a queued job ID.
-              </p>
-              <div className="p-3 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-2">
-                <div className="font-mono text-[11px] font-bold text-[var(--ink-primary)] uppercase">Supported Parameters:</div>
-                <ul className="space-y-1 font-mono text-[11px] text-[var(--ink-secondary)]">
-                  <li>• <strong className="text-[var(--ink-primary)]">file</strong> (multipart/form-data): Raw file bytes (PDF, PNG, JPG, WEBP, TIFF).</li>
-                  <li>• <strong className="text-[var(--ink-primary)]">wait</strong> (boolean, default=true): Synchronous hold vs async queueing.</li>
-                  <li>• <strong className="text-[var(--ink-primary)]">format</strong> (string, default=&quot;json&quot;): json, markdown, or plain text.</li>
-                </ul>
-              </div>
-            </section>
-
-            {/* Section 05: Async Jobs & Polling */}
-            <section id="jobs" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">05.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Async Jobs & Status Polling
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">GET</Badge>
-                <code className="font-mono font-bold text-xs text-[var(--ink-primary)]">/v1/jobs/{`{id}`}</code>
-              </div>
-              <p>
-                For large multi-page reports or batch runs, call <code className="font-mono bg-[var(--surface-subtle)] px-1">/v1/extract?wait=false</code>. You will receive an immediate HTTP 200 payload containing the <code className="font-mono bg-[var(--surface-subtle)] px-1">job_id</code>.
-              </p>
-              <p>
-                Poll <code className="font-mono bg-[var(--surface-subtle)] px-1">/v1/jobs/{`{id}`}</code> at 1 to 2 second intervals. When <code className="font-mono bg-[var(--surface-subtle)] px-1">status == &quot;done&quot;</code>, the full extraction schema is returned. If failed, <code className="font-mono bg-[var(--surface-subtle)] px-1">error_code</code> contains the machine failure reason.
-              </p>
-              <div className="p-3 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-2">
-                <div className="font-mono text-[11px] font-bold text-[var(--ink-primary)] uppercase">Job Lifecycle States:</div>
-                <div className="grid grid-cols-3 gap-2 font-mono text-[11px]">
-                  <div className="p-1.5 border border-[var(--line-hairline)] rounded-sm text-center">
-                    <span className="text-[var(--ink-muted)] block text-[10px]">STAGE 1</span>
-                    <strong className="text-amber-600">queued</strong>
-                  </div>
-                  <div className="p-1.5 border border-[var(--line-hairline)] rounded-sm text-center">
-                    <span className="text-[var(--ink-muted)] block text-[10px]">STAGE 2</span>
-                    <strong className="text-blue-600">processing</strong>
-                  </div>
-                  <div className="p-1.5 border border-[var(--line-hairline)] rounded-sm text-center">
-                    <span className="text-[var(--ink-muted)] block text-[10px]">STAGE 3</span>
-                    <strong className="text-emerald-600">done / failed</strong>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 06: Direct Storage Uploads */}
-            <section id="uploads" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">06.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Direct Signed Storage URLs
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="signal">POST</Badge>
-                <code className="font-mono font-bold text-xs text-[var(--ink-primary)]">/v1/uploads/sign</code>
-              </div>
-              <p>
-                Rule 6 Architectural Invariant: For documents over 10MB or client-side web apps, file bytes should never bottleneck the application server. Instead, use pre-signed object storage URLs.
-              </p>
-              <ol className="list-decimal list-inside space-y-1.5 text-xs text-[var(--ink-secondary)]">
-                <li><strong className="text-[var(--ink-primary)]">Request URL:</strong> Call <code className="font-mono bg-[var(--surface-subtle)] px-1">/v1/uploads/sign</code> with <code className="font-mono bg-[var(--surface-subtle)] px-1">filename</code>, <code className="font-mono bg-[var(--surface-subtle)] px-1">mime</code>, and <code className="font-mono bg-[var(--surface-subtle)] px-1">size_bytes</code>.</li>
-                <li><strong className="text-[var(--ink-primary)]">Direct PUT:</strong> Upload the binary file directly to S3/MinIO via HTTP PUT with the returned pre-signed URL (expires in 15 minutes).</li>
-                <li><strong className="text-[var(--ink-primary)]">Execute:</strong> Trigger extraction via <code className="font-mono bg-[var(--surface-subtle)] px-1">/v1/extract?file_key={"{file_key}"}</code>.</li>
-              </ol>
-            </section>
-
-            {/* Section 07: Webhooks */}
-            <section id="webhooks" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">07.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  HMAC Webhook Verification
-                </h2>
-              </div>
-              <p>
-                Every asynchronous webhook payload is signed with an HMAC-SHA256 signature passed in the <code className="font-mono bg-[var(--surface-subtle)] px-1">X-OpenOCR-Signature</code> header. You must verify this signature using constant-time comparison to defeat timing attacks.
-              </p>
-              <p>
-                Signatures use the standard format <code className="font-mono bg-[var(--surface-subtle)] px-1">t={"{timestamp}"},v1={"{hmac_hex}"}</code>. Payloads older than 300 seconds are rejected to protect against replay attacks.
-              </p>
-
-              {/* Ready-to-Copy Webhook Code Tabs */}
-              <div className="p-3 border border-[var(--line-strong)] rounded-sm bg-[var(--surface-sunken)] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] font-bold text-[var(--ink-primary)] uppercase">
-                    Verification Implementations:
-                  </span>
-                  <div className="flex items-center gap-1 font-mono text-[10px]">
-                    {(["python", "node", "go"] as WebhookLang[]).map((lang) => (
-                      <button
-                        key={lang}
-                        type="button"
-                        onClick={() => setWebhookLang(lang)}
-                        className={`px-1.5 py-0.5 rounded-sm uppercase font-bold ${
-                          webhookLang === lang
-                            ? "bg-[var(--signal)] text-white"
-                            : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-                        }`}
-                      >
-                        {lang}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="font-mono text-[11px] overflow-x-auto text-[var(--ink-secondary)]">
-                  {webhookLang === "python" && (
-                    <pre className="text-[11px] leading-relaxed">
-{`import hmac, hashlib, time
-
-def verify(body: bytes, sig_header: str, secret: str) -> bool:
-    parts = dict(p.split("=") for p in sig_header.split(","))
-    if abs(time.time() - int(parts["t"])) > 300:
-        return False # Replay protection
-    signed = f"{parts['t']}.".encode() + body
-    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, parts["v1"])`}
-                    </pre>
-                  )}
-                  {webhookLang === "node" && (
-                    <pre className="text-[11px] leading-relaxed">
-{`const crypto = require("crypto");
-
-function verify(rawBody, sigHeader, secret) {
-  const parts = Object.fromEntries(sigHeader.split(",").map(p => p.split("=")));
-  if (Math.abs(Date.now()/1000 - Number(parts.t)) > 300) return false;
-  const hmac = crypto.createHmac("sha256", secret);
-  hmac.update(\`\${parts.t}.\`);
-  hmac.update(rawBody);
-  const expected = Buffer.from(hmac.digest("hex"));
-  const actual = Buffer.from(parts.v1);
-  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
-}`}
-                    </pre>
-                  )}
-                  {webhookLang === "go" && (
-                    <pre className="text-[11px] leading-relaxed">
-{`package webhook
-
-import (
-    "crypto/hmac"
-    "crypto/sha256"
-    "encoding/hex"
-    "fmt"
-    "math"
-    "time"
-)
-
-func Verify(body []byte, ts int64, sig, secret string) bool {
-    if math.Abs(float64(time.Now().Unix() - ts)) > 300 {
-        return false // Replay window exceeded
-    }
-    mac := hmac.New(sha256.New, []byte(secret))
-    mac.Write([]byte(fmt.Sprintf("%d.", ts)))
-    mac.Write(body)
-    expected := hex.EncodeToString(mac.Sum(nil))
-    return hmac.Equal([]byte(expected), []byte(sig))
-}`}
-                    </pre>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Section 08: Standard Error Envelopes */}
-            <section id="errors" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">08.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Standard Error Envelopes & Recovery Catalog
-                </h2>
-              </div>
-              <p>
-                All 4xx and 5xx responses strictly adhere to our predictable, machine-readable JSON error envelope:
-              </p>
-              <div className="p-3 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-sunken)] font-mono text-[11px] space-y-1">
-                <div>{`{ "error": { "code": "...", "message": "...", "request_id": "..." } }`}</div>
-              </div>
-              <div className="space-y-2 pt-1">
-                <div className="font-mono text-[11px] font-bold text-[var(--ink-primary)] uppercase">Standard Error Codes Matrix:</div>
-                <div className="divide-y divide-[var(--line-hairline)] border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] font-mono text-[11px]">
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">UNAUTHORIZED</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 401 • Missing or invalid bearer key</span>
-                    </div>
-                    <span className="text-[10px] text-emerald-600 font-bold">Inspect Authorization header</span>
-                  </div>
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">FILE_TOO_LARGE</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 413 • Exceeds tier file size (10MB-100MB)</span>
-                    </div>
-                    <span className="text-[10px] text-blue-600 font-bold">Use /v1/uploads/sign</span>
-                  </div>
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">UNSUPPORTED_TYPE</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 415 • Disallowed MIME format</span>
-                    </div>
-                    <span className="text-[10px] text-[var(--ink-muted)]">PDF, PNG, JPG, TIFF, WEBP</span>
-                  </div>
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">TOO_MANY_PAGES</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 422 • Exceeds plan page maximum</span>
-                    </div>
-                    <span className="text-[10px] text-amber-600 font-bold">Split pages or upgrade</span>
-                  </div>
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">QUOTA_EXCEEDED</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 429 • Daily credits exhausted</span>
-                    </div>
-                    <span className="text-[10px] text-amber-600 font-bold">Top-up or wait UTC reset</span>
-                  </div>
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">RATE_LIMITED</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 429 • Sliding window request limit reached</span>
-                    </div>
-                    <span className="text-[10px] text-blue-600 font-bold">Check Retry-After header</span>
-                  </div>
-                  <div className="p-2 flex justify-between items-center">
-                    <div>
-                      <strong className="text-[var(--signal)]">JOB_NOT_FOUND</strong>
-                      <span className="text-[var(--ink-muted)] block text-[10px]">HTTP 404 • Invalid or expired job ID (24h TTL)</span>
-                    </div>
-                    <span className="text-[10px] text-[var(--ink-muted)]">Verify job ID</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 09: Rate Limits & Quota Headers */}
-            <section id="ratelimits" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">09.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Rate Limits & Quota Headers
-                </h2>
-              </div>
-              <p>
-                Every API response includes standardized HTTP headers detailing your sliding window capacity and daily credit quota:
-              </p>
-              <div className="p-3 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-2 font-mono text-[11px]">
-                <div className="flex justify-between items-center border-b border-[var(--line-hairline)] pb-1">
-                  <span className="font-bold text-[var(--ink-primary)]">X-RateLimit-Limit</span>
-                  <span className="text-[var(--ink-muted)]">Permitted req/min (e.g. 120, 300, 600)</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-[var(--line-hairline)] pb-1">
-                  <span className="font-bold text-[var(--ink-primary)]">X-RateLimit-Remaining</span>
-                  <span className="text-[var(--ink-muted)]">Requests remaining in current window</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-[var(--line-hairline)] pb-1">
-                  <span className="font-bold text-[var(--ink-primary)]">X-Quota-Limit</span>
-                  <span className="text-[var(--ink-muted)]">Total daily credits for your plan</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-[var(--line-hairline)] pb-1">
-                  <span className="font-bold text-[var(--ink-primary)]">X-Quota-Remaining</span>
-                  <span className="text-[var(--ink-muted)]">Unconsumed credits left today</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-[var(--ink-primary)]">X-Quota-Reset</span>
-                  <span className="text-[var(--ink-muted)]">Epoch Unix timestamp of midnight UTC</span>
-                </div>
-              </div>
-              <p>
-                If your client receives an HTTP 429, inspect the <code className="font-mono bg-[var(--surface-subtle)] px-1">Retry-After</code> header and apply jittered exponential backoff before repeating the request.
-              </p>
-            </section>
-
-            {/* Section 10: Document Schemas & Models */}
-            <section id="schemas" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">10.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Document Extraction Schemas
-                </h2>
-              </div>
-              <p>
-                OpenOCR zero-schema engine classifies incoming files and extracts structured models matching these verified schemas:
-              </p>
-
-              {/* Interactive Schema Tabs */}
-              <div className="flex items-center gap-1.5 font-mono text-[11px] border-b border-[var(--line-hairline)] pb-2">
-                {(["invoice", "receipt", "driving_license", "contract"] as SchemaType[]).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setActiveSchema(st)}
-                    className={`px-2.5 py-1 rounded-sm capitalize transition-colors font-bold ${
-                      activeSchema === st
-                        ? "bg-[var(--signal)] text-white"
-                        : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
-                    }`}
-                  >
-                    {st.replace("_", " ")}
-                  </button>
-                ))}
-              </div>
-
-              {/* Dynamic Schema Details */}
-              <div className="p-3.5 border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] space-y-2 font-mono text-[11px]">
-                {activeSchema === "invoice" && (
-                  <>
-                    <div className="font-bold text-[var(--ink-primary)] flex items-center justify-between">
-                      <span>Commercial Invoice Schema (`invoice`)</span>
-                      <Badge variant="signal">FINANCIAL AUDIT</Badge>
-                    </div>
-                    <ul className="space-y-1 text-[var(--ink-secondary)]">
-                      <li>• <strong className="text-[var(--ink-primary)]">invoice_number</strong>: string (alphanumeric invoice code)</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">vendor</strong>: {`{ name, tax_id, address, iban }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">customer</strong>: {`{ name, address, tax_id }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">totals</strong>: {`{ currency, subtotal, tax_amount, total_amount }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">validation</strong>: Arithmetic check verified: subtotal + tax == total</li>
-                    </ul>
-                  </>
-                )}
-                {activeSchema === "receipt" && (
-                  <>
-                    <div className="font-bold text-[var(--ink-primary)] flex items-center justify-between">
-                      <span>Retail Receipt Schema (`receipt`)</span>
-                      <Badge variant="outline">POINT OF SALE</Badge>
-                    </div>
-                    <ul className="space-y-1 text-[var(--ink-secondary)]">
-                      <li>• <strong className="text-[var(--ink-primary)]">merchant</strong>: {`{ name, store_id, address }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">transaction</strong>: {`{ timestamp, cashier, payment_method }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">financials</strong>: {`{ subtotal, tax, tip, total }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">items</strong>: Itemized line matrix with quantity & price</li>
-                    </ul>
-                  </>
-                )}
-                {activeSchema === "driving_license" && (
-                  <>
-                    <div className="font-bold text-[var(--ink-primary)] flex items-center justify-between">
-                      <span>Identity & Driver&apos;s License Schema (`driving_license`)</span>
-                      <Badge variant="outline">GOV AUDIT</Badge>
-                    </div>
-                    <ul className="space-y-1 text-[var(--ink-secondary)]">
-                      <li>• <strong className="text-[var(--ink-primary)]">license_number</strong>: Normalized government identifier</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">holder</strong>: {`{ full_name, date_of_birth, address }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">validity</strong>: {`{ issued, expires, class }`}</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">biometric</strong>: Face portrait and signature detection flags</li>
-                    </ul>
-                  </>
-                )}
-                {activeSchema === "contract" && (
-                  <>
-                    <div className="font-bold text-[var(--ink-primary)] flex items-center justify-between">
-                      <span>Legal Agreement & NDA Schema (`contract`)</span>
-                      <Badge variant="outline">LEGAL SPEC</Badge>
-                    </div>
-                    <ul className="space-y-1 text-[var(--ink-secondary)]">
-                      <li>• <strong className="text-[var(--ink-primary)]">title</strong>: Formal contract or NDA header title</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">parties</strong>: Array of legal signatories and corporate entities</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">governing_law</strong>: Designated jurisdiction / state</li>
-                      <li>• <strong className="text-[var(--ink-primary)]">signatures</strong>: Signature verification & timestamp flags</li>
-                    </ul>
-                  </>
-                )}
-              </div>
-            </section>
-
-            {/* Section 11: Self-Hosted & Air-Gapped */}
-            <section id="selfhosted" className="space-y-3 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">11.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Self-Hosted & Air-Gapped Deployment
-                </h2>
-              </div>
-              <p>
-                OpenOCR is 100% self-hosted capable. The platform can operate in completely air-gapped VPCs with zero outbound internet requests.
-              </p>
-              <ul className="list-disc list-inside space-y-1 font-mono text-[11px] text-[var(--ink-secondary)]">
-                <li>• <strong className="text-[var(--ink-primary)]">Zero CDN reliance:</strong> All fonts, glyphs, and assets are local static bundles.</li>
-                <li>• <strong className="text-[var(--ink-primary)]">Local OCR Backends:</strong> IBM Docling (primary layout parser) with PaddleOCR and RapidOCR fallbacks.</li>
-                <li>• <strong className="text-[var(--ink-primary)]">Billing Bypass:</strong> In self-hosted mode, payment gateways and subscription checks are completely deactivated.</li>
-              </ul>
-              <div className="pt-2">
-                <Link href="/self-hosted">
-                  <Button variant="outline" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                    View Self-Hosted Solution
-                  </Button>
-                </Link>
-              </div>
-            </section>
-
-            {/* Section 12: Technical Glossary & Concepts (AEO / GEO) */}
-            <section id="glossary" className="space-y-4 scroll-mt-24">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[var(--signal)] font-bold">12.</span>
-                <h2 className="font-serif text-lg font-bold text-[var(--ink-primary)]">
-                  Technical Glossary &amp; Core Concepts
-                </h2>
-              </div>
-              <p>
-                Authoritative definitions and canonical descriptions of document intelligence terminology designed for engineering teams and answer engine discovery:
-              </p>
-
-              <div className="divide-y divide-[var(--line-hairline)] border border-[var(--line-hairline)] rounded-sm bg-[var(--surface-subtle)] font-mono text-[11px]">
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-[var(--ink-primary)] text-xs">OCR (Optical Character Recognition)</strong>
-                    <Badge variant="outline">TRANSCRIPTION</Badge>
-                  </div>
-                  <p className="text-[var(--ink-secondary)] leading-relaxed">
-                    OCR is the computational process of converting raw pixel glyphs from scanned paper documents or digital images into machine-readable Unicode strings without inherent spatial hierarchy or structural comprehension.
-                  </p>
-                </div>
-
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-[var(--ink-primary)] text-xs">IDP (Intelligent Document Processing)</strong>
-                    <Badge variant="signal">END-TO-END</Badge>
-                  </div>
-                  <p className="text-[var(--ink-secondary)] leading-relaxed">
-                    IDP combines optical layout parsing, reading order reconstruction, multi-column grid analysis, and LLM entity structuring to transform complex unstructured documents into validated, strongly-typed JSON models.
-                  </p>
-                </div>
-
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-[var(--ink-primary)] text-xs">Zero-Selection Architecture</strong>
-                    <Badge variant="outline">AUTONOMOUS</Badge>
-                  </div>
-                  <p className="text-[var(--ink-secondary)] leading-relaxed">
-                    A design invariant where the ingestion pipeline automatically detects document taxonomy (e.g. invoice, receipt, driver&apos;s license) and executes extraction without requiring user-defined coordinate templates, prompt engineering, or bounding box bounding rules.
-                  </p>
-                </div>
-
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-[var(--ink-primary)] text-xs">Bounding Box (BBox) Provenance</strong>
-                    <Badge variant="outline">COORDINATES</Badge>
-                  </div>
-                  <p className="text-[var(--ink-secondary)] leading-relaxed">
-                    A normalized four-tuple coordinate set (x, y, width, height) indicating the exact geometric rectangle on a page where a piece of information was identified, providing complete audit traceability back to source pixels.
-                  </p>
-                </div>
-
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-[var(--ink-primary)] text-xs">Arithmetic Invariant Reconciliation</strong>
-                    <Badge variant="signal">MATH VERIFICATION</Badge>
-                  </div>
-                  <p className="text-[var(--ink-secondary)] leading-relaxed">
-                    Automated post-extraction verification that enforces financial consistency. For commercial invoices, the engine validates that subtotal plus calculated tax strictly equals the stated total amount before marking the payload as valid.
-                  </p>
-                </div>
-
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-[var(--ink-primary)] text-xs">Timing-Safe HMAC Webhooks</strong>
-                    <Badge variant="outline">SECURITY</Badge>
-                  </div>
-                  <p className="text-[var(--ink-secondary)] leading-relaxed">
-                    Cryptographic signature verification utilizing HMAC-SHA256 and constant-time string comparisons that prevent timing attacks, paired with a strict 300-second timestamp drift tolerance to defeat replay vulnerabilities.
-                  </p>
-                </div>
-              </div>
-            </section>
+          <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-[#292d30] space-y-2">
+            <a
+              href="https://github.com/Wahla-007/ocr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-zinc-500 hover:text-purple-600 dark:hover:text-[#9281f7] flex items-center justify-between"
+            >
+              <span>GitHub Repository</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <Link
+              href="/support"
+              className="text-[11px] text-zinc-500 hover:text-purple-600 dark:hover:text-[#9281f7] flex items-center justify-between"
+            >
+              <span>Submit Issue / Ticket</span>
+              <LifeBuoy className="w-3 h-3" />
+            </Link>
           </div>
-
-          {/* Right Column: The SDK Patch Bay & Live Memory Tester */}
-          <div className="w-full lg:w-[480px] xl:w-[540px] shrink-0 sticky top-20 self-start space-y-6">
-            {/* The SDK Patch Bay */}
-            <div className="p-5 border border-[var(--line-strong)] rounded-sm bg-[var(--surface-base)] shadow-card space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--line-hairline)] pb-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-1.5 rounded bg-[var(--signal-subtle)] text-[var(--signal)] shrink-0">
-                    <Terminal className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-[var(--ink-primary)] block">
-                      The SDK Patch Bay
-                    </span>
-                    <span className="font-mono text-[11px] text-[var(--signal)] font-semibold truncate block">
-                      {activeSectionObj.number}. {activeSectionObj.title}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Language Switcher Tabs */}
-                <div className="flex items-center gap-1 font-mono text-[11px] bg-[var(--surface-sunken)] p-1 rounded-sm border border-[var(--line-hairline)] shrink-0">
-                  {(["curl", "python", "typescript", "go"] as CodeLang[]).map((lang) => (
-                    <button
-                      key={lang}
-                      type="button"
-                      onClick={() => setSelectedLang(lang)}
-                      className={`px-2 py-0.5 rounded-sm uppercase font-bold text-[10px] tracking-wider transition-colors ${
-                        selectedLang === lang
-                          ? "bg-[var(--signal)] text-white shadow-xs"
-                          : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--surface-subtle)]"
-                      }`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Memory-Only Key Slot */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between font-mono text-[11px]">
-                  <label htmlFor="docs-key-injector" className="text-[var(--ink-secondary)] font-medium uppercase tracking-wider flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-[var(--signal)]" />
-                    <span>Live Key Injector:</span>
-                  </label>
-                  <span className="text-[10px] text-emerald-600 font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                    Memory only
-                  </span>
-                </div>
-                <div className="relative">
-                  <input
-                    id="docs-key-injector"
-                    type="text"
-                    placeholder="Paste key to inject into code snippets live..."
-                    value={testKey}
-                    onChange={(e) => setTestKey(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs font-mono bg-[var(--surface-sunken)] border border-[var(--line-strong)] rounded-sm text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--signal)]"
-                  />
-                  {testKey && (
-                    <button
-                      type="button"
-                      onClick={() => setTestKey("")}
-                      className="absolute right-2 top-2 text-[10px] font-mono text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Dynamic Code Snippet based on activeSection and selectedLang */}
-              <CodeBlock
-                language={selectedLang}
-                code={getSectionCode(activeSection, selectedLang)}
-                showLineNumbers
-              />
-            </div>
-
-            {/* Authoritative Live API Response Schema */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="font-bold text-[var(--ink-secondary)] uppercase tracking-wider">
-                  Sample Protocol Response ({activeSectionObj.number})
-                </span>
-                <span className="text-[11px] text-emerald-600 font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                  200 OK
-                </span>
-              </div>
-              <CodeBlock
-                language="json"
-                filename={`${activeSection}_payload.json`}
-                code={getSectionSampleResponse(activeSection)}
-              />
-            </div>
-
-            {/* Interactive Technical Assistant Card */}
-            <div className="p-4 rounded-sm border border-[var(--signal)]/30 bg-[var(--surface-subtle)] space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--signal)]">
-                  <Bot className="w-4 h-4" />
-                  <span>OpenOCR Assistant</span>
-                </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold border border-emerald-500/20">
-                  Online
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--ink-secondary)] leading-relaxed">
-                Have questions about authentication, S3 zero-copy uploads, rate limits, or air-gapped clusters? The assistant answers directly from our verified docs.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("open-openocr-chat"));
-                  }
-                }}
-                className="w-full py-2 px-3 rounded-sm bg-[#161618] hover:bg-[#1F1F23] border border-[#C85A32] text-[#FBF9F5] text-xs font-mono font-semibold flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
-              >
-                <Bot className="w-3.5 h-3.5 text-[#C85A32]" />
-                <span>Launch Assistant Chat</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
+        </aside>
+      </div>
     </div>
   );
 }
